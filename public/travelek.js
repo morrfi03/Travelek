@@ -3353,10 +3353,14 @@ function smoothRing(ring){
   return pts;
 }
 function paintOn(group, poly, style, keepRaw){
-  if(!poly||!poly[0]) return;
-  /* Preserve exact shared boundaries for Russian regions. */
-  var ring=keepRaw ? poly[0] : smoothRing(poly[0]);
-  var latlngs=[ring.map(function(pt){ return [pt[1], pt[0]]; })];
+  if(!poly||!poly.length) return;
+  /* The first ring is the outer border; subsequent rings are holes. */
+  var latlngs=poly.map(function(ring){
+    if(!ring||ring.length<3) return [];
+    var points=keepRaw ? ring : smoothRing(ring);
+    return points.map(function(pt){ return [pt[1],pt[0]]; });
+  }).filter(function(ring){ return ring.length>=3; });
+  if(!latlngs.length) return;
   L.polygon(latlngs, style).addTo(group);
 }
 function drawWorld(){
@@ -3366,7 +3370,7 @@ function drawWorld(){
   if(typeof COUNTRY_LIST==="undefined" || !COUNTRY_LIST) return;
   var pal=mapPalette();
   var style={color:pal.edge, weight:0.4, opacity:.45, lineJoin:"round", lineCap:"round", fillColor:pal.land, fillOpacity:1, interactive:false, smoothFactor:0};
-  var ruStyle={color:pal.ru, weight:0.8, opacity:1, lineJoin:"round", lineCap:"round", fillColor:pal.ru, fillOpacity:1, interactive:false, smoothFactor:0};
+  var ruStyle={color:pal.ru, weight:0.45, opacity:1, lineJoin:"round", lineCap:"round", fillColor:pal.ru, fillOpacity:1, interactive:false, smoothFactor:0};
   COUNTRY_LIST.forEach(function(c){
     if(c.i==="RU") return;
     if(typeof polysOf!=="function") return;
@@ -5281,7 +5285,7 @@ function bootGeo(){
       if(!r.ok) throw new Error("Local Russia geometry unavailable");
       return r.json();
     }).then(function(data){ return (data&&data.items)||[]; });
-    fetch("https://raw.githubusercontent.com/wmgeolab/geoBoundaries/9469f09/releaseData/gbOpen/RUS/ADM1/geoBoundaries-RUS-ADM1_simplified.geojson")
+    fetch("https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/RUS/ADM1/geoBoundaries-RUS-ADM1_simplified.geojson")
       .then(function(r){ if(!r.ok) throw new Error("geoBoundaries download failed"); return r.json(); })
       .then(function(data){
         if(!data || !Array.isArray(data.features) || !data.features.length) throw new Error("Invalid geoBoundaries GeoJSON");
