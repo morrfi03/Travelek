@@ -5289,8 +5289,21 @@ function bootGeo(){
           var props=feature.properties||{}, geom=feature.geometry||{};
           var name=props.shapeName||props.shapeNameAlt||props.name||props.NAME_1||props.NAME||props.admin||props.name_local;
           if(!name || !geom.coordinates) return null;
-          return {n:String(name), id:String(name), p:geom.type==="Polygon" ? geom.coordinates : geom.type==="MultiPolygon" ? geom.coordinates : null};
-        }).filter(function(r){ return r && r.p; }).map(withBbox);
+          if(geom.type!=="Polygon" && geom.type!=="MultiPolygon") return null;
+          var bounds=[Infinity,Infinity,-Infinity,-Infinity];
+          function collectPoints(value){
+            if(!Array.isArray(value)) return;
+            if(typeof value[0]==="number" && typeof value[1]==="number"){
+              var lng=value[0], lat=value[1];
+              bounds[0]=Math.min(bounds[0],lat); bounds[1]=Math.min(bounds[1],lng);
+              bounds[2]=Math.max(bounds[2],lat); bounds[3]=Math.max(bounds[3],lng);
+              return;
+            }
+            value.forEach(collectPoints);
+          }
+          collectPoints(geom.coordinates);
+          return {n:String(name), id:String(name), p:geom.coordinates, b:bounds};
+        }).filter(function(r){ return r && r.p && isFinite(r.b[0]); });
         if(items.length<70) throw new Error("geoBoundaries subject count too low");
         var seen={};
         items.forEach(function(r){ seen[r.n.toLowerCase().replace(/ё/g,"е")]=true; });
