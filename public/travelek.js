@@ -5265,7 +5265,7 @@ function bootGeo(){
     RUSSIA_REGIONS=items;
     finish();
   } else {
-  fetch("/geo/russia.json?v=1").then(function(r){ return r.json(); }).then(function(data){
+  fetch("/geo/russia.json?v=2").then(function(r){ return r.json(); }).then(function(data){
     var items=((data&&data.items)||[]).map(function(r){ r.id=r.n; return r; });
     RUSSIA_REGIONS=items;
     finish();
