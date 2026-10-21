@@ -2159,6 +2159,45 @@ wipeRoutesOnce();
     });
     return chain.then(function(){ return list; });
   }
+  function pullRemote(){
+    if(!me || document.hidden || cloudTimer) return;
+    var modal=document.getElementById("modal");
+    if(modal && modal.classList.contains("on")) return;
+    fetch(STORE_URL+"?t="+Date.now(),{cache:"no-store"}).then(function(r){
+      if(!r.ok) throw new Error("load");
+      return r.json();
+    }).then(function(data){
+      if(!data||!data.vault) return;
+      var view=sessionStorage.getItem("travelek-view");
+      var owner=(view && me.role==="admin")?view:me.id;
+      var remotePack=data.vault[owner]||null;
+      var remoteExtra=remotePack && typeof remotePack["travelek-extra"]==="string" ? remotePack["travelek-extra"] : null;
+      var localExtra=localStorage.getItem("travelek-extra");
+      function nExtra(raw){ try{ var a=JSON.parse(raw||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
+      if(Array.isArray(data.users)){
+        try{ localStorage.setItem(USERS, JSON.stringify(data.users)); }catch(e){}
+      }
+      var vv=vault();
+      Object.keys(vv).forEach(function(id){
+        if(id===owner) return;
+        try{
+          var lr=JSON.parse((vv[id]&&vv[id]["travelek-extra"])||"[]").length;
+          var rr=JSON.parse((data.vault[id]&&data.vault[id]["travelek-extra"])||"[]").length;
+          if(lr>rr) data.vault[id]=vv[id];
+        }catch(e){}
+      });
+      try{ localStorage.setItem(VAULT, JSON.stringify(data.vault)); }catch(e){}
+      if(remoteExtra!=null && remoteExtra!==localExtra && nExtra(remoteExtra)>=nExtra(localExtra)){
+        apply(remotePack);
+        ROUTES=assembleRoutes();
+        if(typeof render==="function") render();
+        if(typeof syncVisited==="function"){ syncVisited(); if(typeof drawCountries==="function") drawCountries(); }
+        if(typeof drawGlobe==="function" && globeOn) drawGlobe();
+      }
+      var panel=document.getElementById("account-panel");
+      if(panel && panel.classList.contains("on") && window.__fillAccount) window.__fillAccount();
+    }).catch(function(){});
+  }
   var storePromise=null;
   function ensureStore(){
     if(storePromise) return storePromise;
@@ -2212,7 +2251,7 @@ wipeRoutesOnce();
         window.__TRAVELEK_STORE_CHANGED=after!==before;
         if(after!==before) return saveStoreNow();
       });
-    }).catch(function(){}).then(function(){ window.__TRAVELEK_STORE_READY=true; });
+    }).catch(function(){}).then(function(){ window.__TRAVELEK_STORE_READY=true; if(!window.__TRAVELEK_POLL) window.__TRAVELEK_POLL=setInterval(pullRemote, 8000); });
     return storePromise;
   }
   function apply(pack){
@@ -3114,7 +3153,7 @@ function installTileCache(){
 
 (function(){
   function cacheTileUrl(url){
-    if(!window.caches||!url||!/arcgisonline/i.test(url)) return;
+    if(!window.caches||!url||!(/arcgisonline|yandex\.net/i.test(url))) return;
     caches.open("travelek-tiles-v1").then(function(c){
       c.match(url).then(function(hit){
         if(hit) return;
@@ -3143,7 +3182,7 @@ function registerOfflineSW(){
     "self.addEventListener('activate',function(e){ e.waitUntil(self.clients.claim()); });",
     "self.addEventListener('fetch',function(e){",
     "  var u=e.request.url;",
-    "  if(/arcgisonline\\.com/i.test(u) || /tile/i.test(u) && /\\/\\d+\\/\\d+\\/\\d+/.test(u)){",
+    "  if(/arcgisonline\\.com/i.test(u) || /yandex\\.net/i.test(u) || /tile/i.test(u) && /\\/\\d+\\/\\d+\\/\\d+/.test(u)){",
     "    e.respondWith(caches.open(CACHE).then(function(c){",
     "      return c.match(e.request).then(function(hit){",
     "        if(hit) return hit;",
@@ -3261,10 +3300,9 @@ var TILE="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/Map
 var baseLayer=null;
 function makeBase(){
   var g=L.layerGroup();
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png",{
-    subdomains:"abcd", maxZoom:19, attribution:""
+  L.tileLayer("https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&scale=1&lang=ru_RU",{
+    maxZoom:19, attribution:""
   }).addTo(g);
-  L.tileLayer(TILE,{maxZoom:18, attribution:""}).addTo(g);
   return g;
 }
 
