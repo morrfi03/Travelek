@@ -1,12 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#07090f">
-<title>ТравелЕк</title>
-<style>
-/* required styles */
+<html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>ТравелЕк</title><style>/* required styles */
 
 .leaflet-pane,
 .leaflet-tile,
@@ -667,10 +660,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
 		print-color-adjust: exact;
 		}
 	}
-
-</style>
-</head>
-<body>
+</style></head><body>
 <style>
 :root,:root[data-theme="dark"]{
   --bg:#07090f;
@@ -6504,6 +6494,19 @@ if(fromRoutes) fromRoutes.onclick=function(){
   var st=regionStats();
   alert("По маршрутам: "+n+" стран"+(st.total?(", Россия "+st.got+" из "+st.total):""));
 };
+window.__travelekStats=function(){
+  var kmP=0, kmT=0, kmC=0, i, r, g;
+  for(i=0;i<(ROUTES||[]).length;i++){
+    r=ROUTES[i];
+    g=typeof buildGeoSync==="function"?buildGeoSync(r):null;
+    if(!g) continue;
+    if(r.mode==="plane") kmP+=g.km||0;
+    else if(r.mode==="car") kmC+=g.km||0;
+    else kmT+=g.km||0;
+  }
+  var st=regionStats();
+  return {routes:ROUTES.length, countries:visited.length, regions:st, plane:Math.round(kmP), train:Math.round(kmT), car:Math.round(kmC)};
+};
 
 })();
 
@@ -6532,18 +6535,8 @@ if(fromRoutes) fromRoutes.onclick=function(){
   if(close && panel) close.onclick=function(){ panel.classList.remove("on"); };
   function statBox(n, label){ return '<div><b>'+n+'</b><span>'+label+'</span></div>'; }
   function diaryTotals(){
-    var kmP=0, kmT=0, kmC=0, i, r, g;
-    var list=typeof ROUTES!=="undefined"?ROUTES:[];
-    for(i=0;i<list.length;i++){
-      r=list[i];
-      g=typeof buildGeoSync==="function"?buildGeoSync(r):null;
-      if(!g) continue;
-      if(r.mode==="plane") kmP+=g.km||0;
-      else if(r.mode==="car") kmC+=g.km||0;
-      else kmT+=g.km||0;
-    }
-    var st=typeof regionStats==="function"?regionStats():{got:0,total:0};
-    return {routes:list.length, countries:typeof visited!=="undefined"?visited.length:0, regions:st, plane:Math.round(kmP), train:Math.round(kmT), car:Math.round(kmC)};
+    if(typeof window.__travelekStats==="function") return window.__travelekStats();
+    return {routes:0, countries:0, regions:{got:0,total:0}, plane:0, train:0, car:0};
   }
   function fillAccount(){
     var me=window.__TRAVELEK_ME||{};
@@ -6626,5 +6619,4 @@ if(fromRoutes) fromRoutes.onclick=function(){
 })();
 
 </script>
-</body>
-</html>
+</body></html>

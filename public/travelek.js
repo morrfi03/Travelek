@@ -5013,6 +5013,19 @@ if(fromRoutes) fromRoutes.onclick=function(){
   var st=regionStats();
   alert("По маршрутам: "+n+" стран"+(st.total?(", Россия "+st.got+" из "+st.total):""));
 };
+window.__travelekStats=function(){
+  var kmP=0, kmT=0, kmC=0, i, r, g;
+  for(i=0;i<(ROUTES||[]).length;i++){
+    r=ROUTES[i];
+    g=typeof buildGeoSync==="function"?buildGeoSync(r):null;
+    if(!g) continue;
+    if(r.mode==="plane") kmP+=g.km||0;
+    else if(r.mode==="car") kmC+=g.km||0;
+    else kmT+=g.km||0;
+  }
+  var st=regionStats();
+  return {routes:ROUTES.length, countries:visited.length, regions:st, plane:Math.round(kmP), train:Math.round(kmT), car:Math.round(kmC)};
+};
 
 })();
 
@@ -5041,18 +5054,8 @@ if(fromRoutes) fromRoutes.onclick=function(){
   if(close && panel) close.onclick=function(){ panel.classList.remove("on"); };
   function statBox(n, label){ return '<div><b>'+n+'</b><span>'+label+'</span></div>'; }
   function diaryTotals(){
-    var kmP=0, kmT=0, kmC=0, i, r, g;
-    var list=typeof ROUTES!=="undefined"?ROUTES:[];
-    for(i=0;i<list.length;i++){
-      r=list[i];
-      g=typeof buildGeoSync==="function"?buildGeoSync(r):null;
-      if(!g) continue;
-      if(r.mode==="plane") kmP+=g.km||0;
-      else if(r.mode==="car") kmC+=g.km||0;
-      else kmT+=g.km||0;
-    }
-    var st=typeof regionStats==="function"?regionStats():{got:0,total:0};
-    return {routes:list.length, countries:typeof visited!=="undefined"?visited.length:0, regions:st, plane:Math.round(kmP), train:Math.round(kmT), car:Math.round(kmC)};
+    if(typeof window.__travelekStats==="function") return window.__travelekStats();
+    return {routes:0, countries:0, regions:{got:0,total:0}, plane:0, train:0, car:0};
   }
   function fillAccount(){
     var me=window.__TRAVELEK_ME||{};
