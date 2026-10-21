@@ -4930,7 +4930,7 @@ function drawWorld(){
   });
   var regs=(typeof RUSSIA_REGIONS!=="undefined" && RUSSIA_REGIONS) ? RUSSIA_REGIONS : [];
   regs.forEach(function(reg){
-    if(EXTRA_REGIONS.some(function(extra){return extra.id===reg.id||extra.n===reg.n;})) return;
+    
     polysOf(reg).forEach(function(poly){ paintOn(worldLayer, poly, ruStyle); });
   });
   try{ worldLayer.bringToBack(); }catch(e){}
@@ -6667,7 +6667,7 @@ function drawCountries(){
   });
   if(on["RU"] && RUSSIA_REGIONS){
     RUSSIA_REGIONS.forEach(function(reg){
-      if(EXTRA_REGIONS.some(function(extra){return extra.id===reg.id||extra.n===reg.n;})) return;
+      
       polysOf(reg).forEach(function(poly){ paintPoly(poly, blue); });
     });
   }
@@ -6676,7 +6676,7 @@ function drawCountries(){
     visitedRegions.forEach(function(id){ ron[id]=1; });
     RUSSIA_REGIONS.forEach(function(reg){
       if(!ron[reg.id]) return;
-      if(EXTRA_REGIONS.some(function(extra){return extra.id===reg.id||extra.n===reg.n;})) return;
+      
       polysOf(reg).forEach(function(poly){ paintPoly(poly, gold); });
     });
   }
