@@ -1261,6 +1261,28 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 #acc-name-save,#new-user{background:linear-gradient(135deg,#5b8def,#4f7dff)!important;color:#fff!important;border:none!important}
 
 
+:root[data-theme="light"]{
+  --line:rgba(15,23,42,.18);
+  --muted:#4b5563;
+  --panel:rgba(255,255,255,.97);
+  --glass:rgba(255,255,255,.94);
+  --chip:rgba(15,23,42,.055);
+  --row:rgba(15,23,42,.045);
+  --stat:rgba(15,23,42,.055);
+  --map-bg:#e3e8f0;
+}
+[data-theme="light"] .tab,
+[data-theme="light"] .zoom button,
+[data-theme="light"] #settings-panel button,
+[data-theme="light"] .track-panel button,
+[data-theme="light"] #countries-panel button,
+[data-theme="light"] input,
+[data-theme="light"] select,
+[data-theme="light"] textarea{border-color:rgba(15,23,42,.2)}
+[data-theme="light"] .tab:not(.on){color:#374151}
+[data-theme="light"] .year,
+[data-theme="light"] .empty,
+[data-theme="light"] .hint{color:#4b5563}
 </style>
 <div id="file-login">
   <form id="file-login-form">
@@ -4172,20 +4194,30 @@ function hav(a,b){
   return 2*R*Math.asin(Math.min(1,Math.sqrt(x)));
 }
 function flightArc(a,b,n){
-  n=n||72;
-  var dlat=b.lat-a.lat, dlng=b.lng-a.lng;
-  if(dlng>180) dlng-=360;
-  if(dlng<-180) dlng+=360;
-  var dist=Math.hypot(dlat, dlng);
-  if(dist<0.35) return [[a.lat,a.lng],[b.lat,b.lng]];
-  var len=dist||1, px=-dlat/len, py=dlng/len;
-  if(py<0){ px=-px; py=-py; }
-  var bulge=Math.min(24, Math.max(1.8, dist*0.28));
-  var out=[], i, t, s;
+  n=n||80;
+  var rad=Math.PI/180, lat1=a.lat*rad, lon1=a.lng*rad, lat2=b.lat*rad, lon2=b.lng*rad;
+  var va=[Math.cos(lat1)*Math.cos(lon1),Math.cos(lat1)*Math.sin(lon1),Math.sin(lat1)];
+  var vb=[Math.cos(lat2)*Math.cos(lon2),Math.cos(lat2)*Math.sin(lon2),Math.sin(lat2)];
+  var dot=Math.max(-1,Math.min(1,va[0]*vb[0]+va[1]*vb[1]+va[2]*vb[2]));
+  var omega=Math.acos(dot), so=Math.sin(omega), out=[], i, t, x, y, z, lat, lng, prevLng=a.lng;
+  if(omega<1e-5) return [[a.lat,a.lng],[b.lat,b.lng]];
   for(i=0;i<=n;i++){
-    t=i/n; s=Math.sin(Math.PI*t);
-    out.push([a.lat+dlat*t+px*bulge*s, a.lng+dlng*t+py*bulge*s]);
+    t=i/n;
+    if(Math.abs(so)<1e-7){
+      lat=(a.lat+(b.lat-a.lat)*t)*rad;
+      lng=(a.lng+((((b.lng-a.lng+540)%360)-180))*t)*rad;
+    } else {
+      var wa=Math.sin((1-t)*omega)/so, wb=Math.sin(t*omega)/so;
+      x=wa*va[0]+wb*vb[0]; y=wa*va[1]+wb*vb[1]; z=wa*va[2]+wb*vb[2];
+      lat=Math.atan2(z,Math.sqrt(x*x+y*y));
+      lng=Math.atan2(y,x);
+    }
+    lat=lat/rad; lng=lng/rad;
+    if(i===0) lng=a.lng;
+    else { while(lng-prevLng>180) lng-=360; while(lng-prevLng<-180) lng+=360; }
+    out.push([lat,lng]); prevLng=lng;
   }
+  out[0]=[a.lat,a.lng]; out[out.length-1]=[b.lat,b.lng];
   return out;
 }
 function densify(coords, stepKm){
@@ -4852,7 +4884,7 @@ try{ window.__travelekMap=map; }catch(e){}
 var baseLayer=null, worldLayer=null;
 function mapPalette(){
   var theme=document.documentElement.getAttribute("data-theme")||"dark";
-  if(theme==="light") return {land:"#f7f9fc", edge:"#d5dee8", ru:"#eef3f8"};
+  if(theme==="light") return {land:"#f7f9fc", edge:"#aab8ca", ru:"#e1eaf4"};
   return {land:"#1a2c3d", edge:"#24384c", ru:"#203448"};
 }
 function smoothRing(ring){
@@ -4880,7 +4912,7 @@ function smoothRing(ring){
 }
 function paintOn(group, poly, style){
   if(!poly||!poly[0]) return;
-  var latlngs=[smoothRing(poly[0]).map(function(pt){ return [pt[1], pt[0]]; })];
+  var latlngs=[poly[0].map(function(pt){ return [pt[1], pt[0]]; })];
   L.polygon(latlngs, style).addTo(group);
 }
 function drawWorld(){
@@ -5274,6 +5306,9 @@ function nearAnyRoute(lat,lng,maxKm){
   return false;
 }
 
+if(!map.getPane("routesTopPane")) map.createPane("routesTopPane");
+map.getPane("routesTopPane").style.zIndex="700";
+map.getPane("routesTopPane").style.pointerEvents="none";
 var layer=L.layerGroup().addTo(map);
 var labelsLayer=L.layerGroup().addTo(map);
 var selectedId=null, activeTab="future", sheetState="mid";
@@ -5438,6 +5473,16 @@ function render(){
   })();
   var fill=getComputedStyle(document.documentElement).getPropertyValue("--map-bg").trim()||"#0a0c10";
 
+  var routeMultiplicity={};
+  function routeKey(r){
+    var a=String(r.fromCode||r.from||"").trim().toUpperCase();
+    var b=String(r.toCode||r.to||"").trim().toUpperCase();
+    if(a>b){var swap=a;a=b;b=swap;}
+    return String(r.mode||"plane")+"|"+a+"|"+b;
+  }
+  list.forEach(function(r){
+    var key=routeKey(r); routeMultiplicity[key]=(routeMultiplicity[key]||0)+1;
+  });
   list.forEach(function(r){
     var g=buildGeoSync(r); if(!g||!g.coords) return;
     if(g.needRoad) pending.push(r);
@@ -5447,10 +5492,11 @@ function render(){
     var theme=document.documentElement.getAttribute("data-theme")||"dark";
     var casing=theme==="light"?"#ffffff":"#f4f8fc";
     var w=r.mode==="plane"?5:(r.mode==="train"||r.mode==="car"?5.5:4);
-    L.polyline(g.coords,{color:casing,weight:w+5,opacity:1,lineJoin:"round",lineCap:"round",interactive:false}).addTo(layer);
-    L.polyline(g.coords,{color:col,weight:selectedId===r.id?w+1.5:w,opacity:1,dashArray:fut?"7 6":null,lineJoin:"round",lineCap:"round",interactive:false}).addTo(layer);
+    var lineFactor=routeMultiplicity[routeKey(r)]>1?2:1;
+    L.polyline(g.coords,{pane:"routesTopPane",color:casing,weight:(w+5)*lineFactor,opacity:1,lineJoin:"round",lineCap:"round",interactive:false}).addTo(layer);
+    L.polyline(g.coords,{pane:"routesTopPane",color:col,weight:(selectedId===r.id?w+1.5:w)*lineFactor,opacity:1,dashArray:fut?"7 6":null,lineJoin:"round",lineCap:"round",interactive:false}).addTo(layer);
     [g.coords[0],g.coords[g.coords.length-1]].forEach(function(p){
-      L.circleMarker(p,{radius:5,color:casing,fillColor:col,fillOpacity:1,weight:2.5}).addTo(layer);
+      L.circleMarker(p,{pane:"routesTopPane",radius:5,color:casing,fillColor:col,fillOpacity:1,weight:2.5}).addTo(layer);
     });
     g.coords.forEach(function(c){bounds.push(c);});
   });
@@ -5470,7 +5516,7 @@ function render(){
   }
 
   var el=document.getElementById("list");
-  if(!list.length){ el.innerHTML='<div class="empty"><img src="/art/empty.jpg" alt=""><p>'+(activeTab==="future"?"Нет предстоящих маршрутов. Откройте «История» или добавьте новый.":"В истории пока пусто")+'</p></div>'; }
+  if(!list.length){ el.innerHTML='<div class="empty"><img src="./art/empty.jpg" alt=""><p>'+(activeTab==="future"?"Нет предстоящих маршрутов. Откройте «История» или добавьте новый.":"В истории пока пусто")+'</p></div>'; }
   else {
     var html="", lastY="";
     list.forEach(function(r){
@@ -5484,7 +5530,7 @@ function render(){
       if(g&&g.b) toL=shortPlaceLabel(r.to, g.b.lat, g.b.lng);
       else toL=shortPlaceLabel(r.to);
       var dur=formatTripDuration(r, km);
-      var art=r.mode==="train"?"/art/train.jpg":(r.mode==="car"?"/art/car.jpg":"/art/plane.jpg");
+      var art=r.mode==="train"?"./art/train.jpg":(r.mode==="car"?"./art/car.jpg":"./art/plane.jpg");
       html+='<div class="row '+(selectedId===r.id?"on ":"")+(fut?"future":"")+'" data-id="'+r.id+'">'+
         '<img class="thumb" alt="" src="'+art+'">'+
         '<button type="button" class="edit" data-edit="'+r.id+'" title="Изменить">✎</button>'+'<button type="button" class="del" data-del="'+r.id+'" title="Удалить">×</button>'+
@@ -6598,7 +6644,7 @@ function syncVisited(){
 }
 function paintPoly(poly, style){
   if(!poly||!poly[0]) return;
-  var pts=typeof smoothRing==="function"?smoothRing(poly[0]):poly[0];
+  var pts=poly[0];
   var latlngs=[pts.map(function(pt){ return [pt[1], pt[0]]; })];
   L.polygon(latlngs, style).addTo(countryLayer);
 }
@@ -6762,6 +6808,15 @@ function withBbox(reg){
   return reg;
 }
 EXTRA_REGIONS.forEach(withBbox);
+function mergeExtraRegions(items){
+  var out=Array.isArray(items)?items.slice():[], seen={};
+  out.forEach(function(reg){ var key=reg.id||reg.n; if(key) seen[key]=1; });
+  EXTRA_REGIONS.forEach(function(reg){
+    var key=reg.id||reg.n;
+    if(key&&!seen[key]){ out.push(reg); seen[key]=1; }
+  });
+  return out;
+}
 function bootGeo(){
   var left=2;
   function finish(){
@@ -6779,7 +6834,7 @@ function bootGeo(){
     globeLand=null;
     finish();
   } else {
-  fetch("/geo/countries.json?v=2").then(function(r){ return r.json(); }).then(function(data){
+  fetch("./geo/countries.json?v=2").then(function(r){ return r.json(); }).then(function(data){
     COUNTRY_LIST=(data&&data.items)||[];
     if(!countryLayer && typeof L!=="undefined" && typeof map!=="undefined") countryLayer=L.layerGroup().addTo(map);
     globeLand=null;
@@ -6788,12 +6843,12 @@ function bootGeo(){
   }
   if(window.__RUSSIA){
     var items=((window.__RUSSIA.items)||[]).map(function(r){ r.id=r.n; return r; });
-    RUSSIA_REGIONS=items;
+    RUSSIA_REGIONS=mergeExtraRegions(items);
     finish();
   } else {
-  fetch("/geo/russia.json?v=1").then(function(r){ return r.json(); }).then(function(data){
+  fetch("./geo/russia.json?v=1").then(function(r){ return r.json(); }).then(function(data){
     var items=((data&&data.items)||[]).map(function(r){ r.id=r.n; return r; });
-    RUSSIA_REGIONS=items;
+    RUSSIA_REGIONS=mergeExtraRegions(items);
     finish();
   }).catch(function(){ RUSSIA_REGIONS=EXTRA_REGIONS.slice(); finish(); });
   }
