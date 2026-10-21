@@ -5120,7 +5120,7 @@ window.__travelekStats=function(){
       document.getElementById("new-login").value="";
       document.getElementById("new-name").value="";
       document.getElementById("new-pass").value="";
-      alert("Аккаунт создан");
+      alert("Аккаунт создан и сохранён на этом сайте. Файл на GitHub менять не нужно.");
       fillAccount();
     }).catch(function(e){ alert(e && e.message ? e.message : "Не удалось создать"); });
   };

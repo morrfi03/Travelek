@@ -1351,7 +1351,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   <button type="button" id="acc-pass-save">Сменить пароль</button>
   <div id="account-admin" hidden>
     <b style="display:block;margin:16px 0 6px">Все аккаунты</b>
-    <p class="hint">Здесь маршруты и цифры каждого. Нажмите человека, чтобы открыть его дневник.</p>
+    <p class="hint">Нажмите человека, чтобы открыть его дневник. Новый аккаунт сохраняется сразу на сайте, файл на GitHub для этого менять не нужно.</p>
     <div id="admin-list"></div>
     <b style="display:block;margin:16px 0 6px">Новый аккаунт</b>
     <input id="new-login" type="text" placeholder="Логин" autocomplete="off" />
@@ -6601,7 +6601,7 @@ window.__travelekStats=function(){
       document.getElementById("new-login").value="";
       document.getElementById("new-name").value="";
       document.getElementById("new-pass").value="";
-      alert("Аккаунт создан");
+      alert("Аккаунт создан и сохранён на этом сайте. Файл на GitHub менять не нужно.");
       fillAccount();
     }).catch(function(e){ alert(e && e.message ? e.message : "Не удалось создать"); });
   };
