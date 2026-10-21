@@ -3370,8 +3370,15 @@ function drawWorld(){
   COUNTRY_LIST.forEach(function(c){
     if(c.i==="RU") return;
     if(typeof polysOf!=="function") return;
-    polysOf(c).forEach(function(poly){ paintOn(worldLayer, poly, c.i==="RU"?ruStyle:style); });
+    polysOf(c).forEach(function(poly){ paintOn(worldLayer, poly, style); });
   });
+  /* Draw Russia's full country silhouette underneath the federal subjects.
+     This masks tiny cracks caused by imperfect/mismatched regional boundaries. */
+  var ruBaseStyle={color:pal.ru, weight:0, opacity:0, fillColor:pal.ru, fillOpacity:1, interactive:false, smoothFactor:0};
+  var ruCountry=COUNTRY_LIST.find(function(c){ return c.i==="RU"; });
+  if(ruCountry && typeof polysOf==="function"){
+    polysOf(ruCountry).forEach(function(poly){ paintOn(worldLayer, poly, ruBaseStyle, true); });
+  }
   var regs=(typeof RUSSIA_REGIONS!=="undefined" && RUSSIA_REGIONS) ? RUSSIA_REGIONS : [];
   regs.forEach(function(reg){
     polysOf(reg).forEach(function(poly){ paintOn(worldLayer, poly, ruStyle, true); });
