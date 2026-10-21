@@ -6,43 +6,27 @@ if(window.__travelekMap){
   window.__travelekMap=null;
 }
 
-/* Щипок страницы не блокируем: иначе после случайного зума Safari нельзя отдалить. */
-function resetPageZoom(){
-  var m=document.querySelector('meta[name="viewport"]');
-  if(!m) return;
-  var base="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover";
-  m.setAttribute("content", base+", maximum-scale=1");
-  setTimeout(function(){ m.setAttribute("content", base); }, 400);
-}
+/* Зум только у карты и глобуса. Остальной экран не масштабируется. */
 (function(){
-  var btn=document.getElementById("unzoom");
-  if(!btn) return;
-  function place(){
-    var vv=window.visualViewport;
-    var z=vv?vv.scale:1;
-    btn.hidden=!(z>1.04);
-    if(btn.hidden||!vv) return;
-    btn.style.left=(vv.offsetLeft+vv.width/2)+"px";
-    btn.style.top=(vv.offsetTop+vv.height-72)+"px";
+  var meta=document.querySelector('meta[name="viewport"]');
+  if(meta) meta.setAttribute("content","width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover");
+  function onMap(t){
+    if(!t || !t.closest) return false;
+    return !!(t.closest("#map") || t.closest("#globe") || t.id==="map" || t.id==="globe");
   }
-  if(window.visualViewport){
-    visualViewport.addEventListener("resize", place);
-    visualViewport.addEventListener("scroll", place);
-  }
-  btn.addEventListener("click", function(){
-    resetPageZoom();
-    setTimeout(place, 450);
+  ["gesturestart","gesturechange","gestureend"].forEach(function(type){
+    document.addEventListener(type, function(e){ e.preventDefault(); }, {passive:false});
   });
-  place();
+  document.addEventListener("touchmove", function(e){
+    if(e.touches && e.touches.length>1 && !onMap(e.target) && e.cancelable) e.preventDefault();
+  }, {passive:false});
+  var lastTouchEnd=0;
+  document.addEventListener("touchend", function(e){
+    var now=Date.now();
+    if(!onMap(e.target) && now-lastTouchEnd<=300) e.preventDefault();
+    lastTouchEnd=now;
+  }, {passive:false});
 })();
-var lastTouchEnd=0;
-document.addEventListener("touchend",function(e){
-  var now=Date.now();
-  var t=e.target;
-  var onMap=t && (t.id==="map" || (t.closest && (t.closest("#map") || t.closest("#globe"))));
-  if(onMap && now-lastTouchEnd<=300) e.preventDefault();
-  lastTouchEnd=now;
-},{passive:false});
 
 /* ===== Каталоги ===== */
 var AIRPORTS = [
