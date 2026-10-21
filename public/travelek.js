@@ -3352,11 +3352,10 @@ function smoothRing(ring){
   pts.push([pts[0][0], pts[0][1]]);
   return pts;
 }
-function paintOn(group, poly, style){
+function paintOn(group, poly, style, keepRaw){
   if(!poly||!poly[0]) return;
-  /* Keep Russian subject borders unsmoothed: independently smoothing adjacent
-     polygons can create visible gaps and overlaps along shared boundaries. */
-  var ring=(style && style.weight>=2) ? poly[0] : smoothRing(poly[0]);
+  /* Preserve exact shared boundaries for Russian regions. */
+  var ring=keepRaw ? poly[0] : smoothRing(poly[0]);
   var latlngs=[ring.map(function(pt){ return [pt[1], pt[0]]; })];
   L.polygon(latlngs, style).addTo(group);
 }
@@ -3375,7 +3374,7 @@ function drawWorld(){
   });
   var regs=(typeof RUSSIA_REGIONS!=="undefined" && RUSSIA_REGIONS) ? RUSSIA_REGIONS : [];
   regs.forEach(function(reg){
-    polysOf(reg).forEach(function(poly){ paintOn(worldLayer, poly, ruStyle); });
+    polysOf(reg).forEach(function(poly){ paintOn(worldLayer, poly, ruStyle, true); });
   });
   try{ worldLayer.bringToBack(); }catch(e){}
   if(typeof countryLayer!=="undefined" && countryLayer) try{ countryLayer.bringToFront(); }catch(e){}
