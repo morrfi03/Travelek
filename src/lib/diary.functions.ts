@@ -1,9 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { authMiddleware } from "@/lib/auth/middleware";
 
-const ADMIN_EMAIL = "admin@travelek.app";
-const ADMIN_PASSWORD = "Travelek#Admin89";
-const ADMIN_NAME = "Администратор";
 
 export type DiaryPack = {
   data: Record<string, string | null>;
@@ -88,39 +85,40 @@ async function ensureAdmin() {
 
 async function seedAdmin() {
   const { getSql } = await import("@/lib/db");
-  const { auth } = await import("@/lib/auth/server");
   const sql = await getSql();
   const have = await sql<{ user_id: string }>`select user_id from profiles where role = 'admin' limit 1`;
   if (have.length) return;
+
+  // Never ship a default administrator password in source code. Provision the
+  // first admin only when the deploy environment explicitly supplies credentials.
+  const email = process.env.TRAVELEK_ADMIN_EMAIL?.trim().toLowerCase();
+  const password = process.env.TRAVELEK_ADMIN_PASSWORD;
+  const name = process.env.TRAVELEK_ADMIN_NAME?.trim() || "Администратор";
+  if (!email || !password || password.length < 12) {
+    console.warn("[auth] No administrator provisioned: configure TRAVELEK_ADMIN_EMAIL and a strong TRAVELEK_ADMIN_PASSWORD (12+ characters) in server secrets.");
+    return;
+  }
+
+  const { auth } = await import("@/lib/auth/server");
   let id = "";
   try {
     const res = await auth.api.signUpEmail({
-      body: { email: ADMIN_EMAIL, password: ADMIN_PASSWORD, name: ADMIN_NAME },
-      headers: new Headers({ origin: "http://127.0.0.1:8080" }),
+      body: { email, password, name },
+      headers: new Headers({ origin: process.env.BETTER_AUTH_URL || "http://127.0.0.1:8080" }),
     });
     id = res?.user?.id || "";
   } catch {
-    const rows = await sql<{ id: string }>`select id from "user" where email = ${ADMIN_EMAIL} limit 1`;
+    const rows = await sql<{ id: string }>`select id from "user" where email = ${email} limit 1`;
     id = rows[0]?.id || "";
   }
-  if (!id) return;
+  if (!id) {
+    console.error("[auth] Admin bootstrap was configured but no user could be resolved.");
+    return;
+  }
   await sql`
     insert into profiles (user_id, email, display_name, role)
-    values (${id}, ${ADMIN_EMAIL}, ${ADMIN_NAME}, 'admin')
-    on conflict (user_id) do update set role = 'admin', display_name = ${ADMIN_NAME}
-  `;
-}
-
-async function wipeDiariesOnce() {
-  const { getSql } = await import("@/lib/db");
-  const sql = await getSql();
-  await sql`create table if not exists app_meta (k text primary key, v text not null)`;
-  const rows = await sql<{ v: string }>`select v from app_meta where k = 'wipe'`;
-  if (rows[0]?.v === "2") return;
-  await sql`delete from diaries`;
-  await sql`
-    insert into app_meta (k, v) values ('wipe', '2')
-    on conflict (k) do update set v = '2'
+    values (${id}, ${email}, ${name}, 'admin')
+    on conflict (user_id) do update set role = 'admin', display_name = ${name}
   `;
 }
 
@@ -142,7 +140,6 @@ export const loadMine = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }): Promise<DiaryPack> => {
     await ensureAdmin();
-    await wipeDiariesOnce();
     const { getSql } = await import("@/lib/db");
     const sql = await getSql();
     const me = await profileOf(context.userId);
