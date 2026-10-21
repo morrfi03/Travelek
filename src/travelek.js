@@ -2112,42 +2112,20 @@ wipeRoutesOnce();
   window.__TRAVELEK_PRIVATE=true;
   var USERS="travelek-users", SESSION="travelek-session", VAULT="travelek-vault";
   var KEYS=["travelek-extra","travelek-del","travelek-app-settings","travelek-mapprefs","travelek-theme","travelek-theme-pref","travelek-countries","travelek-countries-off","travelek-regions","travelek-regions-off"];
-  var STORE_URL="https://keepjson.fourlegs.workers.dev/bins/BkoU663gNtadZ-zfQvPYx";
-  var STORE_KEY="kj_w_qgNZJtClt_6vg01Eq5c8j1wpxzMTpSzUKrazvkb12AY";
-  function read(k, fb){ try{ var v=JSON.parse(localStorage.getItem(k)||""); return v==null?fb:v; }catch(e){ return fb; } }
-  function users(){
-    var u=read(USERS, null);
-    if(!Array.isArray(u)) u=[];
-    var has=false, n;
-    for(n=0;n<u.length;n++) if(u[n] && String(u[n].login||"").toLowerCase()==="admin") has=true;
-    if(!has) u.unshift({id:"admin", login:"admin", name:"Администратор", password:"f6e718809f4092afc94ad388ee7d808498c19b4dbb7b0f5568a2ca528aaa6ade", role:"admin"});
-    return u;
-  }
-  function vault(){ var v=read(VAULT, {}); return v&&typeof v==="object"&&!Array.isArray(v)?v:{}; }
-  function saveVault(v){ try{ localStorage.setItem(VAULT, JSON.stringify(v)); }catch(e){} }
-  function sha256(text){
-    if(!window.crypto||!crypto.subtle||!window.TextEncoder) return Promise.resolve(String(text||""));
-    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(text||""))).then(function(buf){
-      var a=new Uint8Array(buf), s="", i;
-      for(i=0;i<a.length;i++) s+=("0"+a[i].toString(16)).slice(-2);
-      return s;
-    });
-  }
-  function passMatch(stored, typed){
-    stored=String(stored||"");
-    typed=String(typed||"");
-    if(stored===typed) return Promise.resolve(true);
-    return sha256(typed).then(function(h){ return h===stored; });
-  }
   function saveStoreNow(){
-    return fetch(STORE_URL, {
-      method:"PUT",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+STORE_KEY},
-      body:JSON.stringify({users:users(), vault:vault()})
-    }).then(function(r){ if(!r.ok) throw new Error("save"); });
+    try{
+      localStorage.setItem(USERS, JSON.stringify(users()));
+      localStorage.setItem(VAULT, JSON.stringify(vault()));
+      return Promise.resolve();
+    }catch(e){
+      return Promise.reject(new Error("Не удалось сохранить данные в браузере"));
+    }
   }
   var saveTimer=null;
-  function scheduleSave(){ clearTimeout(saveTimer); saveTimer=setTimeout(function(){ saveStoreNow().catch(function(){}); }, 500); }
+  function scheduleSave(){
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(function(){ saveStoreNow().catch(function(){}); }, 300);
+  }
   function hashList(list){
     var chain=Promise.resolve();
     list.forEach(function(u, idx){
@@ -2159,99 +2137,20 @@ wipeRoutesOnce();
     });
     return chain.then(function(){ return list; });
   }
-  function pullRemote(){
-    if(!me || document.hidden || cloudTimer) return;
-    var modal=document.getElementById("modal");
-    if(modal && modal.classList.contains("on")) return;
-    fetch(STORE_URL+"?t="+Date.now(),{cache:"no-store"}).then(function(r){
-      if(!r.ok) throw new Error("load");
-      return r.json();
-    }).then(function(data){
-      if(!data||!data.vault) return;
-      var view=sessionStorage.getItem("travelek-view");
-      var owner=(view && me.role==="admin")?view:me.id;
-      var remotePack=data.vault[owner]||null;
-      var remoteExtra=remotePack && typeof remotePack["travelek-extra"]==="string" ? remotePack["travelek-extra"] : null;
-      var localExtra=localStorage.getItem("travelek-extra");
-      function nExtra(raw){ try{ var a=JSON.parse(raw||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
-      if(Array.isArray(data.users)){
-        try{ localStorage.setItem(USERS, JSON.stringify(data.users)); }catch(e){}
-      }
-      var vv=vault();
-      Object.keys(vv).forEach(function(id){
-        if(id===owner) return;
-        try{
-          var lr=JSON.parse((vv[id]&&vv[id]["travelek-extra"])||"[]").length;
-          var rr=JSON.parse((data.vault[id]&&data.vault[id]["travelek-extra"])||"[]").length;
-          if(lr>rr) data.vault[id]=vv[id];
-        }catch(e){}
-      });
-      try{ localStorage.setItem(VAULT, JSON.stringify(data.vault)); }catch(e){}
-      if(remoteExtra!=null && remoteExtra!==localExtra && nExtra(remoteExtra)>=nExtra(localExtra)){
-        apply(remotePack);
-        ROUTES=assembleRoutes();
-        if(typeof render==="function") render();
-        if(typeof syncVisited==="function"){ syncVisited(); if(typeof drawCountries==="function") drawCountries(); }
-        if(typeof drawGlobe==="function" && globeOn) drawGlobe();
-      }
-      var panel=document.getElementById("account-panel");
-      if(panel && panel.classList.contains("on") && window.__fillAccount) window.__fillAccount();
-    }).catch(function(){});
-  }
+  // Local-only mode: accounts and route snapshots never leave this browser.
+  function pullRemote(){}
   var storePromise=null;
   function ensureStore(){
     if(storePromise) return storePromise;
-    var before="";
-    try{ before=(localStorage.getItem(USERS)||"")+"|"+(localStorage.getItem(VAULT)||""); }catch(e){}
-    storePromise=fetch(STORE_URL+"?t="+Date.now(), {cache:"no-store"}).then(function(r){
-      if(!r.ok) throw new Error("load");
-      return r.json();
-    }).then(function(data){
-      if(!data||typeof data!=="object") data={};
-      if(!Array.isArray(data.users)) data.users=[];
-      if(!data.vault||typeof data.vault!=="object"||Array.isArray(data.vault)) data.vault={};
-      var local=read(USERS, []);
-      if(!Array.isArray(local)) local=[];
-      var have={}, i, L;
-      for(i=0;i<data.users.length;i++) have[String(data.users[i].login||"").toLowerCase()]=1;
-      for(i=0;i<local.length;i++){
-        L=String((local[i]&&(local[i].login||local[i].email))||"").toLowerCase().replace(/@travelek\.app$/,"");
-        if(!L||have[L]) continue;
-        have[L]=1;
-        data.users.push({id:local[i].id||("u"+Date.now()), login:L, name:local[i].name||L, password:local[i].password||"", role:local[i].role==="admin"?"admin":"user"});
-      }
-      var lv=read(VAULT, {});
-      function packCount(pack){
-        if(!pack) return 0;
-        try{ var raw=pack["travelek-extra"]; var a=typeof raw==="string"?JSON.parse(raw):raw; return Array.isArray(a)?a.length:0; }catch(e){ return 0; }
-      }
-      function better(a,b){
-        if(!a) return b||a;
-        if(!b) return a;
-        var an=packCount(a), bn=packCount(b);
-        if(bn>an) return b;
-        if(an>bn) return a;
-        return Object.keys(b).length>Object.keys(a).length?b:a;
-      }
-      var ids={}, id;
-      if(lv&&typeof lv==="object") Object.keys(lv).forEach(function(k){ ids[k]=1; });
-      Object.keys(data.vault).forEach(function(k){ ids[k]=1; });
-      for(id in ids){
-        if(!Object.prototype.hasOwnProperty.call(ids,id)) continue;
-        data.vault[id]=better(data.vault[id], lv&&lv[id]);
-      }
-      if(!have.admin) data.users.unshift({id:"admin", login:"admin", name:"Администратор", password:"f6e718809f4092afc94ad388ee7d808498c19b4dbb7b0f5568a2ca528aaa6ade", role:"admin"});
-      return hashList(data.users).then(function(){
-        try{
-          localStorage.setItem(USERS, JSON.stringify(data.users));
-          localStorage.setItem(VAULT, JSON.stringify(data.vault));
-        }catch(e){}
-        var after="";
-        try{ after=(localStorage.getItem(USERS)||"")+"|"+(localStorage.getItem(VAULT)||""); }catch(e){}
-        window.__TRAVELEK_STORE_CHANGED=after!==before;
-        if(after!==before) return saveStoreNow();
-      });
-    }).catch(function(){}).then(function(){ window.__TRAVELEK_STORE_READY=true; if(!window.__TRAVELEK_POLL) window.__TRAVELEK_POLL=setInterval(pullRemote, 8000); });
+    storePromise=hashList(users()).then(function(list){
+      localStorage.setItem(USERS, JSON.stringify(list));
+      if(!localStorage.getItem(VAULT)) localStorage.setItem(VAULT, JSON.stringify({}));
+      window.__TRAVELEK_STORE_CHANGED=false;
+    }).catch(function(){
+      // Keep the app usable even if browser storage is unavailable.
+    }).then(function(){
+      window.__TRAVELEK_STORE_READY=true;
+    });
     return storePromise;
   }
   function apply(pack){
