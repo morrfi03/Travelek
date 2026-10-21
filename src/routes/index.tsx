@@ -145,7 +145,7 @@ function Home() {
       });
       if (cancel) return;
       const app = document.createElement("script");
-      app.src = "/travelek.js?v=17";
+      app.src = "/travelek.js?v=18";
       app.async = true;
       app.dataset.travelek = "1";
       document.body.appendChild(app);
