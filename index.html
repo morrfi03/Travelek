@@ -4922,7 +4922,7 @@ function drawWorld(){
   if(typeof COUNTRY_LIST==="undefined" || !COUNTRY_LIST) return;
   var pal=mapPalette();
   var style={color:pal.edge, weight:0.4, opacity:.45, lineJoin:"round", lineCap:"round", fillColor:pal.land, fillOpacity:1, interactive:false, smoothFactor:0};
-  var ruStyle={color:pal.ru, weight:2.4, opacity:1, lineJoin:"round", lineCap:"round", fillColor:pal.ru, fillOpacity:1, interactive:false, smoothFactor:0};
+  var ruStyle={color:pal.ru, weight:0.45, opacity:1, lineJoin:"round", lineCap:"round", fillColor:pal.ru, fillOpacity:1, interactive:false, smoothFactor:0};
   COUNTRY_LIST.forEach(function(c){
     if(c.i==="RU") return;
     if(typeof polysOf!=="function") return;
