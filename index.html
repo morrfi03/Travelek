@@ -4777,7 +4777,7 @@ function buildGeoSync(r){
   return {coords:coords, km:pathKm(coords), a:a, b:b, needRoad:!roadCache[key]};
 }
 
-var COLORS={plane:"#5b8def",train:"#3d9b6e",car:"#e0a040",walk:"#7cb87c",bike:"#e07a5f",ship:"#4db6c8",future:"#9b7bff"};
+var COLORS={plane:"#101820",train:"#101c16",car:"#241c12",walk:"#1a2418",bike:"#241816",ship:"#101c22",future:"#1c1830"};
 var ICONS={plane:"✈️",train:"🚂",car:"🚗",walk:"🚶",bike:"🚴",ship:"🚢"};
 /* подписи на карте — крупные города, не все 150+ */
 var CITY_LABELS = [
@@ -4812,12 +4812,35 @@ try{ window.__travelekMap=map; }catch(e){}
 var baseLayer=null, worldLayer=null;
 function mapPalette(){
   var theme=document.documentElement.getAttribute("data-theme")||"dark";
-  if(theme==="light") return {land:"#f4f7fb", line:"#9aafc4", ru:"#e3edf6"};
-  return {land:"#162433", line:"#3c536b", ru:"#1c3044"};
+  if(theme==="light") return {land:"#f7f9fc", edge:"#d5dee8", ru:"#eef3f8"};
+  return {land:"#1a2c3d", edge:"#24384c", ru:"#203448"};
+}
+function smoothRing(ring){
+  if(!ring||ring.length<4) return ring;
+  var i;
+  for(i=1;i<ring.length;i++){
+    if(Math.abs(ring[i][0]-ring[i-1][0])>40) return ring;
+  }
+  var pts=ring.slice();
+  var closed=Math.abs(pts[0][0]-pts[pts.length-1][0])<1e-5 && Math.abs(pts[0][1]-pts[pts.length-1][1])<1e-5;
+  if(closed) pts.pop();
+  if(pts.length<3) return ring;
+  var pass, next, a, b, n=pts.length;
+  for(pass=0; pass<2; pass++){
+    next=[];
+    for(i=0;i<n;i++){
+      a=pts[i]; b=pts[(i+1)%n];
+      next.push([a[0]*0.75+b[0]*0.25, a[1]*0.75+b[1]*0.25]);
+      next.push([a[0]*0.25+b[0]*0.75, a[1]*0.25+b[1]*0.75]);
+    }
+    pts=next; n=pts.length;
+  }
+  pts.push([pts[0][0], pts[0][1]]);
+  return pts;
 }
 function paintOn(group, poly, style){
   var latlngs=poly.map(function(ring){
-    return ring.map(function(pt){ return [pt[1], pt[0]]; });
+    return smoothRing(ring).map(function(pt){ return [pt[1], pt[0]]; });
   });
   L.polygon(latlngs, style).addTo(group);
 }
@@ -4827,8 +4850,8 @@ function drawWorld(){
   worldLayer.clearLayers();
   if(typeof COUNTRY_LIST==="undefined" || !COUNTRY_LIST) return;
   var pal=mapPalette();
-  var style={color:pal.line, weight:1, opacity:1, fillColor:pal.land, fillOpacity:1, interactive:false};
-  var ruStyle={color:pal.line, weight:1, opacity:1, fillColor:pal.ru, fillOpacity:1, interactive:false};
+  var style={color:pal.edge, weight:0.4, opacity:.45, lineJoin:"round", lineCap:"round", fillColor:pal.land, fillOpacity:1, interactive:false, smoothFactor:0};
+  var ruStyle={stroke:false, fillColor:pal.ru, fillOpacity:1, interactive:false, smoothFactor:0};
   COUNTRY_LIST.forEach(function(c){
     if(typeof polysOf!=="function") return;
     polysOf(c).forEach(function(poly){ paintOn(worldLayer, poly, c.i==="RU"?ruStyle:style); });
@@ -5029,9 +5052,15 @@ function drawGlobe(){
     var line={type:"LineString", coordinates:g.coords.map(function(p){ return [p[1], p[0]]; })};
     ctx.beginPath();
     path(line);
-    ctx.lineWidth=r.mode==="plane"?1.5:2.2;
-    ctx.strokeStyle=(typeof COLORS!=="undefined"&&COLORS[r.mode])?COLORS[r.mode]:"#fff";
     ctx.lineCap="round";
+    ctx.lineJoin="round";
+    ctx.lineWidth=r.mode==="plane"?4.2:4.8;
+    ctx.strokeStyle="rgba(255,255,255,.9)";
+    ctx.stroke();
+    ctx.beginPath();
+    path(line);
+    ctx.lineWidth=r.mode==="plane"?2.4:2.8;
+    ctx.strokeStyle=(typeof COLORS!=="undefined"&&COLORS[r.mode])?COLORS[r.mode]:"#101820";
     ctx.stroke();
   });
   var shine=ctx.createRadialGradient(c[0]-R*0.38, c[1]-R*0.42, R*0.02, c[0]-R*0.1, c[1]-R*0.1, R);
@@ -5353,12 +5382,13 @@ function render(){
     var fut=isFuture(r);
     var col=COLORS[r.mode]||COLORS.plane;
     if(fut&&r.mode==="plane") col=COLORS.future;
-    var w=r.mode==="train"?4.5:(r.mode==="car"||r.mode==="walk"||r.mode==="bike"?4:3);
-    L.polyline(g.coords,{color:"#000",weight:w+3,opacity:.25,lineJoin:"round",lineCap:"round",interactive:false}).addTo(layer);
-    L.polyline(g.coords,{color:col,weight:selectedId===r.id?w+1.5:w,opacity:.95,dashArray:fut?"8 6":null,lineJoin:"round",lineCap:"round",interactive:false}).addTo(layer);
-    if(r.mode==="plane"&&!fut) L.polyline(g.coords,{color:"#fff",weight:1,opacity:.25,interactive:false}).addTo(layer);
+    var theme=document.documentElement.getAttribute("data-theme")||"dark";
+    var casing=theme==="light"?"#ffffff":"#f4f8fc";
+    var w=r.mode==="plane"?5:(r.mode==="train"||r.mode==="car"?5.5:4);
+    L.polyline(g.coords,{color:casing,weight:w+5,opacity:1,lineJoin:"round",lineCap:"round",interactive:false}).addTo(layer);
+    L.polyline(g.coords,{color:col,weight:selectedId===r.id?w+1.5:w,opacity:1,dashArray:fut?"7 6":null,lineJoin:"round",lineCap:"round",interactive:false}).addTo(layer);
     [g.coords[0],g.coords[g.coords.length-1]].forEach(function(p){
-      L.circleMarker(p,{radius:5,color:col,fillColor:fill,fillOpacity:1,weight:2}).addTo(layer);
+      L.circleMarker(p,{radius:5,color:casing,fillColor:col,fillOpacity:1,weight:2.5}).addTo(layer);
     });
     g.coords.forEach(function(c){bounds.push(c);});
   });
@@ -6500,7 +6530,8 @@ function syncVisited(){
 }
 function paintPoly(poly, style){
   var latlngs=poly.map(function(ring){
-    return ring.map(function(pt){ return [pt[1], pt[0]]; });
+    var pts=typeof smoothRing==="function"?smoothRing(ring):ring;
+    return pts.map(function(pt){ return [pt[1], pt[0]]; });
   });
   L.polygon(latlngs, style).addTo(countryLayer);
 }
@@ -6512,7 +6543,7 @@ function drawCountries(){
   COUNTRY_LIST.forEach(function(c){
     if(!on[c.i]) return;
     polysOf(c).forEach(function(poly){
-      paintPoly(poly, {color:"#93c5fd", weight:1, opacity:.9, fillColor:"#3b82f6", fillOpacity:.32, interactive:false});
+      paintPoly(poly, {stroke:false, fillColor:"#3b82f6", fillOpacity:.34, interactive:false, smoothFactor:0});
     });
   });
   if(RUSSIA_REGIONS && visitedRegions.length){
@@ -6521,7 +6552,7 @@ function drawCountries(){
     RUSSIA_REGIONS.forEach(function(reg){
       if(!ron[reg.id]) return;
       polysOf(reg).forEach(function(poly){
-        paintPoly(poly, {color:"#f6d98a", weight:1.4, opacity:1, fillColor:"#e8b85c", fillOpacity:.5, interactive:false});
+        paintPoly(poly, {stroke:false, fillColor:"#e8b85c", fillOpacity:.62, interactive:false, smoothFactor:0});
       });
     });
   }
