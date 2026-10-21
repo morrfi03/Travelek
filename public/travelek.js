@@ -3354,7 +3354,10 @@ function smoothRing(ring){
 }
 function paintOn(group, poly, style){
   if(!poly||!poly[0]) return;
-  var latlngs=[smoothRing(poly[0]).map(function(pt){ return [pt[1], pt[0]]; })];
+  /* Keep Russian subject borders unsmoothed: independently smoothing adjacent
+     polygons can create visible gaps and overlaps along shared boundaries. */
+  var ring=(style && style.weight>=2) ? poly[0] : smoothRing(poly[0]);
+  var latlngs=[ring.map(function(pt){ return [pt[1], pt[0]]; })];
   L.polygon(latlngs, style).addTo(group);
 }
 function drawWorld(){
@@ -3364,7 +3367,7 @@ function drawWorld(){
   if(typeof COUNTRY_LIST==="undefined" || !COUNTRY_LIST) return;
   var pal=mapPalette();
   var style={color:pal.edge, weight:0.4, opacity:.45, lineJoin:"round", lineCap:"round", fillColor:pal.land, fillOpacity:1, interactive:false, smoothFactor:0};
-  var ruStyle={color:pal.ru, weight:2.4, opacity:1, lineJoin:"round", lineCap:"round", fillColor:pal.ru, fillOpacity:1, interactive:false, smoothFactor:0};
+  var ruStyle={color:pal.ru, weight:0.8, opacity:1, lineJoin:"round", lineCap:"round", fillColor:pal.ru, fillOpacity:1, interactive:false, smoothFactor:0};
   COUNTRY_LIST.forEach(function(c){
     if(c.i==="RU") return;
     if(typeof polysOf!=="function") return;
