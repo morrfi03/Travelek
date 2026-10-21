@@ -4926,7 +4926,7 @@ function drawWorld(){
   COUNTRY_LIST.forEach(function(c){
     if(c.i==="RU") return;
     if(typeof polysOf!=="function") return;
-    polysOf(c).forEach(function(poly){ paintOn(worldLayer, poly, c.i==="RU"?ruStyle:style); });
+    polysOf(c).forEach(function(poly){ paintOn(worldLayer, poly, style); });
   });
   var regs=(typeof RUSSIA_REGIONS!=="undefined" && RUSSIA_REGIONS) ? RUSSIA_REGIONS : [];
   regs.forEach(function(reg){
@@ -5110,17 +5110,7 @@ function drawGlobe(){
         path({type:"Feature", geometry:{type:"Polygon", coordinates:[poly[0]]}});
       });
     });
-    ctx.fillStyle="#1e3b32";
-    ctx.fill();
-  }
-  if(seen["RU"] && typeof RUSSIA_REGIONS!=="undefined" && RUSSIA_REGIONS){
-    ctx.beginPath();
-    RUSSIA_REGIONS.forEach(function(reg){
-      polysOf(reg).forEach(function(poly){
-        path({type:"Feature", geometry:{type:"Polygon", coordinates:[poly[0]]}});
-      });
-    });
-    ctx.fillStyle="rgba(59,130,246,.7)";
+    ctx.fillStyle=seen["RU"]?"rgba(59,130,246,.7)":"#1e3b32";
     ctx.fill();
   }
   ctx.beginPath();
@@ -6830,30 +6820,65 @@ function bootGeo(){
     if(globeOn && typeof drawGlobe==="function") drawGlobe();
     if(window.__fillAccount && document.getElementById("account-panel") && document.getElementById("account-panel").classList.contains("on")) window.__fillAccount();
   }
-  if(window.__COUNTRIES){
-    COUNTRY_LIST=(window.__COUNTRIES.items)||[];
-    if(!countryLayer && typeof L!=="undefined" && typeof map!=="undefined") countryLayer=L.layerGroup().addTo(map);
-    globeLand=null;
-    finish();
-  } else {
-  fetch("./geo/countries.json?v=2").then(function(r){ return r.json(); }).then(function(data){
-    COUNTRY_LIST=(data&&data.items)||[];
-    if(!countryLayer && typeof L!=="undefined" && typeof map!=="undefined") countryLayer=L.layerGroup().addTo(map);
-    globeLand=null;
-    finish();
-  }).catch(function(){ finish(); });
-  }
+  COUNTRY_LIST=(window.__COUNTRIES&&window.__COUNTRIES.items)||[];
+  if(!countryLayer && typeof L!=="undefined" && typeof map!=="undefined") countryLayer=L.layerGroup().addTo(map);
+  globeLand=null;
+  finish();
+
   if(window.__RUSSIA){
-    var items=((window.__RUSSIA.items)||[]).map(function(r){ r.id=r.n; return r; });
-    RUSSIA_REGIONS=mergeExtraRegions(items);
+    RUSSIA_REGIONS=mergeExtraRegions((window.__RUSSIA.items||[]).map(function(r){ r.id=r.n; return r; }));
     finish();
-  } else {
-  fetch("./geo/russia.json?v=2").then(function(r){ return r.json(); }).then(function(data){
-    var items=((data&&data.items)||[]).map(function(r){ r.id=r.n; return r; });
-    RUSSIA_REGIONS=mergeExtraRegions(items);
-    finish();
-  }).catch(function(){ RUSSIA_REGIONS=EXTRA_REGIONS.slice(); finish(); });
+    return;
   }
+
+  var localRegionsPromise=fetch("./geo/russia.json?v=3").then(function(r){
+    if(!r.ok) throw new Error("Local Russia geometry unavailable");
+    return r.json();
+  }).then(function(data){ return (data&&data.items)||[]; });
+
+  fetch("https://raw.githubusercontent.com/wmgeolab/geoBoundaries/9469f09/releaseData/gbOpen/RUS/ADM1/geoBoundaries-RUS-ADM1_simplified.geojson")
+    .then(function(r){ if(!r.ok) throw new Error("geoBoundaries download failed"); return r.json(); })
+    .then(function(data){
+      if(!data || !Array.isArray(data.features) || !data.features.length) throw new Error("Invalid geoBoundaries GeoJSON");
+      var items=data.features.map(function(feature){
+        var props=feature.properties||{}, geom=feature.geometry||{};
+        var name=props.shapeName||props.shapeNameAlt||props.name||props.NAME_1||props.NAME||props.admin||props.name_local;
+        if(!name || !geom.coordinates || (geom.type!=="Polygon" && geom.type!=="MultiPolygon")) return null;
+        var bounds=[Infinity,Infinity,-Infinity,-Infinity];
+        function collectPoints(value){
+          if(!Array.isArray(value)) return;
+          if(typeof value[0]==="number" && typeof value[1]==="number"){
+            var lng=value[0], lat=value[1];
+            bounds[0]=Math.min(bounds[0],lat);
+            bounds[1]=Math.min(bounds[1],lng);
+            bounds[2]=Math.max(bounds[2],lat);
+            bounds[3]=Math.max(bounds[3],lng);
+            return;
+          }
+          value.forEach(collectPoints);
+        }
+        collectPoints(geom.coordinates);
+        return {n:String(name),id:String(name),p:geom.coordinates,b:bounds};
+      }).filter(function(r){ return r && isFinite(r.b[0]); });
+      if(items.length<70) throw new Error("geoBoundaries subject count too low");
+      var seen={};
+      items.forEach(function(r){ seen[r.n.toLowerCase().replace(/ё/g,"е")]=true; });
+      EXTRA_REGIONS.forEach(function(r){
+        var key=r.n.toLowerCase().replace(/ё/g,"е");
+        if(!seen[key]){ items.push(withBbox({n:r.n,id:r.id,p:r.p})); seen[key]=true; }
+      });
+      RUSSIA_REGIONS=items;
+      finish();
+    })
+    .catch(function(){
+      localRegionsPromise.then(function(items){
+        RUSSIA_REGIONS=mergeExtraRegions(items.map(function(r){ r.id=r.n; return r; }));
+        finish();
+      }).catch(function(){
+        RUSSIA_REGIONS=EXTRA_REGIONS.slice();
+        finish();
+      });
+    });
 }
 bootGeo();
 var globeToggle=document.getElementById("set-globe");
