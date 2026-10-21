@@ -6836,7 +6836,7 @@ function bootGeo(){
     return r.json();
   }).then(function(data){ return (data&&data.items)||[]; });
 
-  fetch("https://raw.githubusercontent.com/wmgeolab/geoBoundaries/9469f09/releaseData/gbOpen/RUS/ADM1/geoBoundaries-RUS-ADM1_simplified.geojson")
+  fetch("https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/RUS/ADM1/geoBoundaries-RUS-ADM1_simplified.geojson")
     .then(function(r){ if(!r.ok) throw new Error("geoBoundaries download failed"); return r.json(); })
     .then(function(data){
       if(!data || !Array.isArray(data.features) || !data.features.length) throw new Error("Invalid geoBoundaries GeoJSON");
