@@ -818,17 +818,21 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   if(!me) gate.style.display="grid";
   form.addEventListener("submit", function(e){
     e.preventDefault();
-    var login=String((document.getElementById("file-login-name")||{}).value||"").trim().toLowerCase().replace(/@travelek\.app$/,"");
-    var password=String((document.getElementById("file-login-pass")||{}).value||"").replace(/[\u200B-\u200D\uFEFF]/g,"").trim();
-    var u=users(), row=null, n, L;
-    for(n=0;n<u.length;n++){
-      L=String(u[n].login||u[n].email||"").toLowerCase().replace(/@travelek\.app$/,"");
-      if(L===login && String(u[n].password||"").trim()===password) row=u[n];
-    }
     var err=document.getElementById("file-login-err");
-    if(!row){ if(err) err.textContent="Неверный логин или пароль"; return; }
-    try{ localStorage.setItem(SESSION, row.id); sessionStorage.removeItem("travelek-view"); }catch(ex){}
-    location.reload();
+    function show(ok){ if(!ok && err) err.textContent="Неверный логин или пароль"; }
+    function go(){
+      if(!window.__localLogin){ show(false); return; }
+      var ret=window.__localLogin(document.getElementById("file-login-name").value, document.getElementById("file-login-pass").value);
+      if(ret && ret.then) ret.then(show).catch(function(){ show(false); });
+      else show(!!ret);
+    }
+    if(err) err.textContent="Проверяем…";
+    if(window.__TRAVELEK_STORE_READY) go();
+    else {
+      var n=0, t=setInterval(function(){
+        if(window.__TRAVELEK_STORE_READY || ++n>80){ clearInterval(t); go(); }
+      }, 100);
+    }
   });
 })();
 </script>

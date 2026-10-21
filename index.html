@@ -1481,17 +1481,21 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   if(!me) gate.style.display="grid";
   form.addEventListener("submit", function(e){
     e.preventDefault();
-    var login=String((document.getElementById("file-login-name")||{}).value||"").trim().toLowerCase().replace(/@travelek\.app$/,"");
-    var password=String((document.getElementById("file-login-pass")||{}).value||"").replace(/[\u200B-\u200D\uFEFF]/g,"").trim();
-    var u=users(), row=null, n, L;
-    for(n=0;n<u.length;n++){
-      L=String(u[n].login||u[n].email||"").toLowerCase().replace(/@travelek\.app$/,"");
-      if(L===login && String(u[n].password||"").trim()===password) row=u[n];
-    }
     var err=document.getElementById("file-login-err");
-    if(!row){ if(err) err.textContent="Неверный логин или пароль"; return; }
-    try{ localStorage.setItem(SESSION, row.id); sessionStorage.removeItem("travelek-view"); }catch(ex){}
-    location.reload();
+    function show(ok){ if(!ok && err) err.textContent="Неверный логин или пароль"; }
+    function go(){
+      if(!window.__localLogin){ show(false); return; }
+      var ret=window.__localLogin(document.getElementById("file-login-name").value, document.getElementById("file-login-pass").value);
+      if(ret && ret.then) ret.then(show).catch(function(){ show(false); });
+      else show(!!ret);
+    }
+    if(err) err.textContent="Проверяем…";
+    if(window.__TRAVELEK_STORE_READY) go();
+    else {
+      var n=0, t=setInterval(function(){
+        if(window.__TRAVELEK_STORE_READY || ++n>80){ clearInterval(t); go(); }
+      }, 100);
+    }
   });
 })();
 </script>
@@ -3639,37 +3643,95 @@ wipeRoutesOnce();
   window.__TRAVELEK_PRIVATE=true;
   var USERS="travelek-users", SESSION="travelek-session", VAULT="travelek-vault";
   var KEYS=["travelek-extra","travelek-del","travelek-app-settings","travelek-mapprefs","travelek-theme","travelek-theme-pref","travelek-countries","travelek-countries-off","travelek-regions","travelek-regions-off"];
+  var STORE_URL="https://keepjson.fourlegs.workers.dev/bins/BkoU663gNtadZ-zfQvPYx";
+  var STORE_KEY="kj_w_qgNZJtClt_6vg01Eq5c8j1wpxzMTpSzUKrazvkb12AY";
   function read(k, fb){ try{ var v=JSON.parse(localStorage.getItem(k)||""); return v==null?fb:v; }catch(e){ return fb; } }
   function users(){
     var u=read(USERS, null);
     if(!Array.isArray(u)) u=[];
-    var rev="";
-    try{ rev=localStorage.getItem("travelek-auth-rev")||""; }catch(e){}
-    if(rev!=="4"){
-      var next=[], seen=false, i, L;
-      for(i=0;i<u.length;i++){
-        L=String((u[i]&&(u[i].login||u[i].email))||"").toLowerCase().replace(/@travelek\.app$/,"");
-        if(u[i] && (u[i].id==="admin" || u[i].role==="admin" || L==="admin")){
-          if(!seen){ next.push({id:"admin", login:"admin", name:"Администратор", password:"Travelek#Admin89", role:"admin"}); seen=true; }
-        } else next.push(u[i]);
-      }
-      if(!seen) next.unshift({id:"admin", login:"admin", name:"Администратор", password:"Travelek#Admin89", role:"admin"});
-      u=next;
-      try{
-        localStorage.setItem(USERS, JSON.stringify(u));
-        localStorage.setItem("travelek-auth-rev","4");
-      }catch(e){}
-    }
-    var has=false;
-    for(var n=0;n<u.length;n++) if(u[n] && String(u[n].login||"").toLowerCase()==="admin") has=true;
-    if(!has){
-      u.unshift({id:"admin", login:"admin", name:"Администратор", password:"Travelek#Admin89", role:"admin"});
-      try{ localStorage.setItem(USERS, JSON.stringify(u)); }catch(e){}
-    }
+    var has=false, n;
+    for(n=0;n<u.length;n++) if(u[n] && String(u[n].login||"").toLowerCase()==="admin") has=true;
+    if(!has) u.unshift({id:"admin", login:"admin", name:"Администратор", password:"c2fac218c4027f32925170d6d478f2ba557af4efe7d493a9d5780bee7f843eda", role:"admin"});
     return u;
   }
   function vault(){ var v=read(VAULT, {}); return v&&typeof v==="object"&&!Array.isArray(v)?v:{}; }
   function saveVault(v){ try{ localStorage.setItem(VAULT, JSON.stringify(v)); }catch(e){} }
+  function sha256(text){
+    if(!window.crypto||!crypto.subtle||!window.TextEncoder) return Promise.resolve(String(text||""));
+    return crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(text||""))).then(function(buf){
+      var a=new Uint8Array(buf), s="", i;
+      for(i=0;i<a.length;i++) s+=("0"+a[i].toString(16)).slice(-2);
+      return s;
+    });
+  }
+  function passMatch(stored, typed){
+    stored=String(stored||"");
+    typed=String(typed||"");
+    if(stored===typed) return Promise.resolve(true);
+    return sha256(typed).then(function(h){ return h===stored; });
+  }
+  function saveStoreNow(){
+    return fetch(STORE_URL, {
+      method:"PUT",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+STORE_KEY},
+      body:JSON.stringify({users:users(), vault:vault()})
+    }).then(function(r){ if(!r.ok) throw new Error("save"); });
+  }
+  var saveTimer=null;
+  function scheduleSave(){ clearTimeout(saveTimer); saveTimer=setTimeout(function(){ saveStoreNow().catch(function(){}); }, 500); }
+  function hashList(list){
+    var chain=Promise.resolve();
+    list.forEach(function(u, idx){
+      chain=chain.then(function(){
+        var p=String(u.password||"");
+        if(/^[a-f0-9]{64}$/.test(p)) return;
+        return sha256(p).then(function(h){ list[idx].password=h; });
+      });
+    });
+    return chain.then(function(){ return list; });
+  }
+  var storePromise=null;
+  function ensureStore(){
+    if(storePromise) return storePromise;
+    var before="";
+    try{ before=(localStorage.getItem(USERS)||"")+"|"+(localStorage.getItem(VAULT)||""); }catch(e){}
+    storePromise=fetch(STORE_URL+"?t="+Date.now(), {cache:"no-store"}).then(function(r){
+      if(!r.ok) throw new Error("load");
+      return r.json();
+    }).then(function(data){
+      if(!data||typeof data!=="object") data={};
+      if(!Array.isArray(data.users)) data.users=[];
+      if(!data.vault||typeof data.vault!=="object"||Array.isArray(data.vault)) data.vault={};
+      var local=read(USERS, []);
+      if(!Array.isArray(local)) local=[];
+      var have={}, i, L;
+      for(i=0;i<data.users.length;i++) have[String(data.users[i].login||"").toLowerCase()]=1;
+      for(i=0;i<local.length;i++){
+        L=String((local[i]&&(local[i].login||local[i].email))||"").toLowerCase().replace(/@travelek\.app$/,"");
+        if(!L||have[L]) continue;
+        have[L]=1;
+        data.users.push({id:local[i].id||("u"+Date.now()), login:L, name:local[i].name||L, password:local[i].password||"", role:local[i].role==="admin"?"admin":"user"});
+      }
+      var lv=read(VAULT, {});
+      if(lv&&typeof lv==="object"){
+        Object.keys(lv).forEach(function(id){
+          if(!data.vault[id] && lv[id]) data.vault[id]=lv[id];
+        });
+      }
+      if(!have.admin) data.users.unshift({id:"admin", login:"admin", name:"Администратор", password:"c2fac218c4027f32925170d6d478f2ba557af4efe7d493a9d5780bee7f843eda", role:"admin"});
+      return hashList(data.users).then(function(){
+        try{
+          localStorage.setItem(USERS, JSON.stringify(data.users));
+          localStorage.setItem(VAULT, JSON.stringify(data.vault));
+        }catch(e){}
+        var after="";
+        try{ after=(localStorage.getItem(USERS)||"")+"|"+(localStorage.getItem(VAULT)||""); }catch(e){}
+        window.__TRAVELEK_STORE_CHANGED=after!==before;
+        if(after!==before) return saveStoreNow();
+      });
+    }).catch(function(){}).then(function(){ window.__TRAVELEK_STORE_READY=true; });
+    return storePromise;
+  }
   function apply(pack){
     var i,k;
     for(i=0;i<KEYS.length;i++){
@@ -3686,17 +3748,37 @@ wipeRoutesOnce();
   window.__localLogin=function(login, password){
     login=String(login||"").trim().toLowerCase().replace(/@travelek\.app$/,"");
     password=String(password||"").replace(/[\u200B-\u200D\uFEFF]/g,"").trim();
-    var u=users(), row=null, n, L;
-    for(n=0;n<u.length;n++){
-      L=String(u[n].login||u[n].email||"").toLowerCase().replace(/@travelek\.app$/,"");
-      if(L===login && String(u[n].password||"").trim()===password) row=u[n];
-    }
-    if(!row) return false;
-    localStorage.setItem(SESSION, row.id);
-    sessionStorage.removeItem("travelek-view");
-    location.reload();
-    return true;
+    return ensureStore().then(function(){
+      var u=users(), jobs=[], n, L;
+      for(n=0;n<u.length;n++){
+        L=String(u[n].login||u[n].email||"").toLowerCase().replace(/@travelek\.app$/,"");
+        if(L===login) jobs.push(u[n]);
+      }
+      var chain=Promise.resolve(null);
+      jobs.forEach(function(candidate){
+        chain=chain.then(function(found){
+          if(found) return found;
+          return passMatch(candidate.password, password).then(function(ok){ return ok?candidate:null; });
+        });
+      });
+      return chain;
+    }).then(function(row){
+      if(!row) return false;
+      localStorage.setItem(SESSION, row.id);
+      sessionStorage.removeItem("travelek-view");
+      location.reload();
+      return true;
+    });
   };
+  ensureStore().then(function(){
+    if(!localStorage.getItem(SESSION) || !window.__TRAVELEK_STORE_CHANGED) return;
+    if(sessionStorage.getItem("travelek-store-sync")==="1"){
+      sessionStorage.removeItem("travelek-store-sync");
+      return;
+    }
+    sessionStorage.setItem("travelek-store-sync","1");
+    location.reload();
+  });
   if(!me){
     window.__TRAVELEK_HOLD=true;
     window.__TRAVELEK_SEED=false;
@@ -3719,6 +3801,7 @@ wipeRoutesOnce();
   window.__cloudPush=function(data){
     if(window.__TRAVELEK_READONLY) return;
     var vv=vault(); vv[me.id]=data; saveVault(vv);
+    scheduleSave();
   };
   window.__cloudRename=function(name){
     return new Promise(function(resolve, reject){
@@ -3729,6 +3812,7 @@ wipeRoutesOnce();
       localStorage.setItem(USERS, JSON.stringify(u));
       me.name=name;
       if(window.__TRAVELEK_ME) window.__TRAVELEK_ME.name=name;
+      scheduleSave();
       resolve({ok:true, name:name});
     });
   };
@@ -3736,11 +3820,16 @@ wipeRoutesOnce();
     return new Promise(function(resolve, reject){
       var u=users(), row=null, n;
       for(n=0;n<u.length;n++) if(u[n].id===me.id) row=u[n];
-      if(!row || row.password!==currentPassword) return reject(new Error("bad"));
+      if(!row) return reject(new Error("bad"));
       if(String(newPassword||"").length<8) return reject(new Error("short"));
-      row.password=newPassword;
-      localStorage.setItem(USERS, JSON.stringify(u));
-      resolve();
+      passMatch(row.password, currentPassword).then(function(ok){
+        if(!ok) return reject(new Error("bad"));
+        return sha256(newPassword).then(function(h){
+          row.password=h;
+          localStorage.setItem(USERS, JSON.stringify(u));
+          return saveStoreNow().then(resolve);
+        });
+      }).catch(reject);
     });
   };
   window.__cloudCreate=function(login, password, name){
@@ -3751,11 +3840,17 @@ wipeRoutesOnce();
       if(login.length<2) return reject(new Error("Логин слишком короткий"));
       if(String(password||"").length<8) return reject(new Error("Пароль короче 8 символов"));
       if(!name) return reject(new Error("Нужно имя"));
-      var u=users(), n;
-      for(n=0;n<u.length;n++) if(u[n].login===login) return reject(new Error("Такой логин уже есть"));
-      u.push({id:"u"+Date.now(), login:login, name:name, password:password, role:"user"});
-      localStorage.setItem(USERS, JSON.stringify(u));
-      resolve({ok:true});
+      ensureStore().then(function(){
+        var u=users(), n;
+        for(n=0;n<u.length;n++) if(String(u[n].login||"").toLowerCase()===login) throw new Error("Такой логин уже есть");
+        return sha256(password).then(function(h){
+          u.push({id:"u"+Date.now(), login:login, name:name, password:h, role:"user"});
+          localStorage.setItem(USERS, JSON.stringify(u));
+          return saveStoreNow();
+        });
+      }).then(function(){ resolve({ok:true}); }).catch(function(e){
+        reject(new Error(e&&e.message?e.message:"Не удалось сохранить аккаунт. Проверьте интернет"));
+      });
     });
   };
   window.__cloudAdmin=function(){
@@ -3790,9 +3885,12 @@ wipeRoutesOnce();
   if(!form) return;
   form.onsubmit=function(e){
     e.preventDefault();
-    var ok=window.__localLogin && window.__localLogin(document.getElementById("file-login-name").value, document.getElementById("file-login-pass").value);
+    var ret=window.__localLogin && window.__localLogin(document.getElementById("file-login-name").value, document.getElementById("file-login-pass").value);
     var err=document.getElementById("file-login-err");
-    if(!ok && err) err.textContent="Неверный логин или пароль";
+    if(ret && ret.then){
+      if(err) err.textContent="Проверяем…";
+      ret.then(function(ok){ if(!ok && err) err.textContent="Неверный логин или пароль"; }).catch(function(){ if(err) err.textContent="Неверный логин или пароль"; });
+    } else if(!ret && err) err.textContent="Неверный логин или пароль";
   };
 })();
 function assembleRoutes(){
@@ -6681,7 +6779,7 @@ window.__travelekStats=function(){
       document.getElementById("new-login").value="";
       document.getElementById("new-name").value="";
       document.getElementById("new-pass").value="";
-      alert("Аккаунт создан и сохранён на этом сайте. Файл на GitHub менять не нужно.");
+      alert("Аккаунт создан. Теперь по этому логину можно войти с любого телефона.");
       fillAccount();
     }).catch(function(e){ alert(e && e.message ? e.message : "Не удалось создать"); });
   };
