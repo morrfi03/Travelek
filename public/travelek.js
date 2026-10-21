@@ -2120,7 +2120,7 @@ wipeRoutesOnce();
     if(!Array.isArray(u)) u=[];
     var has=false, n;
     for(n=0;n<u.length;n++) if(u[n] && String(u[n].login||"").toLowerCase()==="admin") has=true;
-    if(!has) u.unshift({id:"admin", login:"admin", name:"Администратор", password:"c2fac218c4027f32925170d6d478f2ba557af4efe7d493a9d5780bee7f843eda", role:"admin"});
+    if(!has) u.unshift({id:"admin", login:"admin", name:"Администратор", password:"f6e718809f4092afc94ad388ee7d808498c19b4dbb7b0f5568a2ca528aaa6ade", role:"admin"});
     return u;
   }
   function vault(){ var v=read(VAULT, {}); return v&&typeof v==="object"&&!Array.isArray(v)?v:{}; }
@@ -2182,12 +2182,26 @@ wipeRoutesOnce();
         data.users.push({id:local[i].id||("u"+Date.now()), login:L, name:local[i].name||L, password:local[i].password||"", role:local[i].role==="admin"?"admin":"user"});
       }
       var lv=read(VAULT, {});
-      if(lv&&typeof lv==="object"){
-        Object.keys(lv).forEach(function(id){
-          if(!data.vault[id] && lv[id]) data.vault[id]=lv[id];
-        });
+      function packCount(pack){
+        if(!pack) return 0;
+        try{ var raw=pack["travelek-extra"]; var a=typeof raw==="string"?JSON.parse(raw):raw; return Array.isArray(a)?a.length:0; }catch(e){ return 0; }
       }
-      if(!have.admin) data.users.unshift({id:"admin", login:"admin", name:"Администратор", password:"c2fac218c4027f32925170d6d478f2ba557af4efe7d493a9d5780bee7f843eda", role:"admin"});
+      function better(a,b){
+        if(!a) return b||a;
+        if(!b) return a;
+        var an=packCount(a), bn=packCount(b);
+        if(bn>an) return b;
+        if(an>bn) return a;
+        return Object.keys(b).length>Object.keys(a).length?b:a;
+      }
+      var ids={}, id;
+      if(lv&&typeof lv==="object") Object.keys(lv).forEach(function(k){ ids[k]=1; });
+      Object.keys(data.vault).forEach(function(k){ ids[k]=1; });
+      for(id in ids){
+        if(!Object.prototype.hasOwnProperty.call(ids,id)) continue;
+        data.vault[id]=better(data.vault[id], lv&&lv[id]);
+      }
+      if(!have.admin) data.users.unshift({id:"admin", login:"admin", name:"Администратор", password:"f6e718809f4092afc94ad388ee7d808498c19b4dbb7b0f5568a2ca528aaa6ade", role:"admin"});
       return hashList(data.users).then(function(){
         try{
           localStorage.setItem(USERS, JSON.stringify(data.users));
@@ -2214,6 +2228,16 @@ wipeRoutesOnce();
   var sid=localStorage.getItem(SESSION);
   var me=null, i;
   for(i=0;i<list.length;i++) if(list[i].id===sid) me=list[i];
+  var viewId=sessionStorage.getItem("travelek-view");
+  if(me && (!viewId || viewId===me.id)){
+    var snap=vault();
+    var localPack={}, ki, kv;
+    for(ki=0;ki<KEYS.length;ki++){ kv=localStorage.getItem(KEYS[ki]); if(kv!=null) localPack[KEYS[ki]]=kv; }
+    function countPack(pack){
+      try{ var a=JSON.parse((pack&&pack["travelek-extra"])||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; }
+    }
+    if(countPack(localPack)>countPack(snap[me.id])){ snap[me.id]=localPack; saveVault(snap); }
+  }
   window.__localLogin=function(login, password){
     login=String(login||"").trim().toLowerCase().replace(/@travelek\.app$/,"");
     password=String(password||"").replace(/[\u200B-\u200D\uFEFF]/g,"").trim();
@@ -2269,9 +2293,14 @@ wipeRoutesOnce();
   window.__TRAVELEK_SEED=false;
   window.__cloudPush=function(data){
     if(window.__TRAVELEK_READONLY) return;
-    var vv=vault(); vv[me.id]=data; saveVault(vv);
+    var vv=vault();
+    var prev=vv[me.id];
+    function nOf(pack){ try{ var a=JSON.parse((pack&&pack["travelek-extra"])||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
+    if(!window.__TRAVELEK_DIARY_READY && nOf(data)<nOf(prev)) return;
+    vv[me.id]=data; saveVault(vv);
     scheduleSave();
   };
+  setTimeout(function(){ window.__TRAVELEK_DIARY_READY=true; }, 2500);
   window.__cloudRename=function(name){
     return new Promise(function(resolve, reject){
       name=String(name||"").trim();
@@ -2336,10 +2365,14 @@ wipeRoutesOnce();
         else if(routes[r].mode==="train") kmTrain+=km;
         else if(routes[r].mode==="car") kmCar+=km;
       }
-      var countries=0, regions=0;
+      var countries=0, regions=0, lines=[];
       try{ countries=JSON.parse(pack["travelek-countries"]||"[]").length; }catch(e){}
       try{ regions=JSON.parse(pack["travelek-regions"]||"[]").length; }catch(e){}
-      return {userId:user.id, email:user.login, name:user.name, role:user.role, routes:routes.length, countries:countries, regions:regions, kmPlane:Math.round(kmPlane), kmTrain:Math.round(kmTrain), kmCar:Math.round(kmCar)};
+      routes.slice(0,20).forEach(function(r){
+        var mode=r.mode==="plane"?"Самолёт":r.mode==="train"?"Поезд":"Авто";
+        lines.push(mode+" · "+(r.date||"без даты")+" · "+(r.from||"?")+" → "+(r.to||"?"));
+      });
+      return {userId:user.id, email:user.login, name:user.name, role:user.role, routes:routes.length, countries:countries, regions:regions, kmPlane:Math.round(kmPlane), kmTrain:Math.round(kmTrain), kmCar:Math.round(kmCar), lines:lines};
     }));
   };
   window.__openDiary=function(userId){ sessionStorage.setItem("travelek-view", userId); location.reload(); };
@@ -5203,7 +5236,8 @@ window.__travelekStats=function(){
         if(!rows || !rows.length){ list.innerHTML='<p class="hint">Пока только вы.</p>'; return; }
         list.innerHTML=rows.map(function(r){
           var login=String(r.email||"").replace(/@travelek\.app$/,"");
-          return '<button type="button" data-user="'+r.userId+'"><b>'+ (r.name||login) +'</b> · '+login+'<br><span style="color:var(--muted);font-size:12px">'+(r.role==="admin"?"админ · ":"")+r.routes+' маршрутов · '+r.countries+' стран · РФ '+r.regions+' · '+r.kmPlane+' / '+r.kmTrain+' / '+r.kmCar+' км</span></button>';
+          var lines=(r.lines&&r.lines.length)?r.lines.map(function(line){ return '<div class="route-line">'+line+'</div>'; }).join(""):'<div class="route-line">Маршрутов пока нет</div>';
+          return '<button type="button" data-user="'+r.userId+'"><b>'+ (r.name||login) +'</b> · '+login+'<br><span style="color:var(--muted);font-size:12px">'+(r.role==="admin"?"админ · ":"")+r.routes+' маршрутов · '+r.countries+' стран · РФ '+r.regions+' · '+r.kmPlane+' / '+r.kmTrain+' / '+r.kmCar+' км</span>'+lines+'</button>';
         }).join("");
       }).catch(function(){
         var list=document.getElementById("admin-list");
@@ -5231,10 +5265,13 @@ window.__travelekStats=function(){
   if(passSave) passSave.onclick=function(){
     var now=document.getElementById("acc-pass-now").value;
     var next=document.getElementById("acc-pass").value;
+    var next2=document.getElementById("acc-pass2").value;
+    if(next!==next2){ alert("Новые пароли не совпадают"); return; }
     if(!window.__changePassword) return;
     window.__changePassword(now, next).then(function(){
       document.getElementById("acc-pass-now").value="";
       document.getElementById("acc-pass").value="";
+      document.getElementById("acc-pass2").value="";
       alert("Пароль изменён");
     }).catch(function(){ alert("Не удалось сменить пароль. Проверьте текущий."); });
   };

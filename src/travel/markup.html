@@ -546,6 +546,7 @@ body.globe-on #globe-hint{display:block}
   text-align:left;display:block;width:100%;margin-top:8px;padding:10px 12px;border-radius:12px;
   border:1px solid var(--line);background:var(--chip);color:var(--text);
 }
+#admin-list .route-line{display:block;margin-top:4px;font-size:12px;font-weight:550;color:var(--text)}
 #account-btn{display:grid;place-items:center}
 body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!important}
 #file-login{
@@ -686,6 +687,10 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   <div class="passline">
     <input id="acc-pass" type="password" placeholder="Новый пароль, от 8 символов" autocomplete="new-password" />
     <button type="button" class="eye" data-eye="acc-pass">Показать</button>
+  </div>
+  <div class="passline">
+    <input id="acc-pass2" type="password" placeholder="Новый пароль ещё раз" autocomplete="new-password" />
+    <button type="button" class="eye" data-eye="acc-pass2">Показать</button>
   </div>
   <button type="button" id="acc-pass-save">Сменить пароль</button>
   <div id="account-admin" hidden>
