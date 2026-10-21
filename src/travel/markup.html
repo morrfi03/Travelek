@@ -46,7 +46,15 @@ html,body{
   touch-action:manipulation;-webkit-text-size-adjust:100%;
   letter-spacing:-0.01em;
 }
+input,select,textarea{font-size:16px!important}
 #map{position:fixed;inset:0;z-index:0;background:var(--map-bg);touch-action:none}
+#unzoom{
+  position:fixed;z-index:90;transform:translateX(-50%);
+  min-height:44px;width:auto;margin:0;padding:0 18px;border:none;border-radius:999px;
+  background:#4f7dff;color:#fff;font-size:15px;font-weight:700;
+  box-shadow:0 8px 24px rgba(0,0,0,.4);
+}
+#unzoom[hidden]{display:none!important}
 .leaflet-control-attribution,.leaflet-bottom{display:none!important}
 
 /* ——— Top bar (Flighty-style glass) ——— */
@@ -621,6 +629,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   <button type="button" id="z-in">+</button>
   <button type="button" id="z-out">−</button>
 </div>
+<button type="button" id="unzoom" hidden>Отдалить</button>
 <div id="live-trip" aria-live="polite"></div>
 <div id="offline-pill">Нет сети · карта из кэша</div>
 <div class="sheet mid" id="sheet">

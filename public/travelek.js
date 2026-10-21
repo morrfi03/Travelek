@@ -6,14 +6,41 @@ if(window.__travelekMap){
   window.__travelekMap=null;
 }
 
-/* Блок pinch-zoom всей страницы в Safari (не карты) */
-document.addEventListener("gesturestart",function(e){e.preventDefault();},{passive:false});
-document.addEventListener("gesturechange",function(e){e.preventDefault();},{passive:false});
-document.addEventListener("gestureend",function(e){e.preventDefault();},{passive:false});
+/* Щипок страницы не блокируем: иначе после случайного зума Safari нельзя отдалить. */
+function resetPageZoom(){
+  var m=document.querySelector('meta[name="viewport"]');
+  if(!m) return;
+  var base="width=device-width, initial-scale=1, minimum-scale=1, viewport-fit=cover";
+  m.setAttribute("content", base+", maximum-scale=1");
+  setTimeout(function(){ m.setAttribute("content", base); }, 400);
+}
+(function(){
+  var btn=document.getElementById("unzoom");
+  if(!btn) return;
+  function place(){
+    var vv=window.visualViewport;
+    var z=vv?vv.scale:1;
+    btn.hidden=!(z>1.04);
+    if(btn.hidden||!vv) return;
+    btn.style.left=(vv.offsetLeft+vv.width/2)+"px";
+    btn.style.top=(vv.offsetTop+vv.height-72)+"px";
+  }
+  if(window.visualViewport){
+    visualViewport.addEventListener("resize", place);
+    visualViewport.addEventListener("scroll", place);
+  }
+  btn.addEventListener("click", function(){
+    resetPageZoom();
+    setTimeout(place, 450);
+  });
+  place();
+})();
 var lastTouchEnd=0;
 document.addEventListener("touchend",function(e){
   var now=Date.now();
-  if(now-lastTouchEnd<=300) e.preventDefault();
+  var t=e.target;
+  var onMap=t && (t.id==="map" || (t.closest && (t.closest("#map") || t.closest("#globe"))));
+  if(onMap && now-lastTouchEnd<=300) e.preventDefault();
   lastTouchEnd=now;
 },{passive:false});
 
@@ -4824,7 +4851,7 @@ function renderCountryUi(){
   var stats=document.getElementById("visit-stats");
   var summary=visited.length+" стран";
   if(line) line.textContent=summary;
-  if(stats) stats.textContent=summary;
+  if(stats){ stats.textContent=summary; stats.hidden=!!regionOpen; }
   var title=document.getElementById("countries-title");
   var hint=document.getElementById("countries-hint");
   var back=document.getElementById("regions-back");
