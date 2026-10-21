@@ -2620,18 +2620,20 @@ function hav(a,b){
   var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dLng/2)*Math.sin(dLng/2);
   return 2*R*Math.asin(Math.min(1,Math.sqrt(x)));
 }
-function greatCircle(a,b,n){
-  n=n||72; var t=Math.PI/180;
-  var lat1=a.lat*t,lng1=a.lng*t,lat2=b.lat*t,lng2=b.lng*t;
-  var d=2*Math.asin(Math.min(1,Math.sqrt(Math.sin((lat2-lat1)/2)*Math.sin((lat2-lat1)/2)+Math.cos(lat1)*Math.cos(lat2)*Math.sin((lng2-lng1)/2)*Math.sin((lng2-lng1)/2))));
-  if(d<1e-8) return [[a.lat,a.lng],[b.lat,b.lng]];
-  var out=[],i,f,A,B,x,y,z;
+function flightArc(a,b,n){
+  n=n||72;
+  var dlat=b.lat-a.lat, dlng=b.lng-a.lng;
+  if(dlng>180) dlng-=360;
+  if(dlng<-180) dlng+=360;
+  var dist=Math.hypot(dlat, dlng);
+  if(dist<0.35) return [[a.lat,a.lng],[b.lat,b.lng]];
+  var len=dist||1, px=-dlat/len, py=dlng/len;
+  if(py<0){ px=-px; py=-py; }
+  var bulge=Math.min(24, Math.max(1.8, dist*0.28));
+  var out=[], i, t, s;
   for(i=0;i<=n;i++){
-    f=i/n; A=Math.sin((1-f)*d)/Math.sin(d); B=Math.sin(f*d)/Math.sin(d);
-    x=A*Math.cos(lat1)*Math.cos(lng1)+B*Math.cos(lat2)*Math.cos(lng2);
-    y=A*Math.cos(lat1)*Math.sin(lng1)+B*Math.cos(lat2)*Math.sin(lng2);
-    z=A*Math.sin(lat1)+B*Math.sin(lat2);
-    out.push([Math.atan2(z,Math.sqrt(x*x+y*y))/t, Math.atan2(y,x)/t]);
+    t=i/n; s=Math.sin(Math.PI*t);
+    out.push([a.lat+dlat*t+px*bulge*s, a.lng+dlng*t+py*bulge*s]);
   }
   return out;
 }
@@ -3231,7 +3233,7 @@ function buildGeoSync(r){
   if(!a||!b) return null;
   var coords;
   if(r.mode==="plane"){
-    coords=greatCircle(a,b,80);
+    coords=flightArc(a,b,80);
     return {coords:coords, km:hav(a,b), a:a, b:b};
   }
   if(r.mode==="ship"){
@@ -3340,6 +3342,7 @@ function drawWorld(){
   var style={color:pal.edge, weight:0.4, opacity:.45, lineJoin:"round", lineCap:"round", fillColor:pal.land, fillOpacity:1, interactive:false, smoothFactor:0};
   var ruStyle={stroke:false, fillColor:pal.ru, fillOpacity:1, interactive:false, smoothFactor:0};
   COUNTRY_LIST.forEach(function(c){
+    if(c.i==="RU") return;
     if(typeof polysOf!=="function") return;
     polysOf(c).forEach(function(poly){ paintOn(worldLayer, poly, c.i==="RU"?ruStyle:style); });
   });
@@ -3448,6 +3451,7 @@ function globeFeatures(){
   var feats=[];
   if(COUNTRY_LIST && typeof polysOf==="function"){
     COUNTRY_LIST.forEach(function(c){
+      if(c.i==="RU") return;
       var polys=polysOf(c);
       if(!polys.length) return;
       feats.push({type:"Feature", properties:{i:c.i}, geometry:{type:"MultiPolygon", coordinates:polys}});
@@ -3467,7 +3471,8 @@ function globeLayout(){
   var ctx=globeCv.getContext("2d");
   ctx.setTransform(dpr,0,0,dpr,0,0);
   var sheet=document.getElementById("sheet");
-  var sheetH=sheet?sheet.getBoundingClientRect().height:h*0.4;
+  var desktop=window.matchMedia&&matchMedia("(min-width: 980px)").matches;
+  var sheetH=desktop?76:(sheet?sheet.getBoundingClientRect().height:h*0.4);
   var top=78;
   var avail=Math.max(160, h-sheetH-top-12);
   var R=Math.min(w*0.42, avail*0.48)*globeScale;
@@ -3515,6 +3520,16 @@ function drawGlobe(){
   feats.forEach(function(f){ if(!seen[f.properties.i]) path(f); });
   ctx.fillStyle="#1e3b32";
   ctx.fill();
+  if(typeof RUSSIA_REGIONS!=="undefined" && RUSSIA_REGIONS){
+    ctx.beginPath();
+    RUSSIA_REGIONS.forEach(function(reg){
+      polysOf(reg).forEach(function(poly){
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:poly}});
+      });
+    });
+    ctx.fillStyle="#1e3b32";
+    ctx.fill();
+  }
   ctx.beginPath();
   feats.forEach(function(f){ if(seen[f.properties.i]) path(f); });
   ctx.fillStyle="rgba(59,130,246,.7)";
@@ -4056,6 +4071,12 @@ function nearestState(px){
 }
 function setSheet(state){
   if(!sheetEl) return;
+  if(window.matchMedia && matchMedia("(min-width: 980px)").matches){
+    sheetState=state;
+    sheetEl.classList.remove("collapsed","mid","full","low","dragging");
+    sheetEl.style.height="";
+    return;
+  }
   sheetState=state;
   sheetEl.classList.remove("collapsed","mid","full","low","dragging");
   sheetEl.classList.add(state);
@@ -4068,6 +4089,7 @@ function setSheet(state){
 }
 function onDragStart(y){
   if(!sheetEl) return;
+  if(window.matchMedia && matchMedia("(min-width: 980px)").matches) return;
   dragY0=y;
   dragH0=sheetEl.getBoundingClientRect().height;
   dragging=true;
@@ -5028,7 +5050,7 @@ function drawCountries(){
   var on={}, i;
   for(i=0;i<visited.length;i++) on[visited[i]]=1;
   COUNTRY_LIST.forEach(function(c){
-    if(!on[c.i]) return;
+    if(!on[c.i] || c.i==="RU") return;
     polysOf(c).forEach(function(poly){
       paintPoly(poly, {stroke:false, fillColor:"#3b82f6", fillOpacity:.34, interactive:false, smoothFactor:0});
     });
@@ -5205,12 +5227,12 @@ function bootGeo(){
   }
   if(window.__RUSSIA){
     var items=((window.__RUSSIA.items)||[]).map(function(r){ r.id=r.n; return r; });
-    RUSSIA_REGIONS=items.concat(EXTRA_REGIONS);
+    RUSSIA_REGIONS=items;
     finish();
   } else {
   fetch("/geo/russia.json?v=1").then(function(r){ return r.json(); }).then(function(data){
     var items=((data&&data.items)||[]).map(function(r){ r.id=r.n; return r; });
-    RUSSIA_REGIONS=items.concat(EXTRA_REGIONS);
+    RUSSIA_REGIONS=items;
     finish();
   }).catch(function(){ RUSSIA_REGIONS=EXTRA_REGIONS.slice(); finish(); });
   }

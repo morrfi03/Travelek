@@ -187,10 +187,7 @@ input,select,textarea{font-size:16px!important}
   box-shadow:0 4px 16px rgba(79,125,255,.35);
   letter-spacing:-0.01em;
 }
-#download-file{
-  margin-top:8px;background:transparent!important;color:var(--text)!important;
-  border:1px solid var(--line)!important;box-shadow:none!important;font-size:14px;
-}
+#download-file{display:none!important}
 
 /* Route list cards */
 .list{
@@ -516,6 +513,21 @@ body.globe-on #globe-hint{display:block}
   }
   #country-list button,#region-list button,.country-row .grow,.country-row .tick{min-height:48px;font-size:15px}
 }
+@media (min-width: 980px){
+  .handle-wrap,.cover,.sheet-actions{display:none!important}
+  .sheet{
+    left:14px;right:auto;top:96px;bottom:16px;width:340px;
+    height:auto!important;max-height:none;border-radius:18px;
+    border:1px solid var(--line);
+  }
+  .stats{
+    position:fixed;left:370px;right:16px;bottom:14px;z-index:30;margin:0;padding:8px 10px;
+    background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+    border:1px solid var(--line);border-radius:16px;
+    box-shadow:0 8px 28px rgba(0,0,0,.25);
+  }
+  .zoom{left:auto;right:18px;bottom:96px;transform:none;flex-direction:column}
+}
 #settings-panel .theme-row{grid-template-columns:1fr}
 @media (min-width:420px){
   #settings-panel .theme-row{grid-template-columns:1fr 1fr 1fr}
@@ -644,7 +656,6 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   <div class="year-filter" id="year-filter"></div>
   <div class="sheet-actions">
     <button type="button" id="add-btn-2">＋ Добавить маршрут</button>
-    <button type="button" id="download-file">Скачать файл</button>
   </div>
   <div class="list" id="list"></div>
 </div>
