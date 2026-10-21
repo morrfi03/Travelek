@@ -2369,6 +2369,25 @@ wipeRoutesOnce();
       }).catch(reject);
     });
   };
+  window.__adminSetPassword=function(userId, newPassword){
+    return new Promise(function(resolve, reject){
+      if(!me || me.role!=="admin") return reject(new Error("Только администратор"));
+      if(String(newPassword||"").length<8) return reject(new Error("Пароль короче 8 символов"));
+      ensureStore().then(function(){
+        var u=users(), row=null, n;
+        for(n=0;n<u.length;n++) if(u[n].id===userId) row=u[n];
+        if(!row) throw new Error("Аккаунт не найден");
+        if(row.id===me.id) throw new Error("Свой пароль меняйте в блоке выше");
+        return sha256(newPassword).then(function(h){
+          row.password=h;
+          localStorage.setItem(USERS, JSON.stringify(u));
+          return saveStoreNow();
+        });
+      }).then(function(){ resolve({ok:true}); }).catch(function(e){
+        reject(new Error(e&&e.message?e.message:"Не удалось сменить пароль"));
+      });
+    });
+  };
   window.__cloudCreate=function(login, password, name){
     return new Promise(function(resolve, reject){
       if(me.role!=="admin") return reject(new Error("Только администратор может создавать аккаунты"));
@@ -2394,24 +2413,30 @@ wipeRoutesOnce();
     var vv=vault();
     return Promise.resolve(users().map(function(user){
       var pack=vv[user.id]||{};
-      var routes=[];
-      try{ routes=JSON.parse(pack["travelek-extra"]||"[]"); }catch(e){ routes=[]; }
-      if(!Array.isArray(routes)) routes=[];
-      var kmPlane=0, kmTrain=0, kmCar=0, r;
-      for(r=0;r<routes.length;r++){
-        var km=kmOf(routes[r].duration);
-        if(routes[r].mode==="plane") kmPlane+=km;
-        else if(routes[r].mode==="train") kmTrain+=km;
-        else if(routes[r].mode==="car") kmCar+=km;
+      var stats=(typeof window.__packStats==="function")?window.__packStats(pack):null;
+      var routes=stats?stats.routesList:[];
+      if(!stats){
+        try{ routes=JSON.parse(pack["travelek-extra"]||"[]"); }catch(e){ routes=[]; }
+        if(!Array.isArray(routes)) routes=[];
       }
-      var countries=0, regions=0, lines=[];
-      try{ countries=JSON.parse(pack["travelek-countries"]||"[]").length; }catch(e){}
-      try{ regions=JSON.parse(pack["travelek-regions"]||"[]").length; }catch(e){}
-      routes.slice(0,20).forEach(function(r){
+      var lines=[];
+      routes.slice(0,12).forEach(function(r){
         var mode=r.mode==="plane"?"Самолёт":r.mode==="train"?"Поезд":"Авто";
         lines.push(mode+" · "+(r.date||"без даты")+" · "+(r.from||"?")+" → "+(r.to||"?"));
       });
-      return {userId:user.id, email:user.login, name:user.name, role:user.role, routes:routes.length, countries:countries, regions:regions, kmPlane:Math.round(kmPlane), kmTrain:Math.round(kmTrain), kmCar:Math.round(kmCar), lines:lines};
+      return {
+        userId:user.id,
+        email:user.login,
+        name:user.name,
+        role:user.role,
+        routes:stats?stats.routes:routes.length,
+        countries:stats?stats.countries:0,
+        regions:stats?stats.regions:0,
+        kmPlane:stats?stats.kmPlane:0,
+        kmTrain:stats?stats.kmTrain:0,
+        kmCar:stats?stats.kmCar:0,
+        lines:lines
+      };
     }));
   };
   window.__openDiary=function(userId){ sessionStorage.setItem("travelek-view", userId); location.reload(); };
@@ -3328,9 +3353,8 @@ function smoothRing(ring){
   return pts;
 }
 function paintOn(group, poly, style){
-  var latlngs=poly.map(function(ring){
-    return smoothRing(ring).map(function(pt){ return [pt[1], pt[0]]; });
-  });
+  if(!poly||!poly[0]) return;
+  var latlngs=[smoothRing(poly[0]).map(function(pt){ return [pt[1], pt[0]]; })];
   L.polygon(latlngs, style).addTo(group);
 }
 function drawWorld(){
@@ -3340,7 +3364,7 @@ function drawWorld(){
   if(typeof COUNTRY_LIST==="undefined" || !COUNTRY_LIST) return;
   var pal=mapPalette();
   var style={color:pal.edge, weight:0.4, opacity:.45, lineJoin:"round", lineCap:"round", fillColor:pal.land, fillOpacity:1, interactive:false, smoothFactor:0};
-  var ruStyle={stroke:false, fillColor:pal.ru, fillOpacity:1, interactive:false, smoothFactor:0};
+  var ruStyle={color:pal.ru, weight:2.4, opacity:1, lineJoin:"round", lineCap:"round", fillColor:pal.ru, fillOpacity:1, interactive:false, smoothFactor:0};
   COUNTRY_LIST.forEach(function(c){
     if(c.i==="RU") return;
     if(typeof polysOf!=="function") return;
@@ -3454,7 +3478,7 @@ function globeFeatures(){
       if(c.i==="RU") return;
       var polys=polysOf(c);
       if(!polys.length) return;
-      feats.push({type:"Feature", properties:{i:c.i}, geometry:{type:"MultiPolygon", coordinates:polys}});
+      feats.push({type:"Feature", properties:{i:c.i}, geometry:{type:"MultiPolygon", coordinates:polys.map(function(poly){ return [poly[0]]; })}});
     });
   }
   globeLand={n:n, feats:feats};
@@ -3524,10 +3548,20 @@ function drawGlobe(){
     ctx.beginPath();
     RUSSIA_REGIONS.forEach(function(reg){
       polysOf(reg).forEach(function(poly){
-        path({type:"Feature", geometry:{type:"Polygon", coordinates:poly}});
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:[poly[0]]}});
       });
     });
     ctx.fillStyle="#1e3b32";
+    ctx.fill();
+  }
+  if(seen["RU"] && typeof RUSSIA_REGIONS!=="undefined" && RUSSIA_REGIONS){
+    ctx.beginPath();
+    RUSSIA_REGIONS.forEach(function(reg){
+      polysOf(reg).forEach(function(poly){
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:[poly[0]]}});
+      });
+    });
+    ctx.fillStyle="rgba(59,130,246,.7)";
     ctx.fill();
   }
   ctx.beginPath();
@@ -3541,7 +3575,7 @@ function drawGlobe(){
     RUSSIA_REGIONS.forEach(function(reg){
       if(!ron[reg.id]) return;
       polysOf(reg).forEach(function(poly){
-        path({type:"Feature", geometry:{type:"Polygon", coordinates:poly}});
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:[poly[0]]}});
       });
     });
     ctx.fillStyle="rgba(232,184,92,.88)";
@@ -4952,7 +4986,6 @@ function polysOf(c){
 }
 function polyHas(poly, lat, lng){
   if(!poly||!poly.length||!ringHas(poly[0], lat, lng)) return false;
-  for(var h=1;h<poly.length;h++){ if(ringHas(poly[h], lat, lng)) return false; }
   return true;
 }
 function countryAt(lat, lng){
@@ -5038,10 +5071,9 @@ function syncVisited(){
   autoRegions=autoR;
 }
 function paintPoly(poly, style){
-  var latlngs=poly.map(function(ring){
-    var pts=typeof smoothRing==="function"?smoothRing(ring):ring;
-    return pts.map(function(pt){ return [pt[1], pt[0]]; });
-  });
+  if(!poly||!poly[0]) return;
+  var pts=typeof smoothRing==="function"?smoothRing(poly[0]):poly[0];
+  var latlngs=[pts.map(function(pt){ return [pt[1], pt[0]]; })];
   L.polygon(latlngs, style).addTo(countryLayer);
 }
 function drawCountries(){
@@ -5049,20 +5081,23 @@ function drawCountries(){
   countryLayer.clearLayers();
   var on={}, i;
   for(i=0;i<visited.length;i++) on[visited[i]]=1;
+  var blue={color:"#3b82f6", weight:1.2, opacity:.35, lineJoin:"round", fillColor:"#3b82f6", fillOpacity:.34, interactive:false, smoothFactor:0};
+  var gold={color:"#c9842a", weight:1.2, opacity:.9, lineJoin:"round", fillColor:"#e8b85c", fillOpacity:.72, interactive:false, smoothFactor:0};
   COUNTRY_LIST.forEach(function(c){
     if(!on[c.i] || c.i==="RU") return;
-    polysOf(c).forEach(function(poly){
-      paintPoly(poly, {stroke:false, fillColor:"#3b82f6", fillOpacity:.34, interactive:false, smoothFactor:0});
-    });
+    polysOf(c).forEach(function(poly){ paintPoly(poly, blue); });
   });
+  if(on["RU"] && RUSSIA_REGIONS){
+    RUSSIA_REGIONS.forEach(function(reg){
+      polysOf(reg).forEach(function(poly){ paintPoly(poly, blue); });
+    });
+  }
   if(RUSSIA_REGIONS && visitedRegions.length){
     var ron={};
     visitedRegions.forEach(function(id){ ron[id]=1; });
     RUSSIA_REGIONS.forEach(function(reg){
       if(!ron[reg.id]) return;
-      polysOf(reg).forEach(function(poly){
-        paintPoly(poly, {stroke:false, fillColor:"#e8b85c", fillOpacity:.62, interactive:false, smoothFactor:0});
-      });
+      polysOf(reg).forEach(function(poly){ paintPoly(poly, gold); });
     });
   }
   try{ if(worldLayer) worldLayer.bringToBack(); countryLayer.bringToFront(); }catch(e){}
@@ -5307,6 +5342,58 @@ window.__travelekStats=function(){
   var st=regionStats();
   return {routes:ROUTES.length, countries:visited.length, regions:st, plane:Math.round(kmP), train:Math.round(kmT), car:Math.round(kmC)};
 };
+window.__packStats=function(pack){
+  function arr(key){
+    try{ var a=JSON.parse((pack&&pack[key])||"[]"); return Array.isArray(a)?a:[]; }
+    catch(e){ return []; }
+  }
+  var del=arr("travelek-del");
+  var routes=arr("travelek-extra").filter(function(r){ return r && del.indexOf(r.id)<0; });
+  var kmP=0, kmT=0, kmC=0, autoC={}, autoR={};
+  function hit(lat, lng){
+    if(typeof countryAt!=="function") return;
+    var id=countryAt(lat, lng);
+    if(!id) return;
+    autoC[id]=1;
+    if(id==="RU" && typeof regionAt==="function"){
+      var rid=regionAt(lat, lng);
+      if(rid) autoR[rid]=1;
+    }
+  }
+  routes.forEach(function(r){
+    var g=typeof buildGeoSync==="function"?buildGeoSync(r):null;
+    if(g){
+      if(r.mode==="plane") kmP+=g.km||0;
+      else if(r.mode==="car") kmC+=g.km||0;
+      else kmT+=g.km||0;
+      if(g.coords){
+        var step=Math.max(1, Math.floor(g.coords.length/24));
+        for(var i=0;i<g.coords.length;i+=step) hit(g.coords[i][0], g.coords[i][1]);
+      }
+    }
+    if(typeof place==="function"){
+      var a=place(r.from, r.fromCode), b=place(r.to, r.toCode);
+      if(a) hit(a.lat, a.lng);
+      if(b) hit(b.lat, b.lng);
+    }
+  });
+  var offC=arr("travelek-countries-off"), offR=arr("travelek-regions-off");
+  var countries={}, regions={};
+  Object.keys(autoC).forEach(function(id){ if(offC.indexOf(id)<0) countries[id]=1; });
+  arr("travelek-countries").forEach(function(id){ if(offC.indexOf(id)<0) countries[id]=1; });
+  Object.keys(autoR).forEach(function(id){ if(offR.indexOf(id)<0) regions[id]=1; });
+  arr("travelek-regions").forEach(function(id){ if(offR.indexOf(id)<0) regions[id]=1; });
+  if(Object.keys(regions).length && offC.indexOf("RU")<0) countries.RU=1;
+  return {
+    routesList:routes,
+    routes:routes.length,
+    countries:Object.keys(countries).length,
+    regions:Object.keys(regions).length,
+    kmPlane:Math.round(kmP),
+    kmTrain:Math.round(kmT),
+    kmCar:Math.round(kmC)
+  };
+};
 
 })();
 
@@ -5357,7 +5444,7 @@ window.__travelekStats=function(){
         list.innerHTML=rows.map(function(r){
           var login=String(r.email||"").replace(/@travelek\.app$/,"");
           var lines=(r.lines&&r.lines.length)?r.lines.map(function(line){ return '<div class="route-line">'+line+'</div>'; }).join(""):'<div class="route-line">Маршрутов пока нет</div>';
-          return '<button type="button" data-user="'+r.userId+'"><b>'+ (r.name||login) +'</b> · '+login+'<br><span style="color:var(--muted);font-size:12px">'+(r.role==="admin"?"админ · ":"")+r.routes+' маршрутов · '+r.countries+' стран · РФ '+r.regions+' · '+r.kmPlane+' / '+r.kmTrain+' / '+r.kmCar+' км</span>'+lines+'</button>';
+          return '<div class="admin-row"><button type="button" data-user="'+r.userId+'"><b>'+ (r.name||login) +'</b> · '+login+'<br><span style="color:var(--muted);font-size:12px">'+(r.role==="admin"?"админ · ":"")+r.routes+' маршрутов · '+r.countries+' стран · РФ '+r.regions+' рег. · '+r.kmPlane+' / '+r.kmTrain+' / '+r.kmCar+' км</span>'+lines+'</button>'+(r.role==="admin"?"":'<button type="button" data-pass="'+r.userId+'" data-login="'+login+'">Сменить пароль</button>')+'</div>';
         }).join("");
       }).catch(function(){
         var list=document.getElementById("admin-list");
@@ -5368,6 +5455,21 @@ window.__travelekStats=function(){
   window.__fillAccount=fillAccount;
   var list=document.getElementById("admin-list");
   if(list) list.onclick=function(e){
+    var pass=e.target.closest("[data-pass]");
+    if(pass){
+      e.preventDefault();
+      e.stopPropagation();
+      var login=pass.getAttribute("data-login")||"пользователя";
+      var p1=window.prompt("Новый пароль для "+login+". Минимум 8 символов");
+      if(!p1) return;
+      var p2=window.prompt("Повторите пароль для "+login);
+      if(p1!==p2){ alert("Пароли не совпадают"); return; }
+      if(!window.__adminSetPassword) return;
+      window.__adminSetPassword(pass.getAttribute("data-pass"), p1).then(function(){
+        alert("Пароль для "+login+" изменён. Со следующего входа действует новый.");
+      }).catch(function(err){ alert(err&&err.message?err.message:"Не удалось сменить пароль"); });
+      return;
+    }
     var b=e.target.closest("[data-user]");
     if(!b || !window.__openDiary) return;
     window.__openDiary(b.getAttribute("data-user"));

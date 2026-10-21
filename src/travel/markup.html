@@ -554,10 +554,12 @@ body.globe-on #globe-hint{display:block}
 .account-stats div{background:var(--chip);border-radius:12px;padding:10px}
 .account-stats b{display:block;font-size:16px}
 .account-stats span{font-size:11px;color:var(--muted)}
+#admin-list .admin-row{margin:0 0 8px;display:flex;flex-direction:column;gap:6px}
 #admin-list button{
-  text-align:left;display:block;width:100%;margin-top:8px;padding:10px 12px;border-radius:12px;
+  text-align:left;display:block;width:100%;margin:0;padding:10px 12px;border-radius:12px;
   border:1px solid var(--line);background:var(--chip);color:var(--text);
 }
+#admin-list .admin-row>[data-pass]{background:transparent;color:var(--text);border:1px solid var(--line);box-shadow:none}
 #admin-list .route-line{display:block;margin-top:4px;font-size:12px;font-weight:550;color:var(--text)}
 #account-btn{display:grid;place-items:center}
 body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!important}
