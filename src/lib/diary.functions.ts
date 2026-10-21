@@ -111,6 +111,19 @@ async function seedAdmin() {
   `;
 }
 
+async function wipeDiariesOnce() {
+  const { getSql } = await import("@/lib/db");
+  const sql = await getSql();
+  await sql`create table if not exists app_meta (k text primary key, v text not null)`;
+  const rows = await sql<{ v: string }>`select v from app_meta where k = 'wipe'`;
+  if (rows[0]?.v === "2") return;
+  await sql`delete from diaries`;
+  await sql`
+    insert into app_meta (k, v) values ('wipe', '2')
+    on conflict (k) do update set v = '2'
+  `;
+}
+
 async function profileOf(userId: string) {
   const { getSql } = await import("@/lib/db");
   const sql = await getSql();
@@ -129,6 +142,7 @@ export const loadMine = createServerFn({ method: "GET" })
   .middleware([authMiddleware])
   .handler(async ({ context }): Promise<DiaryPack> => {
     await ensureAdmin();
+    await wipeDiariesOnce();
     const { getSql } = await import("@/lib/db");
     const sql = await getSql();
     const me = await profileOf(context.userId);

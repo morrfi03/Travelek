@@ -64,6 +64,7 @@ function Home() {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
+  const [showPass, setShowPass] = useState(false);
   const [ready, setReady] = useState(false);
   const [slot, setSlot] = useState<HTMLElement | null>(null);
 
@@ -91,7 +92,7 @@ function Home() {
       if (cancel) return;
       applyPack(pack.data);
       w.__TRAVELEK_PRIVATE = true;
-      w.__TRAVELEK_SEED = !readonly && mine.role === "admin" && mine.empty && !view;
+      w.__TRAVELEK_SEED = false;
       w.__TRAVELEK_READONLY = readonly;
       w.__TRAVELEK_VIEW_NAME = readonly ? pack.name || pack.email : "";
       w.__TRAVELEK_ME = {
@@ -144,7 +145,7 @@ function Home() {
       });
       if (cancel) return;
       const app = document.createElement("script");
-      app.src = "/travelek.js?v=13";
+      app.src = "/travelek.js?v=14";
       app.async = true;
       app.dataset.travelek = "1";
       document.body.appendChild(app);
@@ -202,7 +203,10 @@ function Home() {
           <h1>ТравелЕк</h1>
           <p>Каждый видит только свой дневник. Новый аккаунт может создать только администратор.</p>
           <input value={login} onChange={(e) => setLogin(e.target.value)} placeholder="Логин" autoComplete="username" />
-          <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль" type="password" autoComplete="current-password" />
+          <div className="passline">
+            <input value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Пароль" type={showPass ? "text" : "password"} autoComplete="current-password" />
+            <button type="button" className="eye" onClick={() => setShowPass((v) => !v)}>{showPass ? "Скрыть" : "Показать"}</button>
+          </div>
           {err ? <div className="login-err">{err}</div> : null}
           <button type="submit" disabled={busy}>{busy ? "Входим…" : "Войти"}</button>
         </form>

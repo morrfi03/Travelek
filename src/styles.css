@@ -40,7 +40,14 @@ html, body {
   width:100%;box-sizing:border-box;margin:0 0 10px;padding:12px 14px;border-radius:12px;
   border:1px solid rgba(255,255,255,.12);background:#121722;color:#fff;font-size:16px;
 }
-.login-card button{
+.login-card .passline{display:flex;gap:8px;align-items:center;margin:0 0 10px}
+.login-card .passline input{flex:1;margin:0}
+.login-card .eye{
+  width:auto;margin:0;padding:12px;border-radius:12px;
+  border:1px solid rgba(255,255,255,.12);background:#121722;color:#d5dbea;
+  font-size:13px;font-weight:600;
+}
+.login-card button[type="submit"]{
   width:100%;margin-top:6px;padding:12px;border:none;border-radius:12px;
   background:linear-gradient(135deg,#5b8def,#4f7dff);color:#fff;font-weight:700;font-size:16px;
 }

@@ -109,8 +109,9 @@ html,body{
 
 /* Zoom controls */
 .zoom{
-  position:fixed;right:14px;bottom:calc(54vh + 16px + var(--safe-b));
-  z-index:28;display:flex;flex-direction:column;gap:8px;
+  position:fixed;left:50%;right:auto;bottom:calc(12px + var(--safe-b));
+  transform:translateX(-50%);
+  z-index:40;display:flex;flex-direction:row;gap:8px;
 }
 .zoom button{
   width:40px;height:40px;border-radius:50%;
@@ -140,8 +141,6 @@ html,body{
 .sheet.full{height:88vh}
 .sheet.dragging{transition:none!important}
 .sheet.dragging .list{pointer-events:none}
-body.sheet-collapsed .zoom{bottom:120px}
-body.sheet-full .zoom{bottom:calc(88vh + 8px)}
 .handle-wrap{padding:10px 0 6px;cursor:grab;flex-shrink:0}
 .handle{
   width:36px;height:4px;border-radius:4px;background:var(--handle);
@@ -503,8 +502,7 @@ body.globe-on #globe-hint{display:block}
   .stat b{font-size:13px}
   .stat span{font-size:9px;line-height:1.15}
   .sheet.mid{height:64vh}
-  .zoom{bottom:calc(64vh + 8px)}
-  .zoom button{width:36px;height:36px}
+  .zoom button{width:44px;height:44px}
   .row{padding:10px 68px 10px 62px;min-height:64px}
   .row .thumb{width:44px;height:44px;border-radius:12px}
   .row .title{font-size:13px}
@@ -566,6 +564,14 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   width:100%;margin-top:6px;padding:12px;border:none;border-radius:12px;
   background:linear-gradient(135deg,#5b8def,#4f7dff);color:#fff;font-weight:700;font-size:16px;
 }
+#file-login .passline{display:flex;gap:8px;align-items:center;margin:0 0 10px}
+#file-login .passline input{flex:1;margin:0}
+#file-login .eye,#account-panel .eye{
+  width:auto!important;margin:0!important;padding:12px;border-radius:12px;
+  border:1px solid rgba(255,255,255,.16);background:transparent;color:#d5dbea;font-size:13px;
+}
+#account-panel .passline{display:flex;gap:8px;align-items:center;margin:0 0 10px}
+#account-panel .passline input{flex:1}
 #file-login-err{color:#f0a0a0;font-size:13px;min-height:18px}
 #account-panel button{
   display:block;width:100%;min-height:42px;margin-top:8px;border-radius:12px;
@@ -581,7 +587,10 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     <h1>ТравелЕк</h1>
     <p>Каждый видит только свой дневник. Новый аккаунт создаёт только администратор.</p>
     <input id="file-login-name" type="text" placeholder="Логин" autocomplete="username" />
-    <input id="file-login-pass" type="password" placeholder="Пароль" autocomplete="current-password" />
+    <div class="passline">
+      <input id="file-login-pass" type="password" placeholder="Пароль" autocomplete="current-password" />
+      <button type="button" class="eye" data-eye="file-login-pass">Показать</button>
+    </div>
     <div id="file-login-err"></div>
     <button type="submit">Войти</button>
   </form>
@@ -668,8 +677,14 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   <input id="acc-name" type="text" autocomplete="name" />
   <button type="button" id="acc-name-save">Сохранить имя</button>
   <label style="font-size:11px;color:var(--muted)">Сменить пароль</label>
-  <input id="acc-pass-now" type="password" placeholder="Текущий пароль" autocomplete="current-password" />
-  <input id="acc-pass" type="password" placeholder="Новый пароль, от 8 символов" autocomplete="new-password" />
+  <div class="passline">
+    <input id="acc-pass-now" type="password" placeholder="Текущий пароль" autocomplete="current-password" />
+    <button type="button" class="eye" data-eye="acc-pass-now">Показать</button>
+  </div>
+  <div class="passline">
+    <input id="acc-pass" type="password" placeholder="Новый пароль, от 8 символов" autocomplete="new-password" />
+    <button type="button" class="eye" data-eye="acc-pass">Показать</button>
+  </div>
   <button type="button" id="acc-pass-save">Сменить пароль</button>
   <div id="account-admin" hidden>
     <b style="display:block;margin:16px 0 6px">Все аккаунты</b>
@@ -678,7 +693,10 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     <b style="display:block;margin:16px 0 6px">Новый аккаунт</b>
     <input id="new-login" type="text" placeholder="Логин" autocomplete="off" />
     <input id="new-name" type="text" placeholder="Имя" autocomplete="off" />
-    <input id="new-pass" type="password" placeholder="Пароль" autocomplete="new-password" />
+    <div class="passline">
+      <input id="new-pass" type="password" placeholder="Пароль" autocomplete="new-password" />
+      <button type="button" class="eye" data-eye="new-pass">Показать</button>
+    </div>
     <button type="button" id="new-user">Создать аккаунт</button>
   </div>
   <div id="account-userbtn" style="margin-top:12px"></div>
@@ -750,3 +768,37 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     </div>
   </div>
 </div>
+<script>
+(function(){
+  if(window.__TRAVELEK_PRIVATE) return;
+  var USERS="travelek-users", SESSION="travelek-session";
+  function users(){
+    var u=null;
+    try{ u=JSON.parse(localStorage.getItem(USERS)||""); }catch(e){ u=null; }
+    if(!Array.isArray(u)||!u.length){
+      u=[{id:"admin", login:"admin", name:"Администратор", password:"Travelek#Admin89", role:"admin"}];
+      try{ localStorage.setItem(USERS, JSON.stringify(u)); }catch(e){}
+    }
+    return u;
+  }
+  var gate=document.getElementById("file-login");
+  var form=document.getElementById("file-login-form");
+  if(!gate || !form) return;
+  var sid=null;
+  try{ sid=localStorage.getItem(SESSION); }catch(e){}
+  var list=users(), i, me=null;
+  for(i=0;i<list.length;i++) if(list[i].id===sid) me=list[i];
+  if(!me) gate.style.display="grid";
+  form.addEventListener("submit", function(e){
+    e.preventDefault();
+    var login=String((document.getElementById("file-login-name")||{}).value||"").trim().toLowerCase().replace(/@travelek\.app$/,"");
+    var password=String((document.getElementById("file-login-pass")||{}).value||"").trim();
+    var u=users(), row=null, n;
+    for(n=0;n<u.length;n++) if(u[n].login===login && String(u[n].password).trim()===password) row=u[n];
+    var err=document.getElementById("file-login-err");
+    if(!row){ if(err) err.textContent="Неверный логин или пароль"; return; }
+    try{ localStorage.setItem(SESSION, row.id); sessionStorage.removeItem("travelek-view"); }catch(ex){}
+    location.reload();
+  });
+})();
+</script>
