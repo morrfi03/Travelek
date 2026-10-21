@@ -4911,8 +4911,8 @@ function smoothRing(ring){
   return pts;
 }
 function paintOn(group, poly, style){
-  if(!poly||!poly[0]) return;
-  var latlngs=[poly[0].map(function(pt){ return [pt[1], pt[0]]; })];
+  if(!poly||!poly.length) return;
+  var latlngs=poly.map(function(ring){ return ring.map(function(pt){ return [pt[1], pt[0]]; }); });
   L.polygon(latlngs, style).addTo(group);
 }
 function drawWorld(){
@@ -4930,6 +4930,7 @@ function drawWorld(){
   });
   var regs=(typeof RUSSIA_REGIONS!=="undefined" && RUSSIA_REGIONS) ? RUSSIA_REGIONS : [];
   regs.forEach(function(reg){
+    if(EXTRA_REGIONS.some(function(extra){return extra.id===reg.id||extra.n===reg.n;})) return;
     polysOf(reg).forEach(function(poly){ paintOn(worldLayer, poly, ruStyle); });
   });
   try{ worldLayer.bringToBack(); }catch(e){}
@@ -5310,6 +5311,9 @@ if(!map.getPane("routesTopPane")) map.createPane("routesTopPane");
 map.getPane("routesTopPane").style.zIndex="700";
 map.getPane("routesTopPane").style.pointerEvents="none";
 var layer=L.layerGroup().addTo(map);
+if(!map.getPane("cityLabelsPane")) map.createPane("cityLabelsPane");
+map.getPane("cityLabelsPane").style.zIndex="720";
+map.getPane("cityLabelsPane").style.pointerEvents="none";
 var labelsLayer=L.layerGroup().addTo(map);
 var selectedId=null, activeTab="future", sheetState="mid";
 var lastBounds=null;
@@ -5344,7 +5348,7 @@ function drawCityLabels(){
     if(!b.contains([c.lat,c.lng])) continue;
     if(!pickModeLabels && typeof nearAnyRoute==="function" && labelRoutePts.length && !nearAnyRoute(c.lat,c.lng,450)) continue;
     var fs = z>=8 ? 10 : (z>=6 ? 9 : 8);
-    L.marker([c.lat,c.lng],{interactive:false,keyboard:false,icon:L.divIcon({
+    L.marker([c.lat,c.lng],{pane:"cityLabelsPane",interactive:false,keyboard:false,icon:L.divIcon({
       className:"city-lbl",
       html:'<div style="transform:translate(-50%,-100%);white-space:nowrap;font:500 '+fs+'px/1.15 -apple-system,sans-serif;color:'+color+';text-shadow:0 0 4px '+bg+',0 1px 2px '+bg+';opacity:.9;pointer-events:none">'+c.name+"</div>",
       iconSize:[0,0],iconAnchor:[0,0]
@@ -5364,6 +5368,9 @@ function applyTheme(pref){
   if(themeBtn) themeBtn.textContent=theme==="light"?"☀️":"🌙";
   if(baseLayer) map.removeLayer(baseLayer);
   baseLayer=makeBase().addTo(map);
+  if(typeof drawCountries==="function") drawCountries();
+  if(typeof layer!=="undefined" && layer) try{layer.bringToFront();}catch(e){}
+  if(typeof labelsLayer!=="undefined" && labelsLayer) try{labelsLayer.bringToFront();}catch(e){}
   var meta=document.querySelector('meta[name="theme-color"]');
   if(meta) meta.setAttribute("content",theme==="light"?"#f4f5f7":"#12151f");
   if(layer) try{ layer.bringToFront(); }catch(e){}
@@ -5491,7 +5498,7 @@ function render(){
     if(fut&&r.mode==="plane") col=COLORS.future;
     var theme=document.documentElement.getAttribute("data-theme")||"dark";
     var casing=theme==="light"?"#ffffff":"#f4f8fc";
-    var w=r.mode==="plane"?5:(r.mode==="train"||r.mode==="car"?5.5:4);
+    var w=(r.mode==="plane"?5:(r.mode==="train"||r.mode==="car"?5.5:4))*0.5;
     var lineFactor=routeMultiplicity[routeKey(r)]>1?2:1;
     L.polyline(g.coords,{pane:"routesTopPane",color:casing,weight:(w+5)*lineFactor,opacity:1,lineJoin:"round",lineCap:"round",interactive:false}).addTo(layer);
     L.polyline(g.coords,{pane:"routesTopPane",color:col,weight:(selectedId===r.id?w+1.5:w)*lineFactor,opacity:1,dashArray:fut?"7 6":null,lineJoin:"round",lineCap:"round",interactive:false}).addTo(layer);
@@ -6643,9 +6650,8 @@ function syncVisited(){
   autoRegions=autoR;
 }
 function paintPoly(poly, style){
-  if(!poly||!poly[0]) return;
-  var pts=poly[0];
-  var latlngs=[pts.map(function(pt){ return [pt[1], pt[0]]; })];
+  if(!poly||!poly.length) return;
+  var latlngs=poly.map(function(ring){ return ring.map(function(pt){ return [pt[1], pt[0]]; }); });
   L.polygon(latlngs, style).addTo(countryLayer);
 }
 function drawCountries(){
@@ -6661,6 +6667,7 @@ function drawCountries(){
   });
   if(on["RU"] && RUSSIA_REGIONS){
     RUSSIA_REGIONS.forEach(function(reg){
+      if(EXTRA_REGIONS.some(function(extra){return extra.id===reg.id||extra.n===reg.n;})) return;
       polysOf(reg).forEach(function(poly){ paintPoly(poly, blue); });
     });
   }
@@ -6669,6 +6676,7 @@ function drawCountries(){
     visitedRegions.forEach(function(id){ ron[id]=1; });
     RUSSIA_REGIONS.forEach(function(reg){
       if(!ron[reg.id]) return;
+      if(EXTRA_REGIONS.some(function(extra){return extra.id===reg.id||extra.n===reg.n;})) return;
       polysOf(reg).forEach(function(poly){ paintPoly(poly, gold); });
     });
   }
