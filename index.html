@@ -4809,14 +4809,41 @@ var map=L.map("map",{
   tap:true
 }).setView([45,20],4);
 try{ window.__travelekMap=map; }catch(e){}
-var TILE="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-var baseLayer=null;
+var baseLayer=null, worldLayer=null;
+function mapPalette(){
+  var theme=document.documentElement.getAttribute("data-theme")||"dark";
+  if(theme==="light") return {land:"#f4f7fb", line:"#9aafc4", ru:"#e3edf6"};
+  return {land:"#162433", line:"#3c536b", ru:"#1c3044"};
+}
+function paintOn(group, poly, style){
+  var latlngs=poly.map(function(ring){
+    return ring.map(function(pt){ return [pt[1], pt[0]]; });
+  });
+  L.polygon(latlngs, style).addTo(group);
+}
+function drawWorld(){
+  if(typeof map==="undefined" || !map || typeof L==="undefined") return;
+  if(!worldLayer) worldLayer=L.layerGroup().addTo(map);
+  worldLayer.clearLayers();
+  if(typeof COUNTRY_LIST==="undefined" || !COUNTRY_LIST) return;
+  var pal=mapPalette();
+  var style={color:pal.line, weight:1, opacity:1, fillColor:pal.land, fillOpacity:1, interactive:false};
+  var ruStyle={color:pal.line, weight:1, opacity:1, fillColor:pal.ru, fillOpacity:1, interactive:false};
+  COUNTRY_LIST.forEach(function(c){
+    if(typeof polysOf!=="function") return;
+    polysOf(c).forEach(function(poly){ paintOn(worldLayer, poly, c.i==="RU"?ruStyle:style); });
+  });
+  var regs=(typeof RUSSIA_REGIONS!=="undefined" && RUSSIA_REGIONS) ? RUSSIA_REGIONS : [];
+  regs.forEach(function(reg){
+    polysOf(reg).forEach(function(poly){ paintOn(worldLayer, poly, ruStyle); });
+  });
+  try{ worldLayer.bringToBack(); }catch(e){}
+  if(typeof countryLayer!=="undefined" && countryLayer) try{ countryLayer.bringToFront(); }catch(e){}
+  if(typeof layer!=="undefined" && layer) try{ layer.bringToFront(); }catch(e){}
+}
 function makeBase(){
-  var g=L.layerGroup();
-  L.tileLayer("https://core-renderer-tiles.maps.yandex.net/tiles?l=map&x={x}&y={y}&z={z}&scale=1&lang=ru_RU",{
-    maxZoom:19, attribution:""
-  }).addTo(g);
-  return g;
+  drawWorld();
+  return L.layerGroup();
 }
 
 /* ——— Ночь на карте (терминатор Солнца) ——— */
@@ -6498,7 +6525,8 @@ function drawCountries(){
       });
     });
   }
-  try{ countryLayer.bringToBack(); }catch(e){}
+  try{ if(worldLayer) worldLayer.bringToBack(); countryLayer.bringToFront(); }catch(e){}
+  if(typeof layer!=="undefined" && layer) try{ layer.bringToFront(); }catch(e){}
 }
 function regionStats(){
   var total=RUSSIA_REGIONS?RUSSIA_REGIONS.length:0;
@@ -6638,6 +6666,7 @@ function bootGeo(){
   function finish(){
     if(--left>0) return;
     syncVisited();
+    if(typeof drawWorld==="function") drawWorld();
     drawCountries();
     renderCountryUi();
     if(globeOn && typeof drawGlobe==="function") drawGlobe();
