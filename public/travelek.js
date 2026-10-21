@@ -5274,11 +5274,39 @@ function bootGeo(){
     RUSSIA_REGIONS=items;
     finish();
   } else {
-  fetch("/geo/russia.json?v=3").then(function(r){ return r.json(); }).then(function(data){
-    var items=((data&&data.items)||[]).map(function(r){ r.id=r.n; return r; });
-    RUSSIA_REGIONS=items;
-    finish();
-  }).catch(function(){ RUSSIA_REGIONS=EXTRA_REGIONS.slice(); finish(); });
+    /* Federal-subject geometry source: geoBoundaries gbOpen ADM1 (OpenStreetMap/Wambacher).
+       The simplified official source has cleaner, consistent subject outlines than the
+       previous third-party TopoJSON. Keep local fallback so the map still works offline. */
+    var localRegionsPromise=fetch("/geo/russia.json?v=3").then(function(r){
+      if(!r.ok) throw new Error("Local Russia geometry unavailable");
+      return r.json();
+    }).then(function(data){ return (data&&data.items)||[]; });
+    fetch("https://raw.githubusercontent.com/wmgeolab/geoBoundaries/9469f09/releaseData/gbOpen/RUS/ADM1/geoBoundaries-RUS-ADM1_simplified.geojson")
+      .then(function(r){ if(!r.ok) throw new Error("geoBoundaries download failed"); return r.json(); })
+      .then(function(data){
+        if(!data || !Array.isArray(data.features) || !data.features.length) throw new Error("Invalid geoBoundaries GeoJSON");
+        var items=data.features.map(function(feature){
+          var props=feature.properties||{}, geom=feature.geometry||{};
+          var name=props.shapeName||props.shapeNameAlt||props.name||props.NAME_1||props.NAME||props.admin||props.name_local;
+          if(!name || !geom.coordinates) return null;
+          return {n:String(name), id:String(name), p:geom.type==="Polygon" ? geom.coordinates : geom.type==="MultiPolygon" ? geom.coordinates : null};
+        }).filter(function(r){ return r && r.p; }).map(withBbox);
+        if(items.length<70) throw new Error("geoBoundaries subject count too low");
+        var seen={};
+        items.forEach(function(r){ seen[r.n.toLowerCase().replace(/ё/g,"е")]=true; });
+        EXTRA_REGIONS.forEach(function(r){
+          var key=r.n.toLowerCase().replace(/ё/g,"е");
+          if(!seen[key]){ items.push(withBbox({n:r.n,id:r.id,p:r.p})); seen[key]=true; }
+        });
+        RUSSIA_REGIONS=items;
+        finish();
+      })
+      .catch(function(){
+        localRegionsPromise.then(function(items){
+          RUSSIA_REGIONS=items.map(function(r){ r.id=r.n; return r; });
+          finish();
+        }).catch(function(){ RUSSIA_REGIONS=EXTRA_REGIONS.slice(); finish(); });
+      });
   }
 }
 bootGeo();
