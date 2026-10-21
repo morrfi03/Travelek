@@ -771,12 +771,30 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 <script>
 (function(){
   if(window.__TRAVELEK_PRIVATE) return;
-  var USERS="travelek-users", SESSION="travelek-session";
+  var USERS="travelek-users", SESSION="travelek-session", REV="4";
   function users(){
-    var u=null;
+    var u=null, i, admin=null, next=[], seen=false, L;
     try{ u=JSON.parse(localStorage.getItem(USERS)||""); }catch(e){ u=null; }
-    if(!Array.isArray(u)||!u.length){
-      u=[{id:"admin", login:"admin", name:"Администратор", password:"Travelek#Admin89", role:"admin"}];
+    if(!Array.isArray(u)) u=[];
+    var rev="";
+    try{ rev=localStorage.getItem("travelek-auth-rev")||""; }catch(e){}
+    if(rev!==REV){
+      for(i=0;i<u.length;i++){
+        L=String((u[i]&&(u[i].login||u[i].email))||"").toLowerCase().replace(/@travelek\.app$/,"");
+        if(u[i] && (u[i].id==="admin" || u[i].role==="admin" || L==="admin")){
+          if(!seen){ next.push({id:"admin", login:"admin", name:"Администратор", password:"Travelek#Admin89", role:"admin"}); seen=true; }
+        } else next.push(u[i]);
+      }
+      if(!seen) next.unshift({id:"admin", login:"admin", name:"Администратор", password:"Travelek#Admin89", role:"admin"});
+      u=next;
+      try{
+        localStorage.setItem(USERS, JSON.stringify(u));
+        localStorage.setItem("travelek-auth-rev", REV);
+      }catch(e){}
+    }
+    for(i=0;i<u.length;i++) if(u[i] && (u[i].id==="admin" || String(u[i].login||"").toLowerCase()==="admin")) admin=u[i];
+    if(!admin){
+      u.unshift({id:"admin", login:"admin", name:"Администратор", password:"Travelek#Admin89", role:"admin"});
       try{ localStorage.setItem(USERS, JSON.stringify(u)); }catch(e){}
     }
     return u;
@@ -792,9 +810,12 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   form.addEventListener("submit", function(e){
     e.preventDefault();
     var login=String((document.getElementById("file-login-name")||{}).value||"").trim().toLowerCase().replace(/@travelek\.app$/,"");
-    var password=String((document.getElementById("file-login-pass")||{}).value||"").trim();
-    var u=users(), row=null, n;
-    for(n=0;n<u.length;n++) if(u[n].login===login && String(u[n].password).trim()===password) row=u[n];
+    var password=String((document.getElementById("file-login-pass")||{}).value||"").replace(/[\u200B-\u200D\uFEFF]/g,"").trim();
+    var u=users(), row=null, n, L;
+    for(n=0;n<u.length;n++){
+      L=String(u[n].login||u[n].email||"").toLowerCase().replace(/@travelek\.app$/,"");
+      if(L===login && String(u[n].password||"").trim()===password) row=u[n];
+    }
     var err=document.getElementById("file-login-err");
     if(!row){ if(err) err.textContent="Неверный логин или пароль"; return; }
     try{ localStorage.setItem(SESSION, row.id); sessionStorage.removeItem("travelek-view"); }catch(ex){}

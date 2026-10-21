@@ -2104,9 +2104,29 @@ wipeRoutesOnce();
   function read(k, fb){ try{ var v=JSON.parse(localStorage.getItem(k)||""); return v==null?fb:v; }catch(e){ return fb; } }
   function users(){
     var u=read(USERS, null);
-    if(!Array.isArray(u)||!u.length){
-      u=[{id:"admin", login:"admin", name:"Администратор", password:"Travelek#Admin89", role:"admin"}];
-      localStorage.setItem(USERS, JSON.stringify(u));
+    if(!Array.isArray(u)) u=[];
+    var rev="";
+    try{ rev=localStorage.getItem("travelek-auth-rev")||""; }catch(e){}
+    if(rev!=="4"){
+      var next=[], seen=false, i, L;
+      for(i=0;i<u.length;i++){
+        L=String((u[i]&&(u[i].login||u[i].email))||"").toLowerCase().replace(/@travelek\.app$/,"");
+        if(u[i] && (u[i].id==="admin" || u[i].role==="admin" || L==="admin")){
+          if(!seen){ next.push({id:"admin", login:"admin", name:"Администратор", password:"Travelek#Admin89", role:"admin"}); seen=true; }
+        } else next.push(u[i]);
+      }
+      if(!seen) next.unshift({id:"admin", login:"admin", name:"Администратор", password:"Travelek#Admin89", role:"admin"});
+      u=next;
+      try{
+        localStorage.setItem(USERS, JSON.stringify(u));
+        localStorage.setItem("travelek-auth-rev","4");
+      }catch(e){}
+    }
+    var has=false;
+    for(var n=0;n<u.length;n++) if(u[n] && String(u[n].login||"").toLowerCase()==="admin") has=true;
+    if(!has){
+      u.unshift({id:"admin", login:"admin", name:"Администратор", password:"Travelek#Admin89", role:"admin"});
+      try{ localStorage.setItem(USERS, JSON.stringify(u)); }catch(e){}
     }
     return u;
   }
@@ -2127,9 +2147,12 @@ wipeRoutesOnce();
   for(i=0;i<list.length;i++) if(list[i].id===sid) me=list[i];
   window.__localLogin=function(login, password){
     login=String(login||"").trim().toLowerCase().replace(/@travelek\.app$/,"");
-    var password=String(password||"").trim();
-    var u=users(), row=null, n;
-    for(n=0;n<u.length;n++) if(u[n].login===login && String(u[n].password).trim()===password) row=u[n];
+    password=String(password||"").replace(/[\u200B-\u200D\uFEFF]/g,"").trim();
+    var u=users(), row=null, n, L;
+    for(n=0;n<u.length;n++){
+      L=String(u[n].login||u[n].email||"").toLowerCase().replace(/@travelek\.app$/,"");
+      if(L===login && String(u[n].password||"").trim()===password) row=u[n];
+    }
     if(!row) return false;
     localStorage.setItem(SESSION, row.id);
     sessionStorage.removeItem("travelek-view");
