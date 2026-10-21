@@ -1,7 +1,7 @@
 node_modules
-.grok
-.vercel
 dist
 .env
 .env.*
 *.log
+*.zip
+.DS_Store
