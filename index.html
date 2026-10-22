@@ -1564,6 +1564,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 
 <script>
 
+
 (function(){
 "use strict";
 if(window.__travelekMap){
@@ -10493,6 +10494,8 @@ function showMapHover(lat,lng,containerPoint){
     label.style.display="block";
     if(containerPoint){label.style.left=(containerPoint.x+14)+"px";label.style.top=(containerPoint.y+14)+"px";}
   }
+  /* Keep route strokes above the hover polygons; labels may sit above routes. */
+  try{if(typeof layer!=="undefined"&&layer)layer.bringToFront();}catch(e){}
 }
 function openVisitPrompt(lat,lng){
   if(pickTarget || !COUNTRY_LIST || !COUNTRY_LIST.length) return;
@@ -11119,6 +11122,7 @@ window.__packStats=function(pack){
     });
   });
 })();
+
 
 
 </script>
