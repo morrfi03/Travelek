@@ -8851,7 +8851,16 @@ function polyHas(poly, lat, lng){
 }
 function countryAt(lat, lng){
   if(!COUNTRY_LIST) return null;
-  var i, c, k, polys;
+  var i, c, k, polys, region;
+  /* Personal map view: selected regions are assigned to Russia for country lookup
+     as well as for drawing. Check them before Ukraine's country polygon. */
+  region=regionAtList(RUSSIA_REGIONS, lat, lng);
+  if(region==="Республика Крым" ||
+     region==="Севастополь" ||
+     region==="Донецкая Народная Республика" ||
+     region==="Луганская Народная Республика" ||
+     region==="Запорожская область" ||
+     region==="Херсонская область") return "RU";
   for(i=0;i<COUNTRY_LIST.length;i++){
     c=COUNTRY_LIST[i];
     if(c.i!=="RU") continue;
