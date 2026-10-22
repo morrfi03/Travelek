@@ -598,6 +598,39 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 #acc-name-save,#new-user{background:linear-gradient(135deg,#5b8def,#4f7dff)!important;color:#fff!important;border:none!important}
 
 
+/* Map hover and visit confirmation */
+.map-hover-label{
+  position:absolute;z-index:650;display:none;pointer-events:none;
+  max-width:min(280px,72vw);padding:8px 11px;border-radius:11px;
+  color:var(--text);background:var(--glass);border:1px solid var(--line);
+  box-shadow:0 8px 24px rgba(0,0,0,.22);backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);font-size:12px;font-weight:650;line-height:1.35;
+}
+.visit-confirm{
+  position:fixed;inset:0;z-index:120;display:none;align-items:center;justify-content:center;
+  padding:20px;background:rgba(4,8,16,.52);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+}
+.visit-confirm.on{display:flex}
+.visit-confirm-card{
+  width:min(360px,100%);padding:24px 22px 20px;text-align:center;
+  border:1px solid var(--line);border-radius:24px;background:var(--panel-solid);
+  color:var(--text);box-shadow:0 24px 80px rgba(0,0,0,.32);animation:visit-pop .18s ease-out;
+}
+.visit-confirm-icon{
+  display:flex;width:42px;height:42px;margin:0 auto 12px;align-items:center;justify-content:center;
+  border-radius:14px;background:rgba(59,130,246,.13);color:var(--accent);font-size:22px;font-weight:800;
+}
+.visit-confirm-card h2{font-size:20px;letter-spacing:-.03em;margin-bottom:7px}
+.visit-confirm-card p{font-size:13px;color:var(--muted);line-height:1.45;overflow-wrap:anywhere}
+.visit-confirm-actions{display:flex;gap:10px;margin-top:22px}
+.visit-confirm-actions button{
+  flex:1;min-height:46px;border-radius:14px;border:1px solid var(--line);
+  font-family:inherit;font-size:14px;font-weight:650;cursor:pointer;transition:transform .15s,opacity .15s;
+}
+.visit-confirm-actions button:active{transform:scale(.97)}
+.visit-no{background:var(--chip);color:var(--text)}
+.visit-yes{background:linear-gradient(135deg,#4f8df7,#4268ef);border-color:transparent!important;color:#fff;box-shadow:0 5px 16px rgba(59,130,246,.24)}
+@keyframes visit-pop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
 </style>
 <div id="file-login">
   <form id="file-login-form">
@@ -613,6 +646,18 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   </form>
 </div>
 <div id="map"></div>
+<div id="map-hover-label" class="map-hover-label" aria-live="polite"></div>
+<div id="visit-confirm" class="visit-confirm" role="dialog" aria-modal="true" aria-labelledby="visit-confirm-title">
+  <div class="visit-confirm-card">
+    <div class="visit-confirm-icon">✓</div>
+    <h2 id="visit-confirm-title">Вы были тут?</h2>
+    <p id="visit-confirm-desc"></p>
+    <div class="visit-confirm-actions">
+      <button type="button" class="visit-no" id="visit-confirm-no">Нет</button>
+      <button type="button" class="visit-yes" id="visit-confirm-yes">Да, был(а)</button>
+    </div>
+  </div>
+</div>
 <div class="pick-banner" id="pick-banner">Ткните точку на карте</div>
 <div class="top">
   <div class="top-row">
