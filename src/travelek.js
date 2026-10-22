@@ -7023,6 +7023,10 @@ var map=L.map("map",{
   touchZoom:true,
   tap:true
 }).setView([45,20],4);
+/* Dedicated top pane: route lines must never sit beneath country/night polygons. */
+var routePane=map.getPane("routePane")||map.createPane("routePane");
+routePane.style.zIndex="680";
+routePane.style.pointerEvents="none";
 try{ window.__travelekMap=map; }catch(e){}
 var baseLayer=null, worldLayer=null;
 function mapPalette(){
@@ -7710,10 +7714,10 @@ function render(){
     var repeats=routeCounts[routeRepeatKey(r)]||1;
     var w=repeats>1?5.2:2.15;
     if(selectedId===r.id) w+=1.2;
-    L.polyline(g.coords,{color:casing,weight:w+(repeats>1?2.8:1.5),opacity:.94,lineJoin:"round",lineCap:"round",interactive:false,smoothFactor:0}).addTo(layer);
-    L.polyline(g.coords,{color:col,weight:w,opacity:1,dashArray:fut?"7 6":null,lineJoin:"round",lineCap:"round",interactive:false,smoothFactor:0}).addTo(layer);
+    L.polyline(g.coords,{pane:"routePane",color:casing,weight:w+(repeats>1?2.8:1.5),opacity:.94,lineJoin:"round",lineCap:"round",interactive:false,smoothFactor:0}).addTo(layer);
+    L.polyline(g.coords,{pane:"routePane",color:col,weight:w,opacity:1,dashArray:fut?"7 6":null,lineJoin:"round",lineCap:"round",interactive:false,smoothFactor:0}).addTo(layer);
     [g.coords[0],g.coords[g.coords.length-1]].forEach(function(p){
-      L.circleMarker(p,{radius:5,color:casing,fillColor:col,fillOpacity:1,weight:2.5}).addTo(layer);
+      L.circleMarker(p,{pane:"routePane",radius:5,color:casing,fillColor:col,fillOpacity:1,weight:2.5}).addTo(layer);
     });
     g.coords.forEach(function(c){bounds.push(c);});
   });
@@ -9054,6 +9058,18 @@ function drawCountries(){
   }
   paintVisited(RUSSIA_REGIONS);
   paintVisited(CHINA_REGIONS);
+  /* Keep the five disputed/claimed regions consistently assigned to the Russia layer
+     in this map view, rather than letting Ukraine's whole-country highlight paint over them. */
+  var ruTerritoryIds={"Республика Крым":1,"Донецкая Народная Республика":1,"Луганская Народная Республика":1,"Запорожская область":1,"Херсонская область":1};
+  var pal=mapPalette();
+  var territoryBase={color:pal.line,weight:0.9,opacity:1,lineJoin:"round",fillColor:pal.ru,fillOpacity:1,interactive:false,smoothFactor:0};
+  var territoryBlue={color:"#3b82f6",weight:1.2,opacity:.45,lineJoin:"round",fillColor:"#3b82f6",fillOpacity:.34,interactive:false,smoothFactor:0};
+  var territoryGold={color:"#c9842a",weight:1.2,opacity:.9,lineJoin:"round",fillColor:"#e8b85c",fillOpacity:.72,interactive:false,smoothFactor:0};
+  if(RUSSIA_REGIONS) RUSSIA_REGIONS.forEach(function(reg){
+    if(!ruTerritoryIds[reg.id] && !ruTerritoryIds[reg.n]) return;
+    var style=visitedRegions.indexOf(reg.id)>=0?territoryGold:(on["RU"]?territoryBlue:territoryBase);
+    polysOf(reg).forEach(function(poly){ paintPoly(poly,style); });
+  });
   try{ if(worldLayer) worldLayer.bringToBack(); countryLayer.bringToFront(); }catch(e){}
   if(typeof layer!=="undefined" && layer) try{ layer.bringToFront(); }catch(e){}
 }
