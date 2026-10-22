@@ -6338,20 +6338,29 @@ function hav(a,b){
   return 2*R*Math.asin(Math.min(1,Math.sqrt(x)));
 }
 function flightArc(a,b,n){
-  n=n||72;
-  var dlat=b.lat-a.lat, dlng=b.lng-a.lng;
-  if(dlng>180) dlng-=360;
-  if(dlng<-180) dlng+=360;
-  var dist=Math.hypot(dlat, dlng);
-  if(dist<0.35) return [[a.lat,a.lng],[b.lat,b.lng]];
-  var len=dist||1, px=-dlat/len, py=dlng/len;
-  if(py<0){ px=-px; py=-py; }
-  var bulge=Math.min(24, Math.max(1.8, dist*0.28));
-  var out=[], i, t, s;
-  for(i=0;i<=n;i++){
-    t=i/n; s=Math.sin(Math.PI*t);
-    out.push([a.lat+dlat*t+px*bulge*s, a.lng+dlng*t+py*bulge*s]);
+  n=n||96;
+  var rad=Math.PI/180, toDeg=180/Math.PI;
+  function vec(lat,lng){
+    lat*=rad; lng*=rad;
+    return [Math.cos(lat)*Math.cos(lng),Math.cos(lat)*Math.sin(lng),Math.sin(lat)];
   }
+  var u=vec(a.lat,a.lng), v=vec(b.lat,b.lng);
+  var dot=Math.max(-1,Math.min(1,u[0]*v[0]+u[1]*v[1]+u[2]*v[2]));
+  var omega=Math.acos(dot), sinOmega=Math.sin(omega);
+  if(omega<1e-5) return [[a.lat,a.lng],[b.lat,b.lng]];
+  var out=[], prevLng=a.lng, i,t,x,y,z,lat,lng,p,q;
+  for(i=0;i<=n;i++){
+    t=i/n;
+    if(Math.abs(sinOmega)<1e-7){ p=1-t; q=t; }
+    else { p=Math.sin((1-t)*omega)/sinOmega; q=Math.sin(t*omega)/sinOmega; }
+    x=p*u[0]+q*v[0]; y=p*u[1]+q*v[1]; z=p*u[2]+q*v[2];
+    lat=Math.atan2(z,Math.sqrt(x*x+y*y))*toDeg;
+    lng=Math.atan2(y,x)*toDeg;
+    while(lng-prevLng>180) lng-=360;
+    while(lng-prevLng<-180) lng+=360;
+    out.push([lat,lng]); prevLng=lng;
+  }
+  out[0]=[a.lat,a.lng]; out[out.length-1]=[b.lat,b.lng];
   return out;
 }
 function densify(coords, stepKm){
@@ -7512,6 +7521,7 @@ function nearAnyRoute(lat,lng,maxKm){
 }
 
 var layer=L.layerGroup().addTo(map);
+try{window.__travelekMapRoutesLayer=layer;}catch(e){}
 var labelsLayer=L.layerGroup().addTo(map);
 var selectedId=null, activeTab="future", sheetState="mid";
 var lastBounds=null;
@@ -7642,6 +7652,18 @@ function filtered(){
   }).slice().sort(function(a,b){ return (b.date||"").localeCompare(a.date||""); });
 }
 
+function routeRepeatKey(r){
+  function endpoint(code,name){
+    return String(code||name||"").trim().toLowerCase().replace(/\s+/g," ");
+  }
+  var a=endpoint(r.fromCode,r.from), b=endpoint(r.toCode,r.to);
+  if((!a||!b) && r.coords && r.coords.length>=2){
+    var p=r.coords[0], q=r.coords[r.coords.length-1];
+    a=[Number(p[0]).toFixed(2),Number(p[1]).toFixed(2)].join(",");
+    b=[Number(q[0]).toFixed(2),Number(q[1]).toFixed(2)].join(",");
+  }
+  return [a,b].sort().join(" ⇄ ");
+}
 function render(){
   layer.clearLayers();
   if(typeof collectLabelPts==="function") collectLabelPts(typeof filtered==="function"?filtered():ROUTES);
@@ -7674,6 +7696,8 @@ function render(){
     return s;
   })();
   var fill=getComputedStyle(document.documentElement).getPropertyValue("--map-bg").trim()||"#0a0c10";
+  var routeCounts={};
+  ROUTES.forEach(function(r){var k=routeRepeatKey(r);if(k&&k!==" ⇄ ")routeCounts[k]=(routeCounts[k]||0)+1;});
 
   list.forEach(function(r){
     var g=buildGeoSync(r); if(!g||!g.coords) return;
@@ -7683,9 +7707,11 @@ function render(){
     if(fut&&r.mode==="plane") col=COLORS.future;
     var theme=document.documentElement.getAttribute("data-theme")||"dark";
     var casing=theme==="light"?"#ffffff":"#f4f8fc";
-    var w=r.mode==="plane"?5:(r.mode==="train"||r.mode==="car"?5.5:4);
-    L.polyline(g.coords,{color:casing,weight:w+5,opacity:1,lineJoin:"round",lineCap:"round",interactive:false}).addTo(layer);
-    L.polyline(g.coords,{color:col,weight:selectedId===r.id?w+1.5:w,opacity:1,dashArray:fut?"7 6":null,lineJoin:"round",lineCap:"round",interactive:false}).addTo(layer);
+    var repeats=routeCounts[routeRepeatKey(r)]||1;
+    var w=repeats>1?5.2:2.15;
+    if(selectedId===r.id) w+=1.2;
+    L.polyline(g.coords,{color:casing,weight:w+(repeats>1?2.8:1.5),opacity:.94,lineJoin:"round",lineCap:"round",interactive:false,smoothFactor:0}).addTo(layer);
+    L.polyline(g.coords,{color:col,weight:w,opacity:1,dashArray:fut?"7 6":null,lineJoin:"round",lineCap:"round",interactive:false,smoothFactor:0}).addTo(layer);
     [g.coords[0],g.coords[g.coords.length-1]].forEach(function(p){
       L.circleMarker(p,{radius:5,color:casing,fillColor:col,fillOpacity:1,weight:2.5}).addTo(layer);
     });
@@ -7694,6 +7720,7 @@ function render(){
   drawCityLabels();
   if(typeof syncVisited==="function") syncVisited();
   if(typeof drawCountries==="function") drawCountries();
+  try{layer.bringToFront();labelsLayer.bringToFront();}catch(e){}
   if(globeOn && typeof drawGlobe==="function") drawGlobe();
 
   /* load real roads then re-render once */
@@ -7793,9 +7820,27 @@ document.getElementById("z-out").onclick=function(){map.zoomOut();};
 document.getElementById("z-fit").onclick=function(){ fitAll(); render(); };
 map.on("zoomend",drawCityLabels);
 map.on("moveend",function(){ if(pickModeLabels||map.getZoom()>=6) drawCityLabels(); });
+map.on("mousemove",function(e){
+  if(pickTarget) return;
+  showMapHover(e.latlng.lat,e.latlng.lng,e.containerPoint);
+});
+map.on("mouseout",function(){
+  hoverKey="";
+  if(hoverLayer) hoverLayer.clearLayers();
+  var label=document.getElementById("map-hover-label");
+  if(label) label.style.display="none";
+});
 map.on("click",function(e){
   if(pickTarget) finishPick(e.latlng);
+  else openVisitPrompt(e.latlng.lat,e.latlng.lng);
 });
+var visitYesBtn=document.getElementById("visit-confirm-yes");
+var visitNoBtn=document.getElementById("visit-confirm-no");
+var visitModal=document.getElementById("visit-confirm");
+if(visitYesBtn) visitYesBtn.addEventListener("click",confirmVisitedPlace);
+if(visitNoBtn) visitNoBtn.addEventListener("click",closeVisitPrompt);
+if(visitModal) visitModal.addEventListener("click",function(e){if(e.target===visitModal) closeVisitPrompt();});
+document.addEventListener("keydown",function(e){if(e.key==="Escape") closeVisitPrompt();});
 (function bindPinch(map){
   var el=map.getContainer();
   var startDist=0, startZoom=0, live=false;
@@ -8837,6 +8882,90 @@ function regionAtList(list, lat, lng){
 }
 function regionAt(lat, lng){ return regionAtList(RUSSIA_REGIONS, lat, lng); }
 function chinaRegionAt(lat, lng){ return regionAtList(CHINA_REGIONS, lat, lng); }
+
+var hoverLayer=null, hoverKey="", pendingVisit=null;
+function ensureHoverLayer(){
+  if(!hoverLayer && typeof L!=="undefined" && typeof map!=="undefined") hoverLayer=L.layerGroup().addTo(map);
+  return hoverLayer;
+}
+function countryRecord(id){
+  if(!COUNTRY_LIST) return null;
+  for(var i=0;i<COUNTRY_LIST.length;i++) if(COUNTRY_LIST[i].i===id) return COUNTRY_LIST[i];
+  return null;
+}
+function regionRecord(id){
+  var lists=[RUSSIA_REGIONS||[],CHINA_REGIONS||[]], i,j;
+  for(i=0;i<lists.length;i++) for(j=0;j<lists[i].length;j++) if(lists[i][j].id===id) return lists[i][j];
+  return null;
+}
+function showMapHover(lat,lng,containerPoint){
+  if(!COUNTRY_LIST || !COUNTRY_LIST.length) return;
+  var cid=countryAt(lat,lng);
+  var rid=cid==="RU"?regionAt(lat,lng):(cid==="CN"?chinaRegionAt(lat,lng):null);
+  var key=(cid||"")+"|"+(rid||"");
+  var label=document.getElementById("map-hover-label");
+  if(key===hoverKey){
+    if(label && cid && containerPoint){label.style.display="block";label.style.left=(containerPoint.x+14)+"px";label.style.top=(containerPoint.y+14)+"px";}
+    return;
+  }
+  hoverKey=key;
+  var hl=ensureHoverLayer();
+  if(hl) hl.clearLayers();
+  if(!cid){
+    if(label) label.style.display="none";
+    return;
+  }
+  var c=countryRecord(cid);
+  var cStyle={color:"#78b9ff",weight:2.2,opacity:.95,fillColor:"#5ba3ff",fillOpacity:.10,lineJoin:"round",interactive:false,smoothFactor:0};
+  if(c && hl && typeof polysOf==="function") polysOf(c).forEach(function(poly){paintOn(hl,poly,cStyle,true);});
+  var reg=rid?regionRecord(rid):null;
+  if(reg && hl){
+    var rStyle={color:"#72c6ff",weight:2.8,opacity:1,fillColor:"#3189ff",fillOpacity:.43,lineJoin:"round",interactive:false,smoothFactor:0};
+    polysOf(reg).forEach(function(poly){paintOn(hl,poly,rStyle,true);});
+  }
+  if(label){
+    label.textContent=reg?(reg.n+" · "+(c?c.n:cid)):(c?c.n:cid);
+    label.style.display="block";
+    if(containerPoint){label.style.left=(containerPoint.x+14)+"px";label.style.top=(containerPoint.y+14)+"px";}
+  }
+  /* Keep route strokes above the hover polygons; labels may sit above routes. */
+  try{if(typeof layer!=="undefined"&&layer)layer.bringToFront();}catch(e){}
+}
+function openVisitPrompt(lat,lng){
+  if(pickTarget || !COUNTRY_LIST || !COUNTRY_LIST.length) return;
+  var cid=countryAt(lat,lng);
+  if(!cid) return;
+  var rid=cid==="RU"?regionAt(lat,lng):(cid==="CN"?chinaRegionAt(lat,lng):null);
+  var c=countryRecord(cid), reg=rid?regionRecord(rid):null;
+  pendingVisit={countryId:cid,regionId:rid,name:reg?(reg.n+" · "+(c?c.n:cid)):(c?c.n:cid)};
+  var modal=document.getElementById("visit-confirm");
+  var title=document.getElementById("visit-confirm-title");
+  var desc=document.getElementById("visit-confirm-desc");
+  if(title) title.textContent="Вы были тут?";
+  if(desc) desc.textContent=pendingVisit.name;
+  if(modal) modal.classList.add("on");
+}
+function closeVisitPrompt(){
+  var modal=document.getElementById("visit-confirm");
+  if(modal) modal.classList.remove("on");
+  pendingVisit=null;
+}
+function confirmVisitedPlace(){
+  if(!pendingVisit) return;
+  var cid=pendingVisit.countryId, rid=pendingVisit.regionId;
+  if(rid){
+    offRegions=offRegions.filter(function(id){return id!==rid;});
+    if(manualRegions.indexOf(rid)<0) manualRegions.push(rid);
+  }else if(manualCountries.indexOf(cid)<0) manualCountries.push(cid);
+  offCountries=offCountries.filter(function(id){return id!==cid;});
+  saveSets();
+  syncVisited();
+  closeVisitPrompt();
+  hoverKey="";
+  if(typeof drawCountries==="function") drawCountries();
+  if(typeof renderCountryUi==="function") renderCountryUi();
+  if(typeof render==="function") render();
+}
 function syncVisited(){
   if(!COUNTRY_LIST) return;
   var autoC={}, autoR={};
@@ -9152,6 +9281,7 @@ function bootGeo(){
     if(window.__fillAccount && document.getElementById("account-panel") && document.getElementById("account-panel").classList.contains("on")) window.__fillAccount();
   }
   if(!countryLayer && typeof L!=="undefined" && typeof map!=="undefined") countryLayer=L.layerGroup().addTo(map);
+  ensureHoverLayer();
   globeLand=null;
   loadGeo("./geo/countries.json?v=4").then(function(data){
     COUNTRY_LIST=normalizeCountries(data&&data.items);
