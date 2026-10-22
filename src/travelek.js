@@ -3374,7 +3374,7 @@ function drawWorld(){
   COUNTRY_LIST.forEach(function(c){
     if(c.i==="RU") return;
     if(typeof polysOf!=="function") return;
-    polysOf(c).forEach(function(poly){ paintOn(worldLayer, poly, style); });
+    polysOf(c).forEach(function(poly){ paintOn(worldLayer, poly, style, true); });
   });
   /* Draw Russia's full country silhouette underneath the federal subjects.
      This masks tiny cracks caused by imperfect/mismatched regional boundaries. */
