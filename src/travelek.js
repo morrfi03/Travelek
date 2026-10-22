@@ -3371,13 +3371,21 @@ function drawWorld(){
   var pal=mapPalette();
   var style={color:pal.edge, weight:0.4, opacity:.45, lineJoin:"round", lineCap:"round", fillColor:pal.land, fillOpacity:1, interactive:false, smoothFactor:0};
   var ruStyle={color:pal.ru, weight:0.45, opacity:1, lineJoin:"round", lineCap:"round", fillColor:pal.ru, fillOpacity:1, interactive:false, smoothFactor:0};
+  /* Pass 1: lay down a slightly overdrawn land fill for every country.
+     The matching fill-colored stroke hides sub-pixel cracks between neighboring
+     polygons. Pass 2 redraws political borders in the normal edge color. */
+  var landUnderlay={color:pal.land, weight:1.1, opacity:1, lineJoin:"round", lineCap:"round", fillColor:pal.land, fillOpacity:1, interactive:false, smoothFactor:0};
+  COUNTRY_LIST.forEach(function(c){
+    if(typeof polysOf!=="function") return;
+    polysOf(c).forEach(function(poly){ paintOn(worldLayer, poly, landUnderlay, true); });
+  });
   COUNTRY_LIST.forEach(function(c){
     if(c.i==="RU") return;
     if(typeof polysOf!=="function") return;
     polysOf(c).forEach(function(poly){ paintOn(worldLayer, poly, style, true); });
   });
-  /* Draw Russia's full country silhouette underneath the federal subjects.
-     This masks tiny cracks caused by imperfect/mismatched regional boundaries. */
+  /* Redraw Russia's country silhouette after other country borders, then place
+     federal subjects above it. This also masks cracks in regional boundaries. */
   var ruBaseStyle={color:pal.ru, weight:0, opacity:0, fillColor:pal.ru, fillOpacity:1, interactive:false, smoothFactor:0};
   var ruCountry=COUNTRY_LIST.find(function(c){ return c.i==="RU"; });
   if(ruCountry && typeof polysOf==="function"){
