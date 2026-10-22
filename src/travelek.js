@@ -8928,6 +8928,8 @@ function showMapHover(lat,lng,containerPoint){
     label.style.display="block";
     if(containerPoint){label.style.left=(containerPoint.x+14)+"px";label.style.top=(containerPoint.y+14)+"px";}
   }
+  /* Keep route strokes above the hover polygons; labels may sit above routes. */
+  try{if(typeof layer!=="undefined"&&layer)layer.bringToFront();}catch(e){}
 }
 function openVisitPrompt(lat,lng){
   if(pickTarget || !COUNTRY_LIST || !COUNTRY_LIST.length) return;
