@@ -7291,7 +7291,7 @@ function drawGlobe(){
     ctx.beginPath();
     RUSSIA_REGIONS.forEach(function(reg){
       polysOf(reg).forEach(function(poly){
-        path({type:"Feature", geometry:{type:"Polygon", coordinates:[poly[0]]}});
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:poly}});
       });
     });
     ctx.fillStyle="#1e3b32";
@@ -7301,7 +7301,7 @@ function drawGlobe(){
     ctx.beginPath();
     CHINA_REGIONS.forEach(function(reg){
       polysOf(reg).forEach(function(poly){
-        path({type:"Feature", geometry:{type:"Polygon", coordinates:[poly[0]]}});
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:poly}});
       });
     });
     ctx.fillStyle="#1e3b32";
@@ -7311,7 +7311,7 @@ function drawGlobe(){
     ctx.beginPath();
     RUSSIA_REGIONS.forEach(function(reg){
       polysOf(reg).forEach(function(poly){
-        path({type:"Feature", geometry:{type:"Polygon", coordinates:[poly[0]]}});
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:poly}});
       });
     });
     ctx.fillStyle="rgba(59,130,246,.7)";
@@ -7321,7 +7321,7 @@ function drawGlobe(){
     ctx.beginPath();
     CHINA_REGIONS.forEach(function(reg){
       polysOf(reg).forEach(function(poly){
-        path({type:"Feature", geometry:{type:"Polygon", coordinates:[poly[0]]}});
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:poly}});
       });
     });
     ctx.fillStyle="rgba(59,130,246,.7)";
@@ -7338,7 +7338,7 @@ function drawGlobe(){
     RUSSIA_REGIONS.forEach(function(reg){
       if(!ron[reg.id]) return;
       polysOf(reg).forEach(function(poly){
-        path({type:"Feature", geometry:{type:"Polygon", coordinates:[poly[0]]}});
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:poly}});
       });
     });
     ctx.fillStyle="rgba(232,184,92,.88)";
@@ -7351,7 +7351,7 @@ function drawGlobe(){
     CHINA_REGIONS.forEach(function(reg){
       if(!con[reg.id]) return;
       polysOf(reg).forEach(function(poly){
-        path({type:"Feature", geometry:{type:"Polygon", coordinates:[poly[0]]}});
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:poly}});
       });
     });
     ctx.fillStyle="rgba(232,184,92,.88)";
@@ -8842,21 +8842,29 @@ function ringHas(ring, lat, lng){
 }
 function polysOf(c){
   if(!c||!c.p||!c.p.length||!c.p[0]||!c.p[0][0]) return [];
-  /* Remove the four 2022-claimed oblasts from Ukraine's mainland polygon.
-     The region outlines come from the same administrative geometry used to
-     draw the Russian regions, so the country contour and regional borders align. */
+  /* Build a real polygon difference, clipping removed regions to Ukraine's outline.
+     Raw oblast rings can extend outside the country; using them directly as holes
+     creates stray filled areas beyond the national border. */
   if(c.i==="UA" && typeof RUSSIA_REGIONS!=="undefined" && RUSSIA_REGIONS){
-    var removed={"Донецкая Народная Республика":1,"Луганская Народная Республика":1,"Запорожская область":1,"Херсонская область":1};
-    var holes=[];
-    RUSSIA_REGIONS.forEach(function(reg){
-      if(!removed[reg.id] && !removed[reg.n]) return;
-      var regPolys=polysOf(reg);
-      regPolys.forEach(function(poly){ if(poly&&poly[0]&&poly[0].length>=3) holes.push(poly[0]); });
-    });
-    if(holes.length){
-      var result=[[c.p[0]].concat(holes)];
-      for(var pi=1;pi<c.p.length;pi++) result.push([c.p[pi]]);
-      return result;
+    if(c.__travelekUaContour) return c.__travelekUaContour;
+    if(typeof polygonClipping!=="undefined" && polygonClipping && typeof polygonClipping.difference==="function"){
+      var removed={"Донецкая Народная Республика":1,"Луганская Народная Республика":1,"Запорожская область":1,"Херсонская область":1};
+      var cutPolygons=[];
+      RUSSIA_REGIONS.forEach(function(reg){
+        if(!removed[reg.id] && !removed[reg.n]) return;
+        (reg.p||[]).forEach(function(ring){
+          if(ring && ring.length>=4) cutPolygons.push([ring]);
+        });
+      });
+      if(cutPolygons.length){
+        var clipped=polygonClipping.difference([[c.p[0]]],cutPolygons);
+        if(clipped && clipped.length){
+          var result=clipped.slice();
+          for(var pi=1;pi<c.p.length;pi++) result.push([c.p[pi]]);
+          c.__travelekUaContour=result;
+          return result;
+        }
+      }
     }
   }
   if(Array.isArray(c.p[0][0][0])) return c.p;
