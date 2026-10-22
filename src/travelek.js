@@ -8842,6 +8842,23 @@ function ringHas(ring, lat, lng){
 }
 function polysOf(c){
   if(!c||!c.p||!c.p.length||!c.p[0]||!c.p[0][0]) return [];
+  /* Remove the four 2022-claimed oblasts from Ukraine's mainland polygon.
+     The region outlines come from the same administrative geometry used to
+     draw the Russian regions, so the country contour and regional borders align. */
+  if(c.i==="UA" && typeof RUSSIA_REGIONS!=="undefined" && RUSSIA_REGIONS){
+    var removed={"Донецкая Народная Республика":1,"Луганская Народная Республика":1,"Запорожская область":1,"Херсонская область":1};
+    var holes=[];
+    RUSSIA_REGIONS.forEach(function(reg){
+      if(!removed[reg.id] && !removed[reg.n]) return;
+      var regPolys=polysOf(reg);
+      regPolys.forEach(function(poly){ if(poly&&poly[0]&&poly[0].length>=3) holes.push(poly[0]); });
+    });
+    if(holes.length){
+      var result=[[c.p[0]].concat(holes)];
+      for(var pi=1;pi<c.p.length;pi++) result.push([c.p[pi]]);
+      return result;
+    }
+  }
   if(Array.isArray(c.p[0][0][0])) return c.p;
   return c.p.map(function(ring){ return [ring]; });
 }
@@ -9032,7 +9049,9 @@ function syncVisited(){
 }
 function paintPoly(poly, style){
   if(!poly||!poly[0]) return;
-  var latlngs=[poly[0].map(function(pt){ return [pt[1], pt[0]]; })];
+  var latlngs=poly.map(function(ring){
+    return ring.map(function(pt){ return [pt[1], pt[0]]; });
+  });
   L.polygon(latlngs, style).addTo(countryLayer);
 }
 function drawCountries(){
