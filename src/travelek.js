@@ -8842,31 +8842,6 @@ function ringHas(ring, lat, lng){
 }
 function polysOf(c){
   if(!c||!c.p||!c.p.length||!c.p[0]||!c.p[0][0]) return [];
-  /* Build a real polygon difference, clipping removed regions to Ukraine's outline.
-     Raw oblast rings can extend outside the country; using them directly as holes
-     creates stray filled areas beyond the national border. */
-  if(c.i==="UA" && typeof RUSSIA_REGIONS!=="undefined" && RUSSIA_REGIONS){
-    if(c.__travelekUaContour) return c.__travelekUaContour;
-    if(typeof polygonClipping!=="undefined" && polygonClipping && typeof polygonClipping.difference==="function"){
-      var removed={"Донецкая Народная Республика":1,"Луганская Народная Республика":1,"Запорожская область":1,"Херсонская область":1};
-      var cutPolygons=[];
-      RUSSIA_REGIONS.forEach(function(reg){
-        if(!removed[reg.id] && !removed[reg.n]) return;
-        (reg.p||[]).forEach(function(ring){
-          if(ring && ring.length>=4) cutPolygons.push([ring]);
-        });
-      });
-      if(cutPolygons.length){
-        var clipped=polygonClipping.difference([[c.p[0]]],cutPolygons);
-        if(clipped && clipped.length){
-          var result=clipped.slice();
-          for(var pi=1;pi<c.p.length;pi++) result.push([c.p[pi]]);
-          c.__travelekUaContour=result;
-          return result;
-        }
-      }
-    }
-  }
   if(Array.isArray(c.p[0][0][0])) return c.p;
   return c.p.map(function(ring){ return [ring]; });
 }
@@ -9068,7 +9043,7 @@ function drawCountries(){
   var on={}, i;
   for(i=0;i<visited.length;i++) on[visited[i]]=1;
   var blue={color:"#3b82f6", weight:1.2, opacity:.35, lineJoin:"round", fillColor:"#3b82f6", fillOpacity:.34, interactive:false, smoothFactor:0};
-  var gold={color:"#c9842a", weight:1.2, opacity:.9, lineJoin:"round", fillColor:"#e8b85c", fillOpacity:.72, interactive:false, smoothFactor:0};
+  var gold={color:"#8a5a12", weight:1.6, opacity:1, dashArray:"5 4", lineJoin:"round", fillColor:"#e8b85c", fillOpacity:.4, interactive:false, smoothFactor:0};
   COUNTRY_LIST.forEach(function(c){
     if(!on[c.i] || c.i==="RU" || c.i==="CN") return;
     polysOf(c).forEach(function(poly){ paintPoly(poly, blue); });
@@ -9094,18 +9069,6 @@ function drawCountries(){
   }
   paintVisited(RUSSIA_REGIONS);
   paintVisited(CHINA_REGIONS);
-  /* Keep the five disputed/claimed regions consistently assigned to the Russia layer
-     in this map view, rather than letting Ukraine's whole-country highlight paint over them. */
-  var ruTerritoryIds={"Республика Крым":1,"Донецкая Народная Республика":1,"Луганская Народная Республика":1,"Запорожская область":1,"Херсонская область":1};
-  var pal=mapPalette();
-  var territoryBase={color:pal.line,weight:0.9,opacity:1,lineJoin:"round",fillColor:pal.ru,fillOpacity:1,interactive:false,smoothFactor:0};
-  var territoryBlue={color:"#3b82f6",weight:1.2,opacity:.45,lineJoin:"round",fillColor:"#3b82f6",fillOpacity:.34,interactive:false,smoothFactor:0};
-  var territoryGold={color:"#c9842a",weight:1.2,opacity:.9,lineJoin:"round",fillColor:"#e8b85c",fillOpacity:.72,interactive:false,smoothFactor:0};
-  if(RUSSIA_REGIONS) RUSSIA_REGIONS.forEach(function(reg){
-    if(!ruTerritoryIds[reg.id] && !ruTerritoryIds[reg.n]) return;
-    var style=visitedRegions.indexOf(reg.id)>=0?territoryGold:(on["RU"]?territoryBlue:territoryBase);
-    polysOf(reg).forEach(function(poly){ paintPoly(poly,style); });
-  });
   try{ if(worldLayer) worldLayer.bringToBack(); countryLayer.bringToFront(); }catch(e){}
   if(typeof layer!=="undefined" && layer) try{ layer.bringToFront(); }catch(e){}
 }
@@ -9335,15 +9298,15 @@ function bootGeo(){
   if(!countryLayer && typeof L!=="undefined" && typeof map!=="undefined") countryLayer=L.layerGroup().addTo(map);
   ensureHoverLayer();
   globeLand=null;
-  loadGeo("./geo/countries.json?v=4").then(function(data){
+  loadGeo("./geo/countries.json?v=6").then(function(data){
     COUNTRY_LIST=normalizeCountries(data&&data.items);
     finish();
   }).catch(function(){ COUNTRY_LIST=COUNTRY_LIST||[]; finish(); });
-  loadGeo("./geo/russia.json?v=4").then(function(data){
+  loadGeo("./geo/russia.json?v=6").then(function(data){
     RUSSIA_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||r.n; return r; });
     finish();
   }).catch(function(){ RUSSIA_REGIONS=[]; finish(); });
-  loadGeo("./geo/china.json?v=4").then(function(data){
+  loadGeo("./geo/china.json?v=6").then(function(data){
     CHINA_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||("CN:"+r.n); return r; });
     finish();
   }).catch(function(){ CHINA_REGIONS=[]; finish(); });
