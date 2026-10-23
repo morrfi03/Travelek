@@ -697,6 +697,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     <div class="stat"><img src="/art/car.jpg" alt=""><div><b id="s-car">0</b><span>авто, км</span></div></div>
   </div>
   <div class="countries-open-wrap">
+    <div id="countries-progress" style="font-size:12px;color:var(--muted);padding:0 2px 7px">Посещено стран: 0%</div>
     <button type="button" id="countries-open"><img src="/art/passport.jpg" alt=""> Посещённые страны <b id="countries-count">0</b></button>
   </div>
   <p class="visit-line" id="visit-line">Считаем страны по маршрутам…</p>
@@ -716,12 +717,11 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     <button type="button" id="set-theme-light">Светлая</button>
     <button type="button" id="set-theme-system">Как на устройстве</button>
   </div>
-  <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-size:13px">
-    <input type="checkbox" id="set-night-map" checked /> Ночь на карте (терминатор)
-  </label>
-  <label style="display:flex;align-items:center;gap:8px;margin-top:8px;font-size:13px">
-    <input type="checkbox" id="set-globe" /> Глобус
-  </label>
+  <div style="margin-top:12px;font-size:13px;font-weight:600">Отображение</div>
+  <div id="view-switch" role="group" aria-label="Вид карты" style="display:flex;gap:4px;padding:4px;border-radius:14px;background:var(--chip);border:1px solid var(--line);margin-top:8px">
+    <button type="button" id="view-map" aria-pressed="true" style="flex:1;border:0;border-radius:10px;padding:10px;background:var(--accent);color:white;font-weight:700">Карта</button>
+    <button type="button" id="view-globe" aria-pressed="false" style="flex:1;border:0;border-radius:10px;padding:10px;background:transparent;color:var(--text);font-weight:700">Глобус</button>
+  </div>
   <p style="font-size:11px;color:var(--muted);margin-top:4px">Глобус — это шар: потяните, чтобы покрутить. Два пальца или +/− приближают. Железные дороги всегда по точной сети.</p>
   <button type="button" id="set-reset" style="margin-top:14px;background:rgba(220,60,60,.2);color:#e88">Сбросить мои маршруты</button>
   <button type="button" id="set-save" style="margin-top:8px;background:var(--accent);color:#1a1d26;border:none;font-weight:600">Сохранить настройки</button>
@@ -779,7 +779,24 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   <div id="country-picked"></div>
   <div id="country-list"></div>
   <div id="region-list" style="display:none"></div>
+  <div id="region-progress" style="font-size:12px;color:var(--muted);padding:8px 0"></div>
   <button type="button" id="countries-from-routes">Обновить по маршрутам</button>
+</div>
+<div id="legal-links" style="position:relative;z-index:20;padding:8px 16px 20px;font-size:11px;color:var(--muted);text-align:center">
+  <button type="button" id="legal-open" style="border:0;background:transparent;color:inherit;text-decoration:underline;padding:6px">Пользовательское соглашение · Конфиденциальность · Правовая информация</button>
+</div>
+<div id="legal-panel" hidden style="position:fixed;z-index:120;inset:0;overflow:auto;background:var(--panel-solid);color:var(--text);padding:calc(20px + env(safe-area-inset-top)) 18px calc(24px + env(safe-area-inset-bottom))">
+  <button type="button" id="legal-close" style="float:right">Закрыть</button>
+  <h2>Правовая информация TravelEk</h2>
+  <h3>Пользовательское соглашение</h3>
+  <p>TravelEk предназначен для личного учёта поездок, маршрутов и посещённых мест. Пользователь отвечает за достоверность введённых данных и соблюдение применимого законодательства. Сервис предоставляется «как есть»; доступность и точность картографических данных и внешних сервисов не гарантируется.</p>
+  <p>Не используйте сервис для экстренной навигации. Маршруты и расстояния носят информационный характер. Пользователь может прекратить использование сервиса и удалить доступные ему данные средствами интерфейса.</p>
+  <h3>Конфиденциальность и данные</h3>
+  <p>В дневнике могут обрабатываться введённые пользователем маршруты, отметки посещений и настройки. До публичного использования владелец должен указать фактического оператора сервиса, контакт для запросов, места и сроки хранения, используемые внешние сервисы и порядок удаления данных. Не вводите пароли, платёжные данные и иную информацию, не нужную для работы дневника.</p>
+  <h3>Внешние данные и ответственность</h3>
+  <p>Картографические материалы, библиотеки и внешние ресурсы могут иметь собственные лицензии и условия использования. Этот текст является базовой информацией, а не юридическим заключением.</p>
+  <h3>Контакты</h3>
+  <p>Контакт оператора и порядок направления обращений должен добавить владелец сервиса до публичного использования. Проверьте требования законодательства, применимого к оператору и аудитории.</p>
 </div>
 <div class="modal" id="modal">
   <div class="modal-card">
