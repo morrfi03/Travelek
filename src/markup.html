@@ -359,7 +359,7 @@ input,select,textarea{font-size:16px!important}
   position:fixed;left:0;top:0;width:100vw;height:100dvh;z-index:1;display:none;touch-action:none;
   background:#05070f;cursor:grab;
 }
-body.globe-on #globe{display:block}
+body.globe-on #globe{display:block;z-index:4}
 body.globe-on #map{visibility:hidden}
 body.globe-on #globe:active{cursor:grabbing}
 #globe-hint{
@@ -578,6 +578,10 @@ body.globe-on #globe-hint{display:block}
   .zoom{left:auto;right:18px;bottom:96px;transform:none;flex-direction:column}
 }
 #settings-panel .theme-row{grid-template-columns:1fr}
+#settings-panel .lang-row{grid-template-columns:1fr 1fr 1fr}
+#settings-panel .theme-row button.on,#settings-panel .lang-row button.on{
+  background:linear-gradient(135deg,#5b8def,#4f7dff);color:#fff;border-color:transparent;
+}
 @media (min-width:420px){
   #settings-panel .theme-row{grid-template-columns:1fr 1fr 1fr}
 }
@@ -769,6 +773,12 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     <button type="button" id="set-theme-dark">Тёмная</button>
     <button type="button" id="set-theme-light">Светлая</button>
     <button type="button" id="set-theme-system">Как на устройстве</button>
+  </div>
+  <label style="display:block;font-size:11px;color:var(--muted);margin-top:10px">Язык названий</label>
+  <div class="row2 theme-row lang-row" id="lang-switch">
+    <button type="button" data-lang="ru">Русский</button>
+    <button type="button" data-lang="en">English</button>
+    <button type="button" data-lang="zh">中文</button>
   </div>
   <div class="map-switch" id="map-switch" role="group" aria-label="Карта или глобус">
     <span class="knob" aria-hidden="true"></span>
