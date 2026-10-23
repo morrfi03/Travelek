@@ -7212,6 +7212,11 @@ function ensureGlobe(done){
     return loadScriptOnce("/vendor/d3-geo.min.js");
   }).then(function(){ if(globeOn) done(); }).catch(function(e){ console.error(e); });
 }
+function globeGeoPolygon(poly){
+  return (poly||[]).map(function(ring){
+    return (ring||[]).map(function(pt){return [pt[1],pt[0]];});
+  });
+}
 function globeFeatures(){
   var n=COUNTRY_LIST?COUNTRY_LIST.length:0;
   if(globeLand && globeLand.n===n) return globeLand.feats;
@@ -7221,7 +7226,7 @@ function globeFeatures(){
       if(c.i==="RU" || c.i==="CN") return;
       var polys=polysOf(c);
       if(!polys.length) return;
-      feats.push({type:"Feature", properties:{i:c.i}, geometry:{type:"MultiPolygon", coordinates:polys.map(function(poly){ return [poly[0]]; })}});
+      feats.push({type:"Feature", properties:{i:c.i}, geometry:{type:"MultiPolygon", coordinates:polys.map(function(poly){ return globeGeoPolygon(poly); })}});
     });
   }
   globeLand={n:n, feats:feats};
@@ -7291,7 +7296,7 @@ function drawGlobe(){
     ctx.beginPath();
     RUSSIA_REGIONS.forEach(function(reg){
       polysOf(reg).forEach(function(poly){
-        path({type:"Feature", geometry:{type:"Polygon", coordinates:poly}});
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:globeGeoPolygon(poly)}});
       });
     });
     ctx.fillStyle="#1e3b32";
@@ -7301,7 +7306,7 @@ function drawGlobe(){
     ctx.beginPath();
     CHINA_REGIONS.forEach(function(reg){
       polysOf(reg).forEach(function(poly){
-        path({type:"Feature", geometry:{type:"Polygon", coordinates:poly}});
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:globeGeoPolygon(poly)}});
       });
     });
     ctx.fillStyle="#1e3b32";
@@ -7311,7 +7316,7 @@ function drawGlobe(){
     ctx.beginPath();
     RUSSIA_REGIONS.forEach(function(reg){
       polysOf(reg).forEach(function(poly){
-        path({type:"Feature", geometry:{type:"Polygon", coordinates:poly}});
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:globeGeoPolygon(poly)}});
       });
     });
     ctx.fillStyle="rgba(59,130,246,.7)";
@@ -7321,7 +7326,7 @@ function drawGlobe(){
     ctx.beginPath();
     CHINA_REGIONS.forEach(function(reg){
       polysOf(reg).forEach(function(poly){
-        path({type:"Feature", geometry:{type:"Polygon", coordinates:poly}});
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:globeGeoPolygon(poly)}});
       });
     });
     ctx.fillStyle="rgba(59,130,246,.7)";
@@ -7338,7 +7343,7 @@ function drawGlobe(){
     RUSSIA_REGIONS.forEach(function(reg){
       if(!ron[reg.id]) return;
       polysOf(reg).forEach(function(poly){
-        path({type:"Feature", geometry:{type:"Polygon", coordinates:poly}});
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:globeGeoPolygon(poly)}});
       });
     });
     ctx.fillStyle="rgba(232,184,92,.88)";
@@ -7351,7 +7356,7 @@ function drawGlobe(){
     CHINA_REGIONS.forEach(function(reg){
       if(!con[reg.id]) return;
       polysOf(reg).forEach(function(poly){
-        path({type:"Feature", geometry:{type:"Polygon", coordinates:poly}});
+        path({type:"Feature", geometry:{type:"Polygon", coordinates:globeGeoPolygon(poly)}});
       });
     });
     ctx.fillStyle="rgba(232,184,92,.88)";
@@ -7553,7 +7558,14 @@ function drawCityLabels(){
     list=CITIES.map(function(c){return {name:c.n,lat:c.lat,lng:c.lng};});
   }
   var b=map.getBounds();
-  var maxLabels = pickModeLabels ? 80 : (z>=7 ? 60 : 30);
+  var center=map.getCenter();
+  /* Prioritize labels near the current viewport center, not the first cities in a fixed global list. */
+  list=list.slice().sort(function(a,c){
+    var da=Math.pow(a.lat-center.lat,2)+Math.pow(a.lng-center.lng,2);
+    var dc=Math.pow(c.lat-center.lat,2)+Math.pow(c.lng-center.lng,2);
+    return da-dc;
+  });
+  var maxLabels = pickModeLabels ? 120 : (z>=7 ? 100 : 50);
   var n=0;
   for(var i=0;i<list.length && n<maxLabels;i++){
     var c=list[i];
