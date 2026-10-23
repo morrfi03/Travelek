@@ -486,6 +486,55 @@ body.globe-on #globe-hint{display:block}
 [data-theme="light"] #country-list button.on{color:#1d4ed8;background:rgba(37,99,235,.14)}
 #countries-panel .hint{font-size:11px;color:var(--muted);margin:8px 0 0}
 #set-reset{background:rgba(220,60,60,.2)!important;color:#f0a0a0!important}
+#settings-panel .map-switch{
+  position:relative;display:grid;grid-template-columns:1fr 1fr;gap:0;
+  margin-top:14px;padding:3px;border-radius:999px;background:var(--chip);border:1px solid var(--line);
+}
+#settings-panel .map-switch .knob{
+  position:absolute;top:3px;bottom:3px;left:3px;width:calc(50% - 3px);
+  border-radius:999px;background:linear-gradient(135deg,#5b8def,#4f7dff);
+  transition:transform .18s ease;pointer-events:none;
+}
+#settings-panel .map-switch.globe .knob{transform:translateX(100%)}
+#settings-panel .map-switch button{
+  position:relative;z-index:1;margin:0;min-height:38px;width:100%;
+  border:0;background:transparent;color:var(--muted);border-radius:999px;font-weight:700;
+}
+#settings-panel .map-switch button.on{color:#fff}
+.countries-pct{margin:0 0 6px;font-size:12px;font-weight:700;color:var(--accent)}
+.legal-accept{display:flex;gap:8px;align-items:flex-start;margin:4px 0 10px;font-size:12px;line-height:1.4;color:#c5cedd}
+.legal-accept input{margin-top:2px;flex:none}
+.legal-accept button,.legal-link{
+  display:inline;width:auto;margin:0;padding:0;border:0;background:none;color:#9eb6ff;
+  font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;
+}
+#legal-panel{
+  position:fixed;inset:0;z-index:90;display:none;align-items:flex-end;justify-content:center;
+  background:rgba(4,8,16,.55);padding:12px;
+}
+#legal-panel.on{display:flex}
+#legal-panel .card{
+  width:min(560px,100%);max-height:min(78dvh,640px);overflow:auto;
+  background:var(--panel-solid);color:var(--text);border:1px solid var(--line);
+  border-radius:20px;padding:16px 16px 14px;
+}
+#legal-panel h2{font-size:18px;margin:0 0 8px}
+#legal-panel h3{font-size:14px;margin:14px 0 6px}
+#legal-panel p,#legal-panel li{font-size:13px;line-height:1.45;color:var(--muted)}
+#legal-panel ul{margin:0 0 8px 18px}
+#legal-panel .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+#legal-panel .row2 button{
+  min-height:42px;border-radius:12px;border:1px solid var(--line);background:var(--chip);color:var(--text);font-weight:700;
+}
+#legal-panel #legal-ok{background:linear-gradient(135deg,#5b8def,#4f7dff);color:#fff;border:0}
+#settings-panel button.legal-link,#file-login .legal-accept button{
+  display:inline;width:auto;min-height:0;margin:0;padding:0;border:0;background:none;
+  color:#9eb6ff;font-size:12px;font-weight:700;text-align:left;text-decoration:underline;box-shadow:none;
+}
+#settings-panel button.legal-link{display:block;margin-top:8px}
+@media (min-width:980px){
+  .countries-pct{margin-left:12px;margin-right:12px}
+}
 #set-save{background:linear-gradient(135deg,#5b8def,#4f7dff)!important;color:#fff!important;border:none!important}
 .stat-live{margin-top:8px;font-size:12px;color:var(--muted)}
 @media (max-width:640px){
@@ -642,6 +691,10 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
       <button type="button" class="eye" data-eye="file-login-pass">Показать</button>
     </div>
     <div id="file-login-err"></div>
+    <label class="legal-accept">
+      <input id="file-login-legal" type="checkbox" />
+      <span>Принимаю <button type="button" data-legal="terms">пользовательское соглашение</button> и <button type="button" data-legal="privacy">политику обработки данных</button></span>
+    </label>
     <button type="submit">Войти</button>
   </form>
 </div>
@@ -697,7 +750,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     <div class="stat"><img src="/art/car.jpg" alt=""><div><b id="s-car">0</b><span>авто, км</span></div></div>
   </div>
   <div class="countries-open-wrap">
-    <div id="countries-progress" style="font-size:12px;color:var(--muted);padding:0 2px 7px">Посещено стран: 0%</div>
+    <p class="countries-pct" id="countries-pct">Посещено 0% стран</p>
     <button type="button" id="countries-open"><img src="/art/passport.jpg" alt=""> Посещённые страны <b id="countries-count">0</b></button>
   </div>
   <p class="visit-line" id="visit-line">Считаем страны по маршрутам…</p>
@@ -717,13 +770,16 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     <button type="button" id="set-theme-light">Светлая</button>
     <button type="button" id="set-theme-system">Как на устройстве</button>
   </div>
-  <div style="margin-top:12px;font-size:13px;font-weight:600">Отображение</div>
-  <div id="view-switch" role="group" aria-label="Вид карты" style="display:flex;gap:4px;padding:4px;border-radius:14px;background:var(--chip);border:1px solid var(--line);margin-top:8px">
-    <button type="button" id="view-map" aria-pressed="true" style="flex:1;border:0;border-radius:10px;padding:10px;background:var(--accent);color:white;font-weight:700">Карта</button>
-    <button type="button" id="view-globe" aria-pressed="false" style="flex:1;border:0;border-radius:10px;padding:10px;background:transparent;color:var(--text);font-weight:700">Глобус</button>
+  <div class="map-switch" id="map-switch" role="group" aria-label="Карта или глобус">
+    <span class="knob" aria-hidden="true"></span>
+    <button type="button" data-view="map" class="on" aria-pressed="true">Карта</button>
+    <button type="button" data-view="globe" aria-pressed="false">Глобус</button>
   </div>
-  <p style="font-size:11px;color:var(--muted);margin-top:4px">Глобус — это шар: потяните, чтобы покрутить. Два пальца или +/− приближают. Железные дороги всегда по точной сети.</p>
+  <p style="font-size:11px;color:var(--muted);margin-top:8px">Ночь на карте всегда включена. Глобус — шар: потяните, чтобы покрутить, двумя пальцами или +/− приблизьте. Железные дороги всегда по точной сети.</p>
   <button type="button" id="set-reset" style="margin-top:14px;background:rgba(220,60,60,.2);color:#e88">Сбросить мои маршруты</button>
+  <p style="font-size:11px;color:var(--muted);margin-top:4px">Сброс — двойным нажатием.</p>
+  <button type="button" class="legal-link" data-legal="terms" style="margin-top:12px;text-align:left">Пользовательское соглашение</button>
+  <button type="button" class="legal-link" data-legal="privacy" style="text-align:left">Обработка персональных данных</button>
   <button type="button" id="set-save" style="margin-top:8px;background:var(--accent);color:#1a1d26;border:none;font-weight:600">Сохранить настройки</button>
   <button type="button" id="set-close" style="margin-top:8px">Закрыть</button>
 </div>
@@ -779,24 +835,51 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   <div id="country-picked"></div>
   <div id="country-list"></div>
   <div id="region-list" style="display:none"></div>
-  <div id="region-progress" style="font-size:12px;color:var(--muted);padding:8px 0"></div>
   <button type="button" id="countries-from-routes">Обновить по маршрутам</button>
 </div>
-<div id="legal-links" style="position:relative;z-index:20;padding:8px 16px 20px;font-size:11px;color:var(--muted);text-align:center">
-  <button type="button" id="legal-open" style="border:0;background:transparent;color:inherit;text-decoration:underline;padding:6px">Пользовательское соглашение · Конфиденциальность · Правовая информация</button>
-</div>
-<div id="legal-panel" hidden style="position:fixed;z-index:120;inset:0;overflow:auto;background:var(--panel-solid);color:var(--text);padding:calc(20px + env(safe-area-inset-top)) 18px calc(24px + env(safe-area-inset-bottom))">
-  <button type="button" id="legal-close" style="float:right">Закрыть</button>
-  <h2>Правовая информация TravelEk</h2>
-  <h3>Пользовательское соглашение</h3>
-  <p>TravelEk предназначен для личного учёта поездок, маршрутов и посещённых мест. Пользователь отвечает за достоверность введённых данных и соблюдение применимого законодательства. Сервис предоставляется «как есть»; доступность и точность картографических данных и внешних сервисов не гарантируется.</p>
-  <p>Не используйте сервис для экстренной навигации. Маршруты и расстояния носят информационный характер. Пользователь может прекратить использование сервиса и удалить доступные ему данные средствами интерфейса.</p>
-  <h3>Конфиденциальность и данные</h3>
-  <p>В дневнике могут обрабатываться введённые пользователем маршруты, отметки посещений и настройки. До публичного использования владелец должен указать фактического оператора сервиса, контакт для запросов, места и сроки хранения, используемые внешние сервисы и порядок удаления данных. Не вводите пароли, платёжные данные и иную информацию, не нужную для работы дневника.</p>
-  <h3>Внешние данные и ответственность</h3>
-  <p>Картографические материалы, библиотеки и внешние ресурсы могут иметь собственные лицензии и условия использования. Этот текст является базовой информацией, а не юридическим заключением.</p>
-  <h3>Контакты</h3>
-  <p>Контакт оператора и порядок направления обращений должен добавить владелец сервиса до публичного использования. Проверьте требования законодательства, применимого к оператору и аудитории.</p>
+<div id="legal-panel" role="dialog" aria-modal="true" aria-labelledby="legal-title">
+  <div class="card">
+    <h2 id="legal-title">Пользовательское соглашение</h2>
+    <div id="legal-terms">
+      <p>Сервис «ТравелЕк» — личный дневник маршрутов: самолёт, поезд и автомобиль. Это не магазин и не платная услуга. Платы за вход нет.</p>
+      <h3>Аккаунт</h3>
+      <ul>
+        <li>Новый аккаунт создаёт только администратор и передаёт логин с паролем.</li>
+        <li>Нельзя входить в чужой дневник и передавать свой пароль другим людям.</li>
+        <li>Администратор может сменить пароль, ограничить доступ и удалить аккаунт.</li>
+      </ul>
+      <h3>Что вы добавляете</h3>
+      <ul>
+        <li>Маршруты, даты и отметки стран и регионов вы вносите сами. За их точность отвечаете вы.</li>
+        <li>Карта показывает границы в том виде, в каком они собраны для этого дневника. Это справочная схема, а не официальный документ.</li>
+        <li>Свои маршруты можно стереть двойным нажатием «Сбросить мои маршруты» в настройках.</li>
+      </ul>
+      <h3>Как есть</h3>
+      <p>Дневник даётся как есть. Администратор не обещает, что сервис будет работать без перерывов. Соглашение можно обновить: действующий текст открывается по ссылке в настройках и на экране входа. Вход с отмеченным согласием означает, что текст вам понятен и вы его принимаете.</p>
+    </div>
+    <div id="legal-privacy" hidden>
+      <p>Дневник обрабатывает только то, что нужно, чтобы пускать вас в свой аккаунт и показывать ваши маршруты. Рекламным сетям эти сведения не передаются.</p>
+      <h3>Какие данные</h3>
+      <ul>
+        <li>Логин, имя и хэш пароля.</li>
+        <li>Маршруты, отметки стран и регионов, статистика километров.</li>
+        <li>Технические записи в браузере: сессия входа и настройки карты.</li>
+      </ul>
+      <h3>Зачем и где лежат</h3>
+      <ul>
+        <li>Чтобы открыть ваш дневник и не смешивать его с чужим.</li>
+        <li>Копия хранится в браузере этого устройства и в общем хранилище дневников, чтобы тот же аккаунт открывался с другого устройства.</li>
+        <li>Администратор видит маршруты и сводную статистику аккаунтов, чтобы вести дневники и менять пароль, если вы попросите.</li>
+        <li>Пароль в открытом виде другим пользователям не показывается.</li>
+      </ul>
+      <h3>Срок и ваши права</h3>
+      <p>Данные хранятся, пока аккаунт нужен. Можно попросить администратора исправить имя, сменить пароль или удалить аккаунт вместе с маршрутами. Согласие даётся отметкой на экране входа. Если отозвать согласие, вход в дневник прекращается: без этих данных аккаунт не работает.</p>
+    </div>
+    <div class="row2">
+      <button type="button" id="legal-close">Закрыть</button>
+      <button type="button" id="legal-ok">Принимаю</button>
+    </div>
+  </div>
 </div>
 <div class="modal" id="modal">
   <div class="modal-card">
