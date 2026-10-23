@@ -7131,12 +7131,13 @@ var nightLayer=null, nightOn=true, globeOn=false;
 function loadMapPrefs(){
   try{
     var p=JSON.parse(localStorage.getItem("travelek-mapprefs")||"{}");
-    if(typeof p.night==="boolean") nightOn=p.night;
+    nightOn=true;
     if(typeof p.globe==="boolean") globeOn=p.globe;
   }catch(e){}
 }
 function saveMapPrefs(){
-  try{localStorage.setItem("travelek-mapprefs",JSON.stringify({night:nightOn,globe:globeOn}));}catch(e){}
+  nightOn=true;
+  try{localStorage.setItem("travelek-mapprefs",JSON.stringify({globe:globeOn}));}catch(e){}
   scheduleCloudSave();
 }
 function sunDeclination(date){
@@ -8088,7 +8089,8 @@ checkOnline();
   }
   var rs=document.getElementById("set-reset");
   if(rs) rs.onclick=function(){
-    if(!confirm("Удалить все ваши маршруты и треки?")) return;
+    if(!confirm("Шаг 1 из 2. Подготовить сброс всех ваших маршрутов и треков?")) return;
+    if(!confirm("Шаг 2 из 2. Безвозвратно удалить маршруты и треки? Это действие нельзя отменить.")) return;
     saveExtra([]); saveDeleted([]); deleted=[]; ROUTES=window.__TRAVELEK_PRIVATE?[]:BUILTIN.slice(); render();
   };
   var btn=document.getElementById("trim-spikes");
@@ -8465,8 +8467,9 @@ function openSettings(){
   if(nl) nl.checked=navLimitsOn();
   var nz=document.getElementById("set-nav-zones");
   if(nz) nz.checked=navZonesOn();
-  var sn=document.getElementById("set-night-map"); if(sn) sn.checked=nightOn;
-  var sg=document.getElementById("set-globe"); if(sg) sg.checked=globeOn;
+  var vm=document.getElementById("view-map"), vg=document.getElementById("view-globe");
+  if(vm){vm.setAttribute("aria-pressed",String(!globeOn));vm.style.background=globeOn?"transparent":"var(--accent)";vm.style.color=globeOn?"var(--text)":"white";}
+  if(vg){vg.setAttribute("aria-pressed",String(globeOn));vg.style.background=globeOn?"var(--accent)":"transparent";vg.style.color=globeOn?"white":"var(--text)";}
   document.getElementById("settings-panel").classList.add("on");
   var accountPanel=document.getElementById("account-panel");
   if(accountPanel) accountPanel.classList.remove("on");
@@ -8477,6 +8480,19 @@ document.getElementById("settings-btn").onclick=openSettings;
 document.getElementById("set-close").onclick=function(){
   document.getElementById("settings-panel").classList.remove("on");
 };
+function setMapView(useGlobe){
+  globeOn=!!useGlobe; nightOn=true; saveMapPrefs();
+  var vm=document.getElementById("view-map"), vg=document.getElementById("view-globe");
+  if(vm){vm.setAttribute("aria-pressed",String(!globeOn));vm.style.background=globeOn?"transparent":"var(--accent)";vm.style.color=globeOn?"var(--text)":"white";}
+  if(vg){vg.setAttribute("aria-pressed",String(globeOn));vg.style.background=globeOn?"var(--accent)":"transparent";vg.style.color=globeOn?"white":"var(--text)";}
+  if(typeof applyGlobeEffect==="function") applyGlobeEffect();
+}
+var viewMapButton=document.getElementById("view-map"), viewGlobeButton=document.getElementById("view-globe");
+if(viewMapButton) viewMapButton.onclick=function(){setMapView(false);};
+if(viewGlobeButton) viewGlobeButton.onclick=function(){setMapView(true);};
+var legalOpen=document.getElementById("legal-open"), legalClose=document.getElementById("legal-close");
+if(legalOpen) legalOpen.onclick=function(){var p=document.getElementById("legal-panel");if(p)p.hidden=false;};
+if(legalClose) legalClose.onclick=function(){var p=document.getElementById("legal-panel");if(p)p.hidden=true;};
 document.getElementById("set-save").onclick=function(){
   var minEl=document.getElementById("set-min-dist");
   var maxEl=document.getElementById("set-max-acc");
@@ -8495,8 +8511,7 @@ document.getElementById("set-save").onclick=function(){
   var nz=document.getElementById("set-nav-zones");
   if(nz) app.navZones=nz.checked;
   saveAppSettings(app);
-  var sn=document.getElementById("set-night-map"); if(sn) nightOn=sn.checked;
-  var sg=document.getElementById("set-globe"); if(sg) globeOn=sg.checked;
+  nightOn=true;
   saveMapPrefs();
   if(typeof updateNightLayer==="function") updateNightLayer();
   if(typeof applyGlobeEffect==="function") applyGlobeEffect();
@@ -9113,6 +9128,11 @@ function renderCountryUi(){
   var st=regionStats();
   var cst=chinaStats();
   if(count) count.textContent=String(visited.length);
+  var cp=document.getElementById("countries-progress");
+  var countryTotal=(typeof COUNTRY_LIST!=="undefined"&&COUNTRY_LIST)?COUNTRY_LIST.filter(function(c){return c.i!=="RU"&&c.i!=="CN";}).length:0;
+  if(cp){var pct=countryTotal?Math.round(visited.length/countryTotal*100):0;cp.textContent="Посещено стран: "+visited.length+" из "+countryTotal+" ("+pct+"%)";}
+  var rp=document.getElementById("region-progress");
+  if(rp){var rs=regionScope==="CN"?chinaStats():regionStats();var pctR=rs.total?Math.round(rs.got/rs.total*100):0;rp.textContent=regionScope?(rs.got+" из "+rs.total+" регионов ("+pctR+"%)"):"Выберите Россию или Китай, чтобы увидеть процент посещённых регионов.";}
   var line=document.getElementById("visit-line");
   var stats=document.getElementById("visit-stats");
   var summary=visited.length+" стран";
