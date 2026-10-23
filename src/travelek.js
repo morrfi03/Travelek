@@ -9150,7 +9150,7 @@ function renderCountryUi(){
   var scopeStats=regionScope==="CN"?cst:st;
   if(back) back.hidden=!regionScope;
   if(title) title.textContent=regionScope==="CN"?"Регионы Китая":regionScope==="RU"?"Регионы России":"Посещённые страны";
-  if(hint) hint.textContent=regionScope?(scopeStats.got+" из "+scopeStats.total+". Можно найти по городу."):"Считаются по маршрутам. Можно отметить и вручную.";
+  if(hint){var scopePct=scopeStats.total?Math.round(scopeStats.got/scopeStats.total*100):0;hint.textContent=regionScope?(scopeStats.got+" из "+scopeStats.total+" ("+scopePct+"%). Можно найти по городу."):"Считаются по маршрутам. Можно отметить и вручную.";}
   if(qEl) qEl.placeholder=regionScope?"Регион или город…":"Найти страну…";
   if(picked) picked.style.display=regionScope?"none":"";
   if(list) list.style.display=regionScope?"none":"";
