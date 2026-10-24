@@ -6147,15 +6147,15 @@ wipeRoutesOnce();
     if(err) err.textContent="";
     var legal=document.getElementById("file-login-legal");
     if(legal && !legal.checked){
-      if(err) err.textContent="Нужно принять соглашение и политику";
+      if(err) err.textContent=t("Нужно принять соглашение и политику");
       return;
     }
     try{ localStorage.setItem("travelek-legal","1"); }catch(e2){}
     var ret=window.__localLogin && window.__localLogin(document.getElementById("file-login-name").value, document.getElementById("file-login-pass").value);
     if(ret && ret.then){
-      if(err) err.textContent="Проверяем…";
-      ret.then(function(ok){ if(!ok && err) err.textContent="Неверный логин или пароль"; }).catch(function(){ if(err) err.textContent="Неверный логин или пароль"; });
-    } else if(!ret && err) err.textContent="Неверный логин или пароль";
+      if(err) err.textContent=t("Проверяем…");
+      ret.then(function(ok){ if(!ok && err) err.textContent=t("Неверный логин или пароль"); }).catch(function(){ if(err) err.textContent=t("Неверный логин или пароль"); });
+    } else if(!ret && err) err.textContent=t("Неверный логин или пароль");
   };
 })();
 function assembleRoutes(){
@@ -6819,7 +6819,7 @@ function buildYearFilter(){
   var years={}, i;
   ROUTES.forEach(function(r){ var y=routeYear(r); if(y) years[y]=1; });
   var list=Object.keys(years).sort().reverse();
-  var h='<button type="button" data-y="all" class="'+(yearFilter==="all"?"on":"")+'">Все годы</button>';
+  var h='<button type="button" data-y="all" class="'+(yearFilter==="all"?"on":"")+'">'+t("Все годы")+"</button>";
   list.forEach(function(y){
     h+='<button type="button" data-y="'+y+'" class="'+(yearFilter===y?"on":"")+'">'+y+"</button>";
   });
@@ -7188,8 +7188,9 @@ function applyGlobeEffect(){
   }
   ensureGlobe(function(){
     globeCv.style.display="block";
-    globeCv.style.zIndex="4";
+    globeCv.style.zIndex="23";
     scheduleGlobe();
+    setTimeout(function(){ if(globeOn) drawGlobe(); }, 50);
   });
 }
 
@@ -7219,15 +7220,20 @@ function ensureGlobe(done){
     globeCv.style.position="fixed";
     globeCv.style.left="0";
     globeCv.style.top="0";
-    globeCv.style.zIndex="4";
+    globeCv.style.zIndex="23";
     globeCv.style.touchAction="none";
     document.body.appendChild(globeCv);
     var hint=document.createElement("div");
     hint.id="globe-hint";
-    hint.textContent="Тяните шар · +/− ближе";
+    hint.textContent=(typeof t==="function")?t("Тяните шар · +/− ближе"):"Тяните шар · +/− ближе";
     document.body.appendChild(hint);
     bindGlobePointer();
     window.addEventListener("resize", function(){ if(globeOn) scheduleGlobe(); });
+    var sheetWatch=document.getElementById("sheet");
+    if(sheetWatch && !sheetWatch._globeWatch){
+      sheetWatch._globeWatch=1;
+      sheetWatch.addEventListener("transitionend", function(){ if(globeOn) scheduleGlobe(); });
+    }
   }
   if(window.d3 && d3.geoOrthographic && d3.geoPath){ done(); return; }
   loadScriptOnce("/vendor/d3-array.min.js").then(function(){
@@ -7237,7 +7243,7 @@ function ensureGlobe(done){
 function globeRing(ring){
   var n=ring&&ring.length||0;
   if(n<4) return null;
-  var stride=n>520?5:n>260?3:n>100?2:1;
+  var stride=n>72?Math.ceil(n/64):1;
   var out=[], i;
   if(stride===1) out=ring.slice();
   else {
@@ -7276,7 +7282,6 @@ function globePack(){
   if(globeLand && globeLand.key===key) return globeLand;
   var countries=[], ru=[], cn=[];
   (COUNTRY_LIST||[]).forEach(function(c){
-    if(c.i==="RU" || c.i==="CN") return;
     countries=countries.concat(globePolys(c));
   });
   if(typeof RUSSIA_REGIONS!=="undefined" && RUSSIA_REGIONS) RUSSIA_REGIONS.forEach(function(r){ ru=ru.concat(globePolys(r)); });
@@ -7298,18 +7303,24 @@ function globeLayout(){
   ctx.setTransform(dpr,0,0,dpr,0,0);
   var sheet=document.getElementById("sheet");
   var desktop=window.matchMedia&&matchMedia("(min-width: 980px)").matches;
-  var sheetH=desktop?76:(sheet?sheet.getBoundingClientRect().height:h*0.4);
-  var top=78;
-  var avail=Math.max(160, h-sheetH-top-12);
-  var R=Math.min(w*0.42, avail*0.48)*globeScale;
-  var cy=top+avail/2;
+  var topBar=document.querySelector(".top");
+  var top=topBar?Math.max(72, Math.round(topBar.getBoundingClientRect().bottom)+8):90;
+  var sheetBox=sheet?sheet.getBoundingClientRect():null;
+  var left=12, right=w-12, bottom=h-16;
+  if(desktop && sheetBox && sheetBox.width>40) left=Math.max(12, Math.round(sheetBox.right)+10);
+  else if(sheetBox && sheetBox.top>top+90) bottom=Math.round(sheetBox.top)-10;
+  var availW=Math.max(140, right-left);
+  var availH=Math.max(140, bottom-top);
+  var R=Math.min(availW, availH)*0.48*globeScale;
+  var cx=left+availW/2;
+  var cy=top+availH/2;
   var projection=d3.geoOrthographic()
-    .translate([w/2, cy])
+    .translate([cx, cy])
     .scale(R)
     .rotate([-globeRot.lng, -globeRot.lat])
     .clipAngle(90)
     .precision(0.7);
-  return {ctx:ctx, w:w, h:h, R:R, path:d3.geoPath(projection), projection:projection, c:[w/2, cy]};
+  return {ctx:ctx, w:w, h:h, R:R, path:d3.geoPath(projection), projection:projection, c:[cx, cy]};
 }
 function paintGlobe(ctx, d, color, stroke){
   if(!d || d.length<6 || typeof Path2D!=="function") return false;
@@ -7323,100 +7334,100 @@ function paintGlobe(ctx, d, color, stroke){
 function drawGlobe(){
   if(!globeOn || !globeCv || !window.d3 || !d3.geoOrthographic || !d3.geoPath) return;
   var view=globeLayout();
-  var ctx=view.ctx, w=view.w, h=view.h, R=view.R, path=view.path, c=view.c;
-  var pack=globePack();
+  var ctx=view.ctx, w=view.w, h=view.h, R=view.R, projection=view.projection, c=view.c;
+  var pack;
+  try{ pack=globePack(); }catch(err){ pack={countries:[],ru:[],cn:[]}; }
   ctx.clearRect(0,0,w,h);
   ctx.fillStyle="#05070f";
   ctx.fillRect(0,0,w,h);
   if(!globeCv._stars){
     var stars=[], si;
-    for(si=0;si<90;si++) stars.push([Math.random(), Math.random(), Math.random()]);
+    for(si=0;si<80;si++) stars.push([Math.random(), Math.random(), Math.random()]);
     globeCv._stars=stars;
   }
   globeCv._stars.forEach(function(s){
-    ctx.fillStyle="rgba(255,255,255,"+(0.25+s[2]*0.55)+")";
-    ctx.fillRect(s[0]*w, s[1]*h, s[2]>0.7?1.6:1, s[2]>0.7?1.6:1);
+    ctx.fillStyle="rgba(255,255,255,"+(0.28+s[2]*0.6)+")";
+    ctx.fillRect(s[0]*w, s[1]*h, s[2]>0.7?1.7:1, s[2]>0.7?1.7:1);
   });
-  var ocean=ctx.createRadialGradient(c[0]-R*0.32, c[1]-R*0.34, R*0.08, c[0], c[1], R);
-  ocean.addColorStop(0,"#4ea0d4");
-  ocean.addColorStop(0.55,"#1a4e86");
-  ocean.addColorStop(1,"#07111f");
+  var ocean=ctx.createRadialGradient(c[0]-R*0.32, c[1]-R*0.34, R*0.06, c[0], c[1], R);
+  ocean.addColorStop(0,"#8fd4f5");
+  ocean.addColorStop(0.42,"#2f86c4");
+  ocean.addColorStop(1,"#0b3358");
   ctx.beginPath();
   ctx.arc(c[0], c[1], R, 0, Math.PI*2);
   ctx.fillStyle=ocean;
   ctx.fill();
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(c[0], c[1], Math.max(8, R-0.5), 0, Math.PI*2);
-  ctx.clip();
   var seen={};
   if(typeof visited!=="undefined" && visited && visited.forEach) visited.forEach(function(id){ seen[id]=1; });
-  function geomPath(part){
-    try{ return path({type:"Feature", geometry:part.geom}); }catch(e){ return ""; }
+  var geo=d3.geoPath(projection, ctx);
+  function paintGeom(geom, fill, stroke){
+    if(!geom) return;
+    ctx.beginPath();
+    try{ geo(geom); }catch(err){ return; }
+    if(fill){ ctx.fillStyle=fill; ctx.fill(); }
+    if(stroke){ ctx.lineWidth=0.8; ctx.strokeStyle=stroke; ctx.stroke(); }
   }
-  function fillParts(list, color, only){
-    if(!list) return;
-    var i, part;
-    for(i=0;i<list.length;i++){
-      part=list[i];
-      if(only && !only[part.id]) continue;
-      paintGlobe(ctx, geomPath(part), color, false);
-    }
+  var i, part, list=pack.countries||[];
+  for(i=0;i<list.length;i++){
+    part=list[i];
+    if(seen[part.id]) continue;
+    paintGeom(part.geom, "#e6d3a3", "rgba(92,68,36,.55)");
   }
-  var i, part;
-  for(i=0;i<pack.countries.length;i++){
-    part=pack.countries[i];
-    if(!seen[part.id]) paintGlobe(ctx, geomPath(part), "#245443", false);
-  }
-  fillParts(pack.ru, "#245443");
-  fillParts(pack.cn, "#245443");
-  if(seen.RU) fillParts(pack.ru, "rgba(59,130,246,.8)");
-  if(seen.CN) fillParts(pack.cn, "rgba(59,130,246,.8)");
-  for(i=0;i<pack.countries.length;i++){
-    part=pack.countries[i];
-    if(seen[part.id]) paintGlobe(ctx, geomPath(part), "rgba(59,130,246,.8)", false);
+  for(i=0;i<list.length;i++){
+    part=list[i];
+    if(!seen[part.id]) continue;
+    paintGeom(part.geom, "rgba(59,130,246,.9)", "rgba(18,52,130,.5)");
   }
   if(typeof visitedRegions!=="undefined" && visitedRegions && visitedRegions.length){
     var ron={};
     visitedRegions.forEach(function(id){ ron[id]=1; });
-    fillParts(pack.ru, "rgba(232,184,92,.94)", ron);
-    fillParts(pack.cn, "rgba(232,184,92,.94)", ron);
+    function gold(parts){
+      if(!parts) return;
+      var k, p;
+      for(k=0;k<parts.length;k++){
+        p=parts[k];
+        if(!ron[p.id]) continue;
+        paintGeom(p.geom, "rgba(232,184,92,.96)", "rgba(120,78,16,.6)");
+      }
+    }
+    gold(pack.ru);
+    gold(pack.cn);
+  }
+  if(d3.geoGraticule10){
+    ctx.beginPath();
+    try{ geo(d3.geoGraticule10()); }catch(err){}
+    ctx.strokeStyle="rgba(255,255,255,.33)";
+    ctx.lineWidth=0.7;
+    ctx.stroke();
   }
   var routes=typeof filtered==="function"?filtered():(typeof ROUTES!=="undefined"?ROUTES:[]);
   routes.forEach(function(r){
     var g=typeof buildGeoSync==="function"?buildGeoSync(r):null;
     if(!g||!g.coords||g.coords.length<2) return;
     var line={type:"LineString", coordinates:g.coords.map(function(pt){ return [pt[1], pt[0]]; })};
-    var d=geomPath({geom:line});
-    if(!d){
-      try{ d=path(line); }catch(e){ d=""; }
-    }
-    if(!d) return;
+    ctx.beginPath();
+    try{ geo(line); }catch(err){ return; }
     ctx.lineCap="round";
     ctx.lineJoin="round";
-    ctx.lineWidth=r.mode==="plane"?3.2:3.6;
-    paintGlobe(ctx, d, "rgba(255,255,255,.95)", true);
-    ctx.lineWidth=r.mode==="plane"?1.6:2;
-    paintGlobe(ctx, d, (typeof COLORS!=="undefined"&&COLORS[r.mode])?COLORS[r.mode]:"#101820", true);
+    ctx.lineWidth=r.mode==="plane"?3.4:3.8;
+    ctx.strokeStyle="rgba(255,255,255,.96)";
+    ctx.stroke();
+    ctx.lineWidth=r.mode==="plane"?1.7:2.1;
+    ctx.strokeStyle=(typeof COLORS!=="undefined"&&COLORS[r.mode])?COLORS[r.mode]:"#101820";
+    ctx.stroke();
   });
-  var shine=ctx.createRadialGradient(c[0]-R*0.38, c[1]-R*0.42, R*0.02, c[0]-R*0.1, c[1]-R*0.1, R);
-  shine.addColorStop(0,"rgba(255,255,255,.2)");
-  shine.addColorStop(0.4,"rgba(255,255,255,.04)");
+  var shine=ctx.createRadialGradient(c[0]-R*0.36, c[1]-R*0.4, R*0.02, c[0], c[1], R);
+  shine.addColorStop(0,"rgba(255,255,255,.3)");
+  shine.addColorStop(0.42,"rgba(255,255,255,0)");
   shine.addColorStop(1,"rgba(255,255,255,0)");
+  ctx.beginPath();
+  ctx.arc(c[0], c[1], R, 0, Math.PI*2);
   ctx.fillStyle=shine;
-  ctx.beginPath();
-  ctx.arc(c[0], c[1], R, 0, Math.PI*2);
   ctx.fill();
-  ctx.restore();
-  ctx.beginPath();
-  ctx.arc(c[0], c[1], R+1.2, 0, Math.PI*2);
-  ctx.strokeStyle="rgba(186,220,255,.55)";
-  ctx.lineWidth=5;
-  ctx.stroke();
   ctx.beginPath();
   ctx.arc(c[0], c[1], R, 0, Math.PI*2);
-  ctx.strokeStyle="rgba(255,255,255,.75)";
-  ctx.lineWidth=1.3;
+  ctx.strokeStyle="rgba(236,246,255,.92)";
+  ctx.lineWidth=2.6;
   ctx.stroke();
 }
 function scheduleGlobe(){
@@ -7611,6 +7622,87 @@ function buildWorldLabels(){
   worldLabelCache=out;
   return out;
 }
+var UI={"en": {"Настройки": "Settings", "Тема": "Theme", "Тёмная": "Dark", "Светлая": "Light", "Как на устройстве": "System", "Язык": "Language", "Карта": "Map", "Глобус": "Globe", "Ночь на карте всегда включена. Глобус — шар: потяните, чтобы покрутить, двумя пальцами или +/− приблизьте. Железные дороги всегда по точной сети.": "Night on the map is always on. The globe is a sphere: drag to spin it, pinch or use +/− to zoom. Railways follow the real network.", "Сбросить мои маршруты": "Reset my routes", "Сброс — двойным нажатием.": "Reset needs a second tap.", "Нажмите ещё раз": "Tap again", "Пользовательское соглашение": "Terms of use", "Обработка персональных данных": "Privacy", "Сохранить настройки": "Save settings", "Закрыть": "Close", "Аккаунт": "Account", "Будущие": "Upcoming", "История": "History", "Ваши маршруты": "Your routes", "небо, км": "air, km", "поезд, км": "rail, km", "авто, км": "road, km", "Посещённые страны": "Countries visited", "Вы были тут?": "Were you here?", "Нет": "No", "Да, был(а)": "Yes, I was", "Ткните точку на карте": "Tap a point on the map", "Нет сети · карта из кэша": "Offline · cached map", "Войти": "Log in", "Выйти": "Log out", "Новый маршрут": "New route", "Самолёт": "Plane", "Поезд": "Train", "Авто": "Car", "Отмена": "Cancel", "Сохранить": "Save", "Дневник путешествий": "Travel diary", "самолёт, поезд и дорога": "plane, train and road", "Обновить по маршрутам": "Update from routes", "Найти страну…": "Find a country…", "Регион или город…": "Region or city…", "Считаются по маршрутам. Можно отметить и вручную.": "Counted from routes. You can also mark them yourself.", "Можно найти по городу.": "You can search by city.", "Ничего не найдено": "Nothing found", "Показать": "Show", "Скрыть": "Hide", "Имя": "Name", "Сохранить имя": "Save name", "Сменить пароль": "Change password", "Все аккаунты": "All accounts", "Новый аккаунт": "New account", "Создать аккаунт": "Create account", "Принимаю": "I accept", "пользовательское соглашение": "the terms of use", "и": "and", "политику обработки данных": "the privacy policy", "Каждый видит только свой дневник. Новый аккаунт создаёт только администратор.": "Each person sees only their own diary. Only the admin can create an account.", "Логин": "Username", "Пароль": "Password", "Тип": "Type", "Дата": "Date", "Время": "Time", "Откуда (аэропорт)": "From (airport)", "Куда (аэропорт)": "To (airport)", "Откуда (вокзал)": "From (station)", "Куда (вокзал)": "To (station)", "Откуда (порт / город)": "From (port / city)", "Куда (порт / город)": "To (port / city)", "Откуда (город / точка)": "From (city / point)", "Куда (город / точка)": "To (city / point)", "Только аэропорт: SVO, LED…": "Airport only: SVO, LED…", "Только вокзал…": "Station only…", "Город или 📍 на карте": "City or 📍 on the map", "Рейс": "Flight", "Поезд / номер": "Train / number", "Название (необязательно)": "Name (optional)", "Рейс / паром": "Sailing / ferry", "Комментарий (необязательно)": "Note (optional)", "Как ехали": "How you drove", "По дорогам": "By road", "Бездорожье (через точки)": "Off-road (via points)", "＋ Добавить маршрут": "＋ Add a route", "Тяните шар · +/− ближе": "Drag the globe · +/− to zoom", "Регионы России": "Regions of Russia", "Регионы Китая": "Regions of China", "стран": "countries", "регионов РФ": "Russian regions", "регионов Китая": "Chinese regions", "из": "of", "скоро": "soon", "км": "km", "Изменить": "Edit", "Удалить": "Delete", "Нет предстоящих маршрутов. Откройте «История» или добавьте новый.": "No upcoming routes. Open History or add one.", "В истории пока пусто": "Nothing in history yet", "Нет маршрутов": "No routes", "Администратор": "Admin", "Пользователь": "User", "админ · ": "admin · ", "маршрутов": "routes", "стран · ": "countries · ", "Пока только вы.": "Just you so far.", "Маршрутов пока нет": "No routes yet", "Список аккаунтов не загрузился.": "Could not load accounts.", "Нужно принять соглашение и политику": "Please accept the terms and the privacy policy", "Неверный логин или пароль": "Wrong username or password", "Пароль изменён": "Password changed", "Не удалось сменить пароль. Проверьте текущий.": "Could not change the password. Check the current one.", "Аккаунт создан. Теперь по этому логину можно войти с любого телефона.": "Account created. You can now log in from any phone.", "Не удалось создать": "Could not create the account", "Назад": "Back", "Дневник: ": "Diary: ", "Обработка данных": "Privacy", "Текущий пароль": "Current password", "Новый пароль, от 8 символов": "New password, 8+ characters", "Новый пароль ещё раз": "New password again", "Нажмите человека, чтобы открыть его дневник. Новый аккаунт сохраняется сразу на сайте, файл на GitHub для этого менять не нужно.": "Tap a person to open their diary. A new account is saved on the site at once — the GitHub file does not need to change.", "＋ Точка на карте": "＋ Point on the map", "Очистить точки": "Clear points", "Промежуточные точки (обойти лес/реку)": "Waypoints (around a forest or river)", "Для авто: 📍 — ткните точку на карте (Россия)": "For a car: 📍 — tap a point on the map", "Редактировать": "Edit", "Только администратор": "Admin only", "Только администратор может создавать аккаунты": "Only the admin can create accounts", "Карта или глобус": "Map or globe", "Все маршруты": "All routes", "Добавить": "Add", "день": "day", "дня": "days", "дней": "days", "час": "hour", "часа": "hours", "часов": "hours", "предстоящий": "upcoming", "предстоящих": "upcoming", "рейс": "flight", "рейса": "flights", "рейсов": "flights", "маршрут": "route", "маршрута": "routes", "мин": "min"}, "zh": {"Настройки": "设置", "Тема": "主题", "Тёмная": "深色", "Светлая": "浅色", "Как на устройстве": "跟随系统", "Язык": "语言", "Карта": "地图", "Глобус": "地球", "Ночь на карте всегда включена. Глобус — шар: потяните, чтобы покрутить, двумя пальцами или +/− приблизьте. Железные дороги всегда по точной сети.": "地图上的夜景始终开启。地球是个球体：拖动旋转，双指或 +/− 缩放。铁路按真实线路绘制。", "Сбросить мои маршруты": "清除我的路线", "Сброс — двойным нажатием.": "再点一次才会清除。", "Нажмите ещё раз": "再点一次", "Пользовательское соглашение": "用户协议", "Обработка персональных данных": "个人信息处理", "Сохранить настройки": "保存设置", "Закрыть": "关闭", "Аккаунт": "账户", "Будущие": "即将出发", "История": "历史", "Ваши маршруты": "您的路线", "небо, км": "飞行，公里", "поезд, км": "火车，公里", "авто, км": "驾车，公里", "Посещённые страны": "到过的国家", "Вы были тут?": "您来过这里吗？", "Нет": "否", "Да, был(а)": "是的，来过", "Ткните точку на карте": "点地图上的位置", "Нет сети · карта из кэша": "无网络 · 使用缓存地图", "Войти": "登录", "Выйти": "退出", "Новый маршрут": "新路线", "Самолёт": "飞机", "Поезд": "火车", "Авто": "汽车", "Отмена": "取消", "Сохранить": "保存", "Дневник путешествий": "旅行日记", "самолёт, поезд и дорога": "飞机、火车和公路", "Обновить по маршрутам": "按路线更新", "Найти страну…": "搜索国家…", "Регион или город…": "搜索地区或城市…", "Считаются по маршрутам. Можно отметить и вручную.": "按路线统计，也可以手动标记。", "Можно найти по городу.": "可以按城市查找。", "Ничего не найдено": "没有找到", "Показать": "显示", "Скрыть": "隐藏", "Имя": "名字", "Сохранить имя": "保存名字", "Сменить пароль": "修改密码", "Все аккаунты": "全部账户", "Новый аккаунт": "新账户", "Создать аккаунт": "创建账户", "Принимаю": "我接受", "пользовательское соглашение": "用户协议", "и": "和", "политику обработки данных": "个人信息政策", "Каждый видит только свой дневник. Новый аккаунт создаёт только администратор.": "每个人只能看到自己的日记。新账户只能由管理员创建。", "Логин": "登录名", "Пароль": "密码", "Тип": "类型", "Дата": "日期", "Время": "时间", "Откуда (аэропорт)": "出发（机场）", "Куда (аэропорт)": "到达（机场）", "Откуда (вокзал)": "出发（车站）", "Куда (вокзал)": "到达（车站）", "Откуда (порт / город)": "出发（港口 / 城市）", "Куда (порт / город)": "到达（港口 / 城市）", "Откуда (город / точка)": "出发（城市 / 地点）", "Куда (город / точка)": "到达（城市 / 地点）", "Только аэропорт: SVO, LED…": "仅限机场：SVO、LED…", "Только вокзал…": "仅限车站…", "Город или 📍 на карте": "城市或点地图 📍", "Рейс": "航班", "Поезд / номер": "车次", "Название (необязательно)": "名称（可选）", "Рейс / паром": "班次 / 渡轮", "Комментарий (необязательно)": "备注（可选）", "Как ехали": "怎么走的", "По дорогам": "沿公路", "Бездорожье (через точки)": "越野（经过地点）", "＋ Добавить маршрут": "＋ 添加路线", "Тяните шар · +/− ближе": "拖动地球 · +/− 缩放", "Регионы России": "俄罗斯地区", "Регионы Китая": "中国地区", "стран": "个国家", "регионов РФ": "个俄罗斯地区", "регионов Китая": "个中国地区", "из": "/", "скоро": "即将", "км": "公里", "Изменить": "编辑", "Удалить": "删除", "Нет предстоящих маршрутов. Откройте «История» или добавьте новый.": "没有即将出发的路线。打开「历史」或添加一条。", "В истории пока пусто": "历史里还是空的", "Нет маршрутов": "没有路线", "Администратор": "管理员", "Пользователь": "用户", "админ · ": "管理员 · ", "маршрутов": "条", "стран · ": "个国家 · ", "Пока только вы.": "目前只有您。", "Маршрутов пока нет": "还没有路线", "Список аккаунтов не загрузился.": "账户列表没有加载出来。", "Нужно принять соглашение и политику": "需要接受协议和隐私政策", "Неверный логин или пароль": "登录名或密码不正确", "Пароль изменён": "密码已修改", "Не удалось сменить пароль. Проверьте текущий.": "没能修改密码。请检查当前密码。", "Аккаунт создан. Теперь по этому логину можно войти с любого телефона.": "账户已创建。现在用这个登录名可以在任何手机上进入。", "Не удалось создать": "没能创建", "Назад": "返回", "Дневник: ": "日记：", "Обработка данных": "个人信息", "Текущий пароль": "当前密码", "Новый пароль, от 8 символов": "新密码，至少 8 位", "Новый пароль ещё раз": "再输入一次新密码", "Нажмите человека, чтобы открыть его дневник. Новый аккаунт сохраняется сразу на сайте, файл на GitHub для этого менять не нужно.": "点一个人即可打开他的日记。新账户会立刻保存在网站上，不必为此改 GitHub 上的文件。", "＋ Точка на карте": "＋ 地图上的点", "Очистить точки": "清除地点", "Промежуточные точки (обойти лес/реку)": "途经点（绕开森林或河流）", "Для авто: 📍 — ткните точку на карте (Россия)": "驾车：📍 — 在地图上点一个位置", "Редактировать": "编辑", "Только администратор": "仅管理员", "Только администратор может создавать аккаунты": "只有管理员能创建账户", "Карта или глобус": "地图或地球", "Все маршруты": "全部路线", "Добавить": "添加", "день": "天", "дня": "天", "дней": "天", "час": "小时", "часа": "小时", "часов": "小时", "предстоящий": "即将", "предстоящих": "即将", "рейс": "次", "рейса": "次", "рейсов": "次", "маршрут": "条", "маршрута": "条", "мин": "分钟"}};
+var REGIONS={"en": {"Адыгея": "Adygea", "Алтайский край": "Altai Krai", "Амурская область": "Amur Oblast", "Архангельская область": "Arkhangelsk Oblast", "Астраханская область": "Astrakhan Oblast", "Белгородская область": "Belgorod Oblast", "Брянская область": "Bryansk Oblast", "Бурятия": "Buryatia", "Владимирская область": "Vladimir Oblast", "Волгоградская область": "Volgograd Oblast", "Вологодская область": "Vologda Oblast", "Воронежская область": "Voronezh Oblast", "Дагестан": "Dagestan", "Донецкая Народная Республика": "Donetsk People's Republic", "Еврейская автономная область": "Jewish Autonomous Oblast", "Забайкальский край": "Zabaykalsky Krai", "Запорожская область": "Zaporizhzhia Oblast", "Ивановская область": "Ivanovo Oblast", "Ингушетия": "Ingushetia", "Иркутская область": "Irkutsk Oblast", "Кабардино-Балкария": "Kabardino-Balkaria", "Калининградская область": "Kaliningrad Oblast", "Калмыкия": "Kalmykia", "Калужская область": "Kaluga Oblast", "Камчатский край": "Kamchatka Krai", "Карачаево-Черкесия": "Karachay-Cherkessia", "Карелия": "Karelia", "Кемеровская область": "Kemerovo Oblast", "Кировская область": "Kirov Oblast", "Костромская область": "Kostroma Oblast", "Краснодарский край": "Krasnodar Krai", "Красноярский край": "Krasnoyarsk Krai", "Курганская область": "Kurgan Oblast", "Курская область": "Kursk Oblast", "Ленинградская область": "Leningrad Oblast", "Липецкая область": "Lipetsk Oblast", "Луганская Народная Республика": "Lugansk People's Republic", "Магаданская область": "Magadan Oblast", "Марий Эл": "Mari El", "Мордовия": "Mordovia", "Москва": "Moscow", "Московская область": "Moscow Oblast", "Мурманская область": "Murmansk Oblast", "Ненецкий автономный округ": "Nenets Autonomous Okrug", "Нижегородская область": "Nizhny Novgorod Oblast", "Новгородская область": "Novgorod Oblast", "Новосибирская область": "Novosibirsk Oblast", "Омская область": "Omsk Oblast", "Оренбургская область": "Orenburg Oblast", "Орловская область": "Oryol Oblast", "Пензенская область": "Penza Oblast", "Пермский край": "Perm Krai", "Приморский край": "Primorsky Krai", "Псковская область": "Pskov Oblast", "Республика Алтай": "Altai Republic", "Республика Башкортостан": "Bashkortostan", "Республика Коми": "Komi Republic", "Республика Крым": "Republic of Crimea", "Республика Северная Осетия-Алания": "North Ossetia–Alania", "Ростовская область": "Rostov Oblast", "Рязанская область": "Ryazan Oblast", "Самарская область": "Samara Oblast", "Санкт-Петербург": "Saint Petersburg", "Саратовская область": "Saratov Oblast", "Сахалинская область": "Sakhalin Oblast", "Свердловская область": "Sverdlovsk Oblast", "Севастополь": "Sevastopol", "Смоленская область": "Smolensk Oblast", "Ставропольский край": "Stavropol Krai", "Тамбовская область": "Tambov Oblast", "Татарстан": "Tatarstan", "Тверская область": "Tver Oblast", "Томская область": "Tomsk Oblast", "Тульская область": "Tula Oblast", "Тыва": "Tuva", "Тюменская область": "Tyumen Oblast", "Удмуртия": "Udmurtia", "Ульяновская область": "Ulyanovsk Oblast", "Хабаровский край": "Khabarovsk Krai", "Хакасия": "Khakassia", "Ханты-Мансийский автономный округ — Югра": "Khanty-Mansi Autonomous Okrug — Yugra", "Херсонская область": "Kherson Oblast", "Челябинская область": "Chelyabinsk Oblast", "Чечня": "Chechnya", "Чувашия": "Chuvashia", "Чукотский автономный округ": "Chukotka Autonomous Okrug", "Якутия": "Yakutia", "Ямало-Ненецкий автономный округ": "Yamalo-Nenets Autonomous Okrug", "Ярославская область": "Yaroslavl Oblast", "Аньхой": "Anhui", "Внутренняя Монголия": "Inner Mongolia", "Ганьсу": "Gansu", "Гирин": "Jilin", "Гуандун": "Guangdong", "Гуанси-Чжуанский автономный район": "Guangxi", "Гуйчжоу": "Guizhou", "Ляонин": "Liaoning", "Нинся-Хуэйский автономный район": "Ningxia", "Пекин": "Beijing", "Синьцзян-Уйгурский автономный район": "Xinjiang", "Сычуань": "Sichuan", "Тайвань": "Taiwan", "Тибетский автономный район": "Tibet", "Тяньцзинь": "Tianjin", "Фуцзянь": "Fujian", "Хайнань": "Hainan", "Хубэй": "Hubei", "Хунань": "Hunan", "Хэбэй": "Hebei", "Хэйлунцзян": "Heilongjiang", "Хэнань": "Henan", "Цзянси": "Jiangxi", "Цзянсу": "Jiangsu", "Цинхай": "Qinghai", "Чжэцзян": "Zhejiang", "Чунцин": "Chongqing", "Шанхай": "Shanghai", "Шаньдун": "Shandong", "Шаньси": "Shanxi", "Шэньси": "Shaanxi", "Юньнань": "Yunnan"}, "zh": {"Адыгея": "阿迪格", "Алтайский край": "阿尔泰边疆区", "Амурская область": "阿穆尔州", "Архангельская область": "阿尔汉格尔斯克州", "Астраханская область": "阿斯特拉罕州", "Белгородская область": "别尔哥罗德州", "Брянская область": "布良斯克州", "Бурятия": "布里亚特", "Владимирская область": "弗拉基米尔州", "Волгоградская область": "伏尔加格勒州", "Вологодская область": "沃洛格达州", "Воронежская область": "沃罗涅日州", "Дагестан": "达吉斯坦", "Донецкая Народная Республика": "顿涅茨克人民共和国", "Еврейская автономная область": "犹太自治州", "Забайкальский край": "外贝加尔边疆区", "Запорожская область": "扎波罗热州", "Ивановская область": "伊万诺沃州", "Ингушетия": "印古什", "Иркутская область": "伊尔库茨克州", "Кабардино-Балкария": "卡巴尔达-巴尔卡尔", "Калининградская область": "加里宁格勒州", "Калмыкия": "卡尔梅克", "Калужская область": "卡卢加州", "Камчатский край": "堪察加边疆区", "Карачаево-Черкесия": "卡拉恰伊-切尔克斯", "Карелия": "卡累利阿", "Кемеровская область": "克麦罗沃州", "Кировская область": "基洛夫州", "Костромская область": "科斯特罗马州", "Краснодарский край": "克拉斯诺达尔边疆区", "Красноярский край": "克拉斯诺亚尔斯克边疆区", "Курганская область": "库尔干州", "Курская область": "库尔斯克州", "Ленинградская область": "列宁格勒州", "Липецкая область": "利佩茨克州", "Луганская Народная Республика": "卢甘斯克人民共和国", "Магаданская область": "马加丹州", "Марий Эл": "马里埃尔", "Мордовия": "莫尔多瓦", "Москва": "莫斯科", "Московская область": "莫斯科州", "Мурманская область": "摩尔曼斯克州", "Ненецкий автономный округ": "涅涅茨自治区", "Нижегородская область": "下诺夫哥罗德州", "Новгородская область": "诺夫哥罗德州", "Новосибирская область": "新西伯利亚州", "Омская область": "鄂木斯克州", "Оренбургская область": "奥伦堡州", "Орловская область": "奥廖尔州", "Пензенская область": "奔萨州", "Пермский край": "彼尔姆边疆区", "Приморский край": "滨海边疆区", "Псковская область": "普斯科夫州", "Республика Алтай": "阿尔泰共和国", "Республика Башкортостан": "巴什科尔托斯坦", "Республика Коми": "科米共和国", "Республика Крым": "克里米亚共和国", "Республика Северная Осетия-Алания": "北奥塞梯-阿兰", "Ростовская область": "罗斯托夫州", "Рязанская область": "梁赞州", "Самарская область": "萨马拉州", "Санкт-Петербург": "圣彼得堡", "Саратовская область": "萨拉托夫州", "Сахалинская область": "萨哈林州", "Свердловская область": "斯维尔德洛夫斯克州", "Севастополь": "塞瓦斯托波尔", "Смоленская область": "斯摩棱斯克州", "Ставропольский край": "斯塔夫罗波尔边疆区", "Тамбовская область": "坦波夫州", "Татарстан": "鞑靼斯坦", "Тверская область": "特维尔州", "Томская область": "托木斯克州", "Тульская область": "图拉州", "Тыва": "图瓦", "Тюменская область": "秋明州", "Удмуртия": "乌德穆尔特", "Ульяновская область": "乌里扬诺夫斯克州", "Хабаровский край": "哈巴罗夫斯克边疆区", "Хакасия": "哈卡斯", "Ханты-Мансийский автономный округ — Югра": "汉特-曼西自治区—尤格拉", "Херсонская область": "赫尔松州", "Челябинская область": "车里雅宾斯克州", "Чечня": "车臣", "Чувашия": "楚瓦什", "Чукотский автономный округ": "楚科奇自治区", "Якутия": "雅库特", "Ямало-Ненецкий автономный округ": "亚马尔-涅涅茨自治区", "Ярославская область": "雅罗斯拉夫尔州", "Аньхой": "安徽", "Внутренняя Монголия": "内蒙古", "Ганьсу": "甘肃", "Гирин": "吉林", "Гуандун": "广东", "Гуанси-Чжуанский автономный район": "广西", "Гуйчжоу": "贵州", "Ляонин": "辽宁", "Нинся-Хуэйский автономный район": "宁夏", "Пекин": "北京", "Синьцзян-Уйгурский автономный район": "新疆", "Сычуань": "四川", "Тайвань": "台湾", "Тибетский автономный район": "西藏", "Тяньцзинь": "天津", "Фуцзянь": "福建", "Хайнань": "海南", "Хубэй": "湖北", "Хунань": "湖南", "Хэбэй": "河北", "Хэйлунцзян": "黑龙江", "Хэнань": "河南", "Цзянси": "江西", "Цзянсу": "江苏", "Цинхай": "青海", "Чжэцзян": "浙江", "Чунцин": "重庆", "Шанхай": "上海", "Шаньдун": "山东", "Шаньси": "山西", "Шэньси": "陕西", "Юньнань": "云南"}};
+LEGAL_I18N={"ru": {"terms": "<p>Сервис «ТравелЕк» — личный дневник маршрутов: самолёт, поезд и автомобиль. Это не магазин и не платная услуга. Платы за вход нет.</p>\n      <h3>Аккаунт</h3>\n      <ul>\n        <li>Новый аккаунт создаёт только администратор и передаёт логин с паролем.</li>\n        <li>Нельзя входить в чужой дневник и передавать свой пароль другим людям.</li>\n        <li>Администратор может сменить пароль, ограничить доступ и удалить аккаунт.</li>\n      </ul>\n      <h3>Что вы добавляете</h3>\n      <ul>\n        <li>Маршруты, даты и отметки стран и регионов вы вносите сами. За их точность отвечаете вы.</li>\n        <li>Карта показывает границы в том виде, в каком они собраны для этого дневника. Это справочная схема, а не официальный документ.</li>\n        <li>Свои маршруты можно стереть двойным нажатием «Сбросить мои маршруты» в настройках.</li>\n      </ul>\n      <h3>Как есть</h3>\n      <p>Дневник даётся как есть. Администратор не обещает, что сервис будет работать без перерывов. Соглашение можно обновить: действующий текст открывается по ссылке в настройках и на экране входа. Вход с отмеченным согласием означает, что текст вам понятен и вы его принимаете.</p>", "privacy": "<p>Дневник обрабатывает только то, что нужно, чтобы пускать вас в свой аккаунт и показывать ваши маршруты. Рекламным сетям эти сведения не передаются.</p>\n      <h3>Какие данные</h3>\n      <ul>\n        <li>Логин, имя и хэш пароля.</li>\n        <li>Маршруты, отметки стран и регионов, статистика километров.</li>\n        <li>Технические записи в браузере: сессия входа и настройки карты.</li>\n      </ul>\n      <h3>Зачем и где лежат</h3>\n      <ul>\n        <li>Чтобы открыть ваш дневник и не смешивать его с чужим.</li>\n        <li>Копия хранится в браузере этого устройства и в общем хранилище дневников, чтобы тот же аккаунт открывался с другого устройства.</li>\n        <li>Администратор видит маршруты и сводную статистику аккаунтов, чтобы вести дневники и менять пароль, если вы попросите.</li>\n        <li>Пароль в открытом виде другим пользователям не показывается.</li>\n      </ul>\n      <h3>Срок и ваши права</h3>\n      <p>Данные хранятся, пока аккаунт нужен. Можно попросить администратора исправить имя, сменить пароль или удалить аккаунт вместе с маршрутами. Согласие даётся отметкой на экране входа. Если отозвать согласие, вход в дневник прекращается: без этих данных аккаунт не работает.</p>"}, "en": {"terms": "<p>Travelek is a personal diary of routes: plane, train and car. It is not a shop and not a paid service. Signing in is free.</p>\n<h3>Account</h3><ul>\n<li>Only the administrator creates a new account and gives out the username and password.</li>\n<li>Do not sign in to someone else's diary or give your password to other people.</li>\n<li>The administrator can change a password, limit access and delete an account.</li>\n</ul>\n<h3>What you add</h3><ul>\n<li>You enter routes, dates and country or region marks yourself. You are responsible for their accuracy.</li>\n<li>The map shows borders as they are drawn for this diary. It is a reference sketch, not an official document.</li>\n<li>You can erase your routes by double-tapping “Reset my routes” in settings.</li>\n</ul>\n<h3>As is</h3>\n<p>The diary is provided as is. The administrator does not promise uninterrupted service. The terms can be updated: the current text opens from settings and from the sign-in screen. Signing in with the box checked means you understand and accept the text.</p>", "privacy": "<p>The diary processes only what it needs to let you into your account and show your routes. This information is not sent to advertising networks.</p>\n<h3>Which data</h3><ul>\n<li>Username, name and a hash of the password.</li>\n<li>Routes, country and region marks, kilometre statistics.</li>\n<li>Technical notes in the browser: the sign-in session and map settings.</li>\n</ul>\n<h3>Why and where</h3><ul>\n<li>So your diary opens and is not mixed with someone else's.</li>\n<li>A copy is kept in this device's browser and in the shared diary storage, so the same account opens on another device.</li>\n<li>The administrator sees routes and summary statistics in order to run the diaries and change a password if you ask.</li>\n<li>The password is not shown in clear text to other users.</li>\n</ul>\n<h3>How long, and your rights</h3>\n<p>Data is kept while the account is needed. You can ask the administrator to correct the name, change the password or delete the account together with the routes. Consent is the tick on the sign-in screen. If you withdraw consent, you can no longer sign in: the account does not work without this data.</p>"}, "zh": {"terms": "<p>「旅行日记」是个人路线日记：飞机、火车和汽车。不是商店，也不是付费服务。登录不收费。</p>\n<h3>账户</h3><ul>\n<li>新账户只能由管理员创建，并由管理员把登录名和密码交给您。</li>\n<li>不能进入别人的日记，也不能把自己的密码交给别人。</li>\n<li>管理员可以修改密码、限制访问和删除账户。</li>\n</ul>\n<h3>您添加的内容</h3><ul>\n<li>路线、日期以及国家和地标记由您自己填写。内容是否准确由您负责。</li>\n<li>地图上的边界是为本日记整理的示意图，不是官方文件。</li>\n<li>可以在设置里对「清除我的路线」连点两次，删掉自己的路线。</li>\n</ul>\n<h3>按现状提供</h3>\n<p>日记按现状提供。管理员不保证服务从不中断。协议可以更新：现行文本在设置和登录页打开。勾选同意后登录，即表示您理解并接受该文本。</p>", "privacy": "<p>日记只处理让您进入自己的账户并显示路线所需要的信息。这些信息不会交给广告网络。</p>\n<h3>哪些数据</h3><ul>\n<li>登录名、名字和密码的哈希。</li>\n<li>路线、国家和地标记、公里统计。</li>\n<li>浏览器里的技术记录：登录会话和地图设置。</li>\n</ul>\n<h3>为什么、放在哪里</h3><ul>\n<li>为了打开您的日记，并且不和别人的混在一起。</li>\n<li>一份保存在这台设备的浏览器里，一份保存在日记的共享存储里，这样同一账户可以在另一台设备上打开。</li>\n<li>管理员能看到路线和汇总统计，以便管理日记，并在您要求时修改密码。</li>\n<li>密码不会以明文显示给其他用户。</li>\n</ul>\n<h3>保存多久，以及您的权利</h3>\n<p>在账户还需要时保存数据。您可以请管理员更正名字、修改密码，或连同路线一起删除账户。同意是登录页上的勾选。如果撤回同意，就不能再登录：没有这些数据，账户无法工作。</p>"}};
+function t(s){
+  var lang=currentLang();
+  if(!s || lang==="ru") return s||"";
+  var pack=UI[lang];
+  return (pack && pack[s]!=null) ? pack[s] : s;
+}
+UI.en["Все годы"]="All years";
+UI.zh["Все годы"]="全部年份";
+UI.en["Проверяем…"]="Checking…";
+UI.zh["Проверяем…"]="正在核对…";
+UI.en["Считаем страны по маршрутам…"]="Counting countries from routes…";
+UI.zh["Считаем страны по маршрутам…"]="正在按路线统计国家…";
+function regionLabel(name){
+  var lang=currentLang();
+  if(!name || lang==="ru") return name||"";
+  var pack=REGIONS[lang];
+  return (pack && pack[name]) || name;
+}
+function countryLabel(c){
+  if(!c) return "";
+  var lang=currentLang();
+  if(lang==="ru") return c.n||c.i||"";
+  var fix={AB:{en:"Abkhazia",zh:"阿布哈兹"},OS:{en:"South Ossetia",zh:"南奥塞梯"}};
+  if(fix[c.i] && fix[c.i][lang]) return fix[c.i][lang];
+  try{
+    var dn=new Intl.DisplayNames([lang==="zh"?"zh-CN":lang],{type:"region"});
+    var name=dn.of(c.i);
+    if(name && name!==c.i) return name;
+  }catch(e){}
+  return c.n||c.i||"";
+}
+function ofCount(got, total, noun){
+  var lang=currentLang();
+  if(lang==="en") return got+" of "+total+" "+noun;
+  if(lang==="zh") return got+"/"+total+" "+noun;
+  return got+" из "+total+" "+noun;
+}
+function legalHtml(kind){
+  var lang=currentLang();
+  if(!LEGAL_I18N) return "";
+  var pack=LEGAL_I18N[lang]||LEGAL_I18N.ru;
+  return (pack && pack[kind]) || (LEGAL_I18N.ru && LEGAL_I18N.ru[kind]) || "";
+}
+function applyI18n(){
+  var nodes=document.querySelectorAll("[data-i18n]"), i, el, key, input;
+  for(i=0;i<nodes.length;i++){
+    el=nodes[i];
+    key=el.getAttribute("data-i18n");
+    if(!key) continue;
+    if(el.hasAttribute("data-i18n-ph") || el.tagName==="INPUT" || el.tagName==="TEXTAREA"){
+      if(el.hasAttribute("data-i18n-ph")) el.placeholder=t(el.getAttribute("data-i18n-ph"));
+      else if(el.getAttribute("placeholder")) el.placeholder=t(key);
+    }
+    if(el.tagName!=="INPUT" && el.tagName!=="TEXTAREA") el.textContent=t(key);
+  }
+  document.querySelectorAll("[data-i18n-ph]").forEach(function(el){
+    el.placeholder=t(el.getAttribute("data-i18n-ph"));
+  });
+  document.querySelectorAll("[data-i18n-title]").forEach(function(el){
+    var s=t(el.getAttribute("data-i18n-title"));
+    el.title=s;
+    if(el.hasAttribute("aria-label")) el.setAttribute("aria-label", s);
+  });
+  document.querySelectorAll("[data-eye]").forEach(function(btn){
+    input=document.getElementById(btn.getAttribute("data-eye"));
+    btn.textContent=(input && input.type==="text")?t("Скрыть"):t("Показать");
+  });
+  var hint=document.getElementById("globe-hint");
+  if(hint) hint.textContent=t("Тяните шар · +/− ближе");
+  var sw=document.getElementById("map-switch");
+  if(sw) sw.setAttribute("aria-label", t("Карта или глобус"));
+  var terms=document.getElementById("legal-terms");
+  var privacy=document.getElementById("legal-privacy");
+  if(terms && legalHtml("terms")) terms.innerHTML=legalHtml("terms");
+  if(privacy && legalHtml("privacy")) privacy.innerHTML=legalHtml("privacy");
+  var lang=currentLang();
+  document.documentElement.lang=lang==="zh"?"zh-CN":lang;
+}
 function currentLang(){
   try{
     var l=localStorage.getItem("travelek-lang")||"ru";
@@ -7638,7 +7730,14 @@ function setLang(lang){
   if(lang!=="ru" && lang!=="en" && lang!=="zh") lang="ru";
   try{ localStorage.setItem("travelek-lang", lang); }catch(e){}
   syncLangButtons();
-  drawCityLabels();
+  applyI18n();
+  if(typeof updateLabels==="function") updateLabels();
+  if(typeof render==="function") render();
+  if(typeof renderCountryUi==="function") renderCountryUi();
+  if(typeof drawCityLabels==="function") drawCityLabels();
+  if(window.__fillAccount && document.getElementById("account-panel") && document.getElementById("account-panel").classList.contains("on")){
+    try{ window.__fillAccount(); }catch(e){}
+  }
 }
 function drawCityLabels(){
   if(!labelsLayer || !map) return;
@@ -7721,8 +7820,20 @@ function pluralRu(n, one, few, many){
   return many;
 }
 
-function wordDays(n){ n=Math.round(n); return n+" "+pluralRu(n,"день","дня","дней"); }
-function wordHours(n){ n=Math.round(n); return n+" "+pluralRu(n,"час","часа","часов"); }
+function wordDays(n){
+  n=Math.round(n);
+  var lang=currentLang();
+  if(lang==="en") return n+" "+(n===1?"day":"days");
+  if(lang==="zh") return n+" 天";
+  return n+" "+pluralRu(n,"день","дня","дней");
+}
+function wordHours(n){
+  n=Math.round(n);
+  var lang=currentLang();
+  if(lang==="en") return n+" "+(n===1?"hour":"hours");
+  if(lang==="zh") return n+" 小时";
+  return n+" "+pluralRu(n,"час","часа","часов");
+}
 function formatTripDuration(r, km){
   if(r.duration && String(r.duration).trim()) return String(r.duration).trim();
   km=km||0;
@@ -7735,7 +7846,13 @@ function formatTripDuration(r, km){
   else if(r.mode==="walk") speed=5;
   else if(r.mode==="bike") speed=15;
   var hours=km/speed;
-  if(hours<0.75) return Math.max(1, Math.round(hours*60))+" мин";
+  if(hours<0.75){
+    var mins=Math.max(1, Math.round(hours*60));
+    var lang=currentLang();
+    if(lang==="en") return mins+" min";
+    if(lang==="zh") return mins+" 分钟";
+    return mins+" мин";
+  }
   if(hours<24) return wordHours(Math.max(1, Math.round(hours)));
   return wordDays(Math.max(1, Math.round(hours/24)));
 }
@@ -7817,9 +7934,9 @@ function render(){
   var futN=ROUTES.filter(isFuture).length;
   document.getElementById("subtitle").textContent=(function(){
     var total=ROUTES.length, fut=futN;
-    if(!total) return "Нет маршрутов";
-    var s=wordReis(total);
-    if(fut) s+=" · "+fut+" "+pluralRu(fut,"предстоящий","предстоящих","предстоящих");
+    if(!total) return t("Нет маршрутов");
+    var s=total+" "+t(total===1?"маршрут":"маршрутов");
+    if(fut) s+=" · "+fut+" "+t("предстоящих");
     return s;
   })();
   var fill=getComputedStyle(document.documentElement).getPropertyValue("--map-bg").trim()||"#0a0c10";
@@ -7849,6 +7966,7 @@ function render(){
   if(typeof drawCountries==="function") drawCountries();
   try{layer.bringToFront();labelsLayer.bringToFront();}catch(e){}
   if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
+  if(typeof renderCountryUi==="function") renderCountryUi();
 
   /* load real roads then re-render once */
   if(pending.length){
@@ -7861,7 +7979,7 @@ function render(){
   }
 
   var el=document.getElementById("list");
-  if(!list.length){ el.innerHTML='<div class="empty"><img src="/art/empty.jpg" alt=""><p>'+(activeTab==="future"?"Нет предстоящих маршрутов. Откройте «История» или добавьте новый.":"В истории пока пусто")+'</p></div>'; }
+  if(!list.length){ el.innerHTML='<div class="empty"><img src="/art/empty.jpg" alt=""><p>'+(activeTab==="future"?t("Нет предстоящих маршрутов. Откройте «История» или добавьте новый."):t("В истории пока пусто"))+'</p></div>'; }
   else {
     var html="", lastY="";
     list.forEach(function(r){
@@ -7878,11 +7996,11 @@ function render(){
       var art=r.mode==="train"?"/art/train.jpg":(r.mode==="car"?"/art/car.jpg":"/art/plane.jpg");
       html+='<div class="row '+(selectedId===r.id?"on ":"")+(fut?"future":"")+'" data-id="'+r.id+'">'+
         '<img class="thumb" alt="" src="'+art+'">'+
-        '<button type="button" class="edit" data-edit="'+r.id+'" title="Изменить">✎</button>'+'<button type="button" class="del" data-del="'+r.id+'" title="Удалить">×</button>'+
+        '<button type="button" class="edit" data-edit="'+r.id+'" title="'+t("Изменить")+'">✎</button>'+'<button type="button" class="del" data-del="'+r.id+'" title="'+t("Удалить")+'">×</button>'+
         '<div class="title">'+fromL+" → "+toL+"</div>"+
         '<div class="meta"><span class="badge '+bc+'">'+(r.flight||r.mode)+"</span>"+
-        (fut?'<span class="badge fut">скоро</span>':"")+" "+(r.date||"")+
-        (r.time?" · "+r.time:"")+(km?" · "+km.toLocaleString("ru-RU")+" км":"")+
+        (fut?'<span class="badge fut">'+t("скоро")+'</span>':"")+" "+(r.date||"")+
+        (r.time?" · "+r.time:"")+(km?" · "+km.toLocaleString(currentLang()==="en"?"en":"ru-RU")+" "+t("км"):"")+
         (dur?" · "+dur:"")+"</div></div>";
     });
     el.innerHTML=html;
@@ -8207,16 +8325,16 @@ checkOnline();
     var now=Date.now();
     if(!rs._armed || now-rs._armed>1600){
       rs._armed=now;
-      rs.textContent="Нажмите ещё раз";
+      rs.textContent=t("Нажмите ещё раз");
       clearTimeout(rs._timer);
       rs._timer=setTimeout(function(){
         rs._armed=0;
-        rs.textContent="Сбросить мои маршруты";
+        rs.textContent=t("Сбросить мои маршруты");
       }, 1600);
       return;
     }
     rs._armed=0;
-    rs.textContent="Сбросить мои маршруты";
+    rs.textContent=t("Сбросить мои маршруты");
     saveExtra([]); saveDeleted([]); deleted=[]; ROUTES=window.__TRAVELEK_PRIVATE?[]:BUILTIN.slice(); render();
   };
   var btn=document.getElementById("trim-spikes");
@@ -8245,18 +8363,18 @@ var carWaypoints = []; /* [{lat,lng}, ...] для бездорожья */
 
 function updateLabels(){
   var m=fMode.value;
-  document.getElementById("lbl-from").textContent=m==="plane"?"Откуда (аэропорт)":(m==="train"?"Откуда (вокзал)":(m==="ship"?"Откуда (порт / город)":"Откуда (город / точка)"));
-  document.getElementById("lbl-to").textContent=m==="plane"?"Куда (аэропорт)":(m==="train"?"Куда (вокзал)":(m==="ship"?"Куда (порт / город)":"Куда (город / точка)"));
-  fFrom.placeholder=m==="plane"?"Только аэропорт: SVO, LED…":(m==="train"?"Только вокзал…":"Город или 📍 на карте");
+  document.getElementById("lbl-from").textContent=m==="plane"?t("Откуда (аэропорт)"):(m==="train"?t("Откуда (вокзал)"):(m==="ship"?t("Откуда (порт / город)"):t("Откуда (город / точка)")));
+  document.getElementById("lbl-to").textContent=m==="plane"?t("Куда (аэропорт)"):(m==="train"?t("Куда (вокзал)"):(m==="ship"?t("Куда (порт / город)"):t("Куда (город / точка)")));
+  fFrom.placeholder=m==="plane"?t("Только аэропорт: SVO, LED…"):(m==="train"?t("Только вокзал…"):t("Город или 📍 на карте"));
   fTo.placeholder=fFrom.placeholder;
   var fw=document.getElementById("f-flight-wrap");
   var fl=document.getElementById("lbl-flight");
   var fi=document.getElementById("f-flight");
-  if(m==="plane"){ fw.style.display=""; fl.textContent="Рейс"; fi.placeholder="SU 100"; }
-  else if(m==="train"){ fw.style.display=""; fl.textContent="Поезд / номер"; fi.placeholder="Сапсан 756А"; }
-  else if(m==="walk"||m==="bike"){ fw.style.display=""; fl.textContent="Название (необязательно)"; fi.placeholder="Вечерняя прогулка"; }
-  else if(m==="ship"){ fw.style.display=""; fl.textContent="Рейс / паром"; fi.placeholder="Паром, круиз…"; }
-  else { fw.style.display=""; fl.textContent="Комментарий (необязательно)"; fi.placeholder="Например: через перевал"; }
+  if(m==="plane"){ fw.style.display=""; fl.textContent=t("Рейс"); fi.placeholder="SU 100"; }
+  else if(m==="train"){ fw.style.display=""; fl.textContent=t("Поезд / номер"); fi.placeholder="Сапсан 756А"; }
+  else if(m==="walk"||m==="bike"){ fw.style.display=""; fl.textContent=t("Название (необязательно)"); fi.placeholder=""; }
+  else if(m==="ship"){ fw.style.display=""; fl.textContent=t("Рейс / паром"); fi.placeholder=""; }
+  else { fw.style.display=""; fl.textContent=t("Комментарий (необязательно)"); fi.placeholder=""; }
   var showPick=(m==="car"||m==="ship"||m==="walk"||m==="bike");
   document.getElementById("pick-from").style.display=showPick?"":"none";
   document.getElementById("pick-to").style.display=showPick?"":"none";
@@ -8516,7 +8634,7 @@ document.getElementById("f-save").onclick=function(){
   extra.push(trip); saveExtra(extra);
   ROUTES=assembleRoutes();
   editingId=null;
-  document.getElementById("modal-title").textContent="Новый маршрут";
+  document.getElementById("modal-title").textContent=t("Новый маршрут");
   closeForm(); fFrom.value=""; fTo.value=""; document.getElementById("f-flight").value=""; carWaypoints=[]; clearPickMarkers();
   setSheet("mid"); render();
 };
@@ -8529,7 +8647,7 @@ function openEdit(id){
   for(i=0;i<ROUTES.length;i++) if(ROUTES[i].id===id) r=ROUTES[i];
   if(!r) return;
   editingId=id;
-  document.getElementById("modal-title").textContent="Редактировать";
+  document.getElementById("modal-title").textContent=t("Редактировать");
   fMode.value=r.mode||"plane";
   updateLabels();
   fFrom.value=r.from||"";
@@ -8556,7 +8674,7 @@ function openEdit(id){
 }
 function openFormNew(){
   editingId=null;
-  document.getElementById("modal-title").textContent="Новый маршрут";
+  document.getElementById("modal-title").textContent=t("Новый маршрут");
   carWaypoints=[];
   fFrom.value=""; fTo.value="";
   document.getElementById("f-flight").value="";
@@ -9076,7 +9194,7 @@ function showMapHover(lat,lng,containerPoint){
     polysOf(reg).forEach(function(poly){paintOn(hl,poly,rStyle,true);});
   }
   if(label){
-    label.textContent=reg?(reg.n+" · "+(c?c.n:cid)):(c?c.n:cid);
+    label.textContent=reg?(regionLabel(reg.n)+" · "+(c?countryLabel(c):cid)):(c?countryLabel(c):cid);
     label.style.display="block";
     if(containerPoint){label.style.left=(containerPoint.x+14)+"px";label.style.top=(containerPoint.y+14)+"px";}
   }
@@ -9089,11 +9207,11 @@ function openVisitPrompt(lat,lng){
   if(!cid) return;
   var rid=cid==="RU"?regionAt(lat,lng):(cid==="CN"?chinaRegionAt(lat,lng):null);
   var c=countryRecord(cid), reg=rid?regionRecord(rid):null;
-  pendingVisit={countryId:cid,regionId:rid,name:reg?(reg.n+" · "+(c?c.n:cid)):(c?c.n:cid)};
+  pendingVisit={countryId:cid,regionId:rid,name:reg?(regionLabel(reg.n)+" · "+(c?countryLabel(c):cid)):(c?countryLabel(c):cid)};
   var modal=document.getElementById("visit-confirm");
   var title=document.getElementById("visit-confirm-title");
   var desc=document.getElementById("visit-confirm-desc");
-  if(title) title.textContent="Вы были тут?";
+  if(title) title.textContent=t("Вы были тут?");
   if(desc) desc.textContent=pendingVisit.name;
   if(modal) modal.classList.add("on");
 }
@@ -9240,29 +9358,24 @@ function pctOf(got, total){
   return Math.round(100*got/total)+"%";
 }
 function renderCountryUi(){
+  if(typeof visited==="undefined" || !visited) return;
   var count=document.getElementById("countries-count");
   var st=regionStats();
   var cst=chinaStats();
   if(count) count.textContent=String(visited.length);
   var countryTotal=COUNTRY_LIST?COUNTRY_LIST.length:0;
   var countryPct=pctOf(visited.length, countryTotal);
-  var pctLine=countryTotal?("Посещено "+countryPct+" стран"):"Посещено 0% стран";
+  var pctSub=ofCount(visited.length, countryTotal, t("стран"));
+  var pctHtml="<b>"+countryPct+"</b><span>"+pctSub+"</span>";
   var pctEl=document.getElementById("countries-pct");
-  if(pctEl) pctEl.textContent=pctLine;
+  if(pctEl) pctEl.innerHTML=pctHtml;
+  var topPct=document.getElementById("top-pct");
+  if(topPct) topPct.innerHTML="<b>"+countryPct+"</b><span>"+pctSub+"</span>";
   var cp=document.getElementById("countries-progress");
-  if(cp) cp.textContent=pctLine;
+  if(cp) cp.textContent=countryPct+" · "+pctSub;
   var rp=document.getElementById("region-progress");
-  if(rp){
-    if(regionScope){
-      var rsNow=regionScope==="CN"?cst:st;
-      rp.textContent=rsNow.got+" из "+rsNow.total+" · "+pctOf(rsNow.got, rsNow.total);
-    } else rp.textContent="";
-  }
   var line=document.getElementById("visit-line");
   var stats=document.getElementById("visit-stats");
-  var summary=visited.length+" стран";
-  if(line) line.textContent=summary;
-  if(stats){ stats.textContent=summary; stats.hidden=!!regionScope; }
   var title=document.getElementById("countries-title");
   var hint=document.getElementById("countries-hint");
   var back=document.getElementById("regions-back");
@@ -9274,9 +9387,22 @@ function renderCountryUi(){
   var scopeList=regionScope==="CN"?CHINA_REGIONS:regionScope==="RU"?RUSSIA_REGIONS:null;
   var scopeStats=regionScope==="CN"?cst:st;
   if(back) back.hidden=!regionScope;
-  if(title) title.textContent=regionScope==="CN"?"Регионы Китая":regionScope==="RU"?"Регионы России":"Посещённые страны";
-  if(hint) hint.textContent=regionScope?(scopeStats.got+" из "+scopeStats.total+" · "+pctOf(scopeStats.got, scopeStats.total)+". Можно найти по городу."):"Считаются по маршрутам. Можно отметить и вручную.";
-  if(qEl) qEl.placeholder=regionScope?"Регион или город…":"Найти страну…";
+  if(title) title.textContent=regionScope==="CN"?t("Регионы Китая"):regionScope==="RU"?t("Регионы России"):t("Посещённые страны");
+  if(regionScope){
+    var scopeNoun=regionScope==="CN"?t("регионов Китая"):t("регионов РФ");
+    var scopeLine=ofCount(scopeStats.got, scopeStats.total, scopeNoun);
+    if(hint) hint.textContent=scopeLine+" · "+t("Можно найти по городу.");
+    if(stats){ stats.hidden=false; stats.innerHTML="<b>"+pctOf(scopeStats.got, scopeStats.total)+"</b><span>"+scopeLine+"</span>"; }
+    if(rp) rp.textContent=scopeLine;
+    if(line) line.textContent=pctOf(scopeStats.got, scopeStats.total)+" · "+scopeLine;
+  } else {
+    if(hint) hint.textContent=t("Считаются по маршрутам. Можно отметить и вручную.");
+    if(stats){ stats.hidden=false; stats.innerHTML=pctHtml; }
+    if(rp) rp.textContent="";
+    if(line) line.textContent=countryPct+" · "+pctSub;
+  }
+  if(qEl && document.activeElement!==qEl) qEl.placeholder=regionScope?t("Регион или город…"):t("Найти страну…");
+  else if(qEl && !qEl.value) qEl.placeholder=regionScope?t("Регион или город…"):t("Найти страну…");
   if(picked) picked.style.display=regionScope?"none":"";
   if(list) list.style.display=regionScope?"none":"";
   if(regions) regions.style.display=regionScope?"block":"none";
@@ -9288,25 +9414,25 @@ function renderCountryUi(){
     rowsR.sort(function(a,b){
       var as=visitedRegions.indexOf(a.id)>=0?0:1, bs=visitedRegions.indexOf(b.id)>=0?0:1;
       if(as!==bs) return as-bs;
-      return a.n.localeCompare(b.n,"ru");
+      return regionLabel(a.n).localeCompare(regionLabel(b.n), currentLang()==="zh"?"zh":currentLang());
     });
     regions.innerHTML=rowsR.map(function(r){
       var on=visitedRegions.indexOf(r.id)>=0;
       var city=q?regionMatches(r, q):"";
       var sub=city?'<small style="display:block;color:var(--muted);font-weight:500">'+city+'</small>':"";
-      return '<button type="button" class="'+(on?"on":"")+'" data-reg="'+r.id+'"><span>'+r.n+sub+'</span><span>'+(on?"✓":"")+'</span></button>';
-    }).join("") || '<p class="hint">Ничего не найдено</p>';
+      return '<button type="button" class="'+(on?"on":"")+'" data-reg="'+r.id+'"><span>'+regionLabel(r.n)+sub+'</span><span>'+(on?"✓":"")+'</span></button>';
+    }).join("") || '<p class="hint">'+t("Ничего не найдено")+'</p>';
     return;
   }
   if(!picked||!list) return;
   var by={};
-  COUNTRY_LIST.forEach(function(c){ by[c.i]=c.n; });
+  COUNTRY_LIST.forEach(function(c){ by[c.i]=countryLabel(c); });
   picked.innerHTML=visited.map(function(id){
     return '<button type="button" data-drop="'+id+'">'+(by[id]||id)+' ×</button>';
   }).join("");
   var rows=COUNTRY_LIST.filter(function(c){
     if(!q) return true;
-    return c.n.toLowerCase().indexOf(q)>=0 || c.i.toLowerCase().indexOf(q)>=0;
+    return (c.n||"").toLowerCase().indexOf(q)>=0 || countryLabel(c).toLowerCase().indexOf(q)>=0 || c.i.toLowerCase().indexOf(q)>=0;
   });
   rows.sort(function(a,b){
     var as=visited.indexOf(a.i)>=0?0:1, bs=visited.indexOf(b.i)>=0?0:1;
@@ -9315,19 +9441,19 @@ function renderCountryUi(){
     if(b.i==="RU") return 1;
     if(a.i==="CN") return -1;
     if(b.i==="CN") return 1;
-    return a.n.localeCompare(b.n,"ru");
+    return countryLabel(a).localeCompare(countryLabel(b), currentLang()==="zh"?"zh":currentLang());
   });
   if(q) rows=rows.slice(0,80);
   list.innerHTML=rows.map(function(c){
     var on=visited.indexOf(c.i)>=0;
     if(c.i==="RU"){
-      return '<button type="button" class="'+(on?"on":"")+'" data-open="RU"><span>Россия</span><span>'+st.got+' из '+st.total+' · '+pctOf(st.got, st.total)+'</span></button>';
+      return '<button type="button" class="'+(on?"on":"")+'" data-open="RU"><span>'+countryLabel(c)+'</span><span>'+pctOf(st.got, st.total)+" · "+ofCount(st.got, st.total, t("регионов РФ"))+'</span></button>';
     }
     if(c.i==="CN"){
-      return '<button type="button" class="'+(on?"on":"")+'" data-open="CN"><span>Китай</span><span>'+cst.got+' из '+cst.total+' · '+pctOf(cst.got, cst.total)+'</span></button>';
+      return '<button type="button" class="'+(on?"on":"")+'" data-open="CN"><span>'+countryLabel(c)+'</span><span>'+pctOf(cst.got, cst.total)+" · "+ofCount(cst.got, cst.total, t("регионов Китая"))+'</span></button>';
     }
-    return '<button type="button" class="'+(on?"on":"")+'" data-iso="'+c.i+'"><span>'+c.n+'</span><span>'+(on?"✓":"")+'</span></button>';
-  }).join("") || '<p class="hint">Ничего не найдено</p>';
+    return '<button type="button" class="'+(on?"on":"")+'" data-iso="'+c.i+'"><span>'+countryLabel(c)+'</span><span>'+(on?"✓":"")+'</span></button>';
+  }).join("") || '<p class="hint">'+t("Ничего не найдено")+'</p>';
 }
 function toggleCountry(id){
   if(!id) return;
@@ -9492,6 +9618,8 @@ function setMapView(globe){
   nightOn=true;
   saveMapPrefs();
   syncMapSwitch();
+  var settings=document.getElementById("settings-panel");
+  if(settings) settings.classList.remove("on");
   if(typeof applyGlobeEffect==="function") applyGlobeEffect();
   if(typeof updateNightLayer==="function") updateNightLayer();
 }
@@ -9511,7 +9639,7 @@ function openLegal(which){
   if(terms) terms.hidden=which==="privacy";
   if(privacy) privacy.hidden=which!=="privacy";
   var title=document.getElementById("legal-title");
-  if(title) title.textContent=which==="privacy"?"Обработка данных":"Пользовательское соглашение";
+  if(title) title.textContent=which==="privacy"?t("Обработка данных"):t("Пользовательское соглашение");
 }
 document.querySelectorAll("[data-legal]").forEach(function(btn){
   btn.addEventListener("click", function(e){
@@ -9660,10 +9788,10 @@ window.__packStats=function(pack){
   var banner=document.getElementById("view-banner");
   if(banner && window.__TRAVELEK_READONLY){
     banner.hidden=false;
-    banner.innerHTML='<span>Дневник: '+(window.__TRAVELEK_VIEW_NAME||"пользователь")+'</span>';
+    banner.innerHTML='<span>'+t("Дневник: ")+(window.__TRAVELEK_VIEW_NAME||t("Пользователь"))+'</span>';
     var back=document.createElement("button");
     back.type="button";
-    back.textContent="Назад";
+    back.textContent=t("Назад");
     back.onclick=function(){ if(window.__exitView) window.__exitView(); };
     banner.appendChild(back);
   }
@@ -9686,27 +9814,27 @@ window.__packStats=function(pack){
   function fillAccount(){
     var me=window.__TRAVELEK_ME||{};
     var who=document.getElementById("account-who");
-    if(who) who.textContent=(me.role==="admin"?"Администратор":"Пользователь")+(me.email?(" · "+String(me.email).replace(/@travelek\.app$/,"")):"");
+    if(who) who.textContent=(me.role==="admin"?t("Администратор"):t("Пользователь"))+(me.email?(" · "+String(me.email).replace(/@travelek\.app$/,"")):"");
     var name=document.getElementById("acc-name");
     if(name && !name.value) name.value=me.name||"";
-    var t=diaryTotals();
+    var tot=diaryTotals();
     var box=document.getElementById("account-stats");
-    if(box) box.innerHTML=statBox(t.countries,"стран")+statBox((t.regions.got||0)+" из "+(t.regions.total||0)+" · "+pctOf(t.regions.got||0, t.regions.total||0),"регионов РФ")+statBox(t.plane.toLocaleString("ru-RU"),"небо, км")+statBox(t.train.toLocaleString("ru-RU"),"поезд, км")+statBox(t.car.toLocaleString("ru-RU"),"авто, км")+statBox(String(t.routes),"маршрутов");
+    if(box) box.innerHTML=statBox(tot.countries,t("стран"))+statBox(ofCount(tot.regions.got||0, tot.regions.total||0, "").replace(/\s+$/,""),t("регионов РФ"))+statBox((tot.plane||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("небо, км"))+statBox((tot.train||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("поезд, км"))+statBox((tot.car||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("авто, км"))+statBox(String(tot.routes),t("маршрутов"));
     var admin=document.getElementById("account-admin");
     if(admin) admin.hidden=me.role!=="admin";
     if(me.role==="admin" && typeof window.__cloudAdmin==="function"){
       window.__cloudAdmin().then(function(rows){
         var list=document.getElementById("admin-list");
         if(!list) return;
-        if(!rows || !rows.length){ list.innerHTML='<p class="hint">Пока только вы.</p>'; return; }
+        if(!rows || !rows.length){ list.innerHTML='<p class="hint">'+t("Пока только вы.")+'</p>'; return; }
         list.innerHTML=rows.map(function(r){
           var login=String(r.email||"").replace(/@travelek\.app$/,"");
-          var lines=(r.lines&&r.lines.length)?r.lines.map(function(line){ return '<div class="route-line">'+line+'</div>'; }).join(""):'<div class="route-line">Маршрутов пока нет</div>';
-          return '<div class="admin-row"><button type="button" data-user="'+r.userId+'"><b>'+ (r.name||login) +'</b> · '+login+'<br><span style="color:var(--muted);font-size:12px">'+(r.role==="admin"?"админ · ":"")+r.routes+' маршрутов · '+r.countries+' стран · РФ '+((typeof RUSSIA_REGIONS!=="undefined"&&RUSSIA_REGIONS&&RUSSIA_REGIONS.length)?(r.regions+" из "+RUSSIA_REGIONS.length+" · "+pctOf(r.regions, RUSSIA_REGIONS.length)):(r.regions+" рег."))+' · '+r.kmPlane+' / '+r.kmTrain+' / '+r.kmCar+' км</span>'+lines+'</button>'+(r.role==="admin"?"":'<button type="button" data-pass="'+r.userId+'" data-login="'+login+'">Сменить пароль</button>')+'</div>';
+          var lines=(r.lines&&r.lines.length)?r.lines.map(function(line){ return '<div class="route-line">'+line+'</div>'; }).join(""):'<div class="route-line">'+t("Маршрутов пока нет")+'</div>';
+          return '<div class="admin-row"><button type="button" data-user="'+r.userId+'"><b>'+ (r.name||login) +'</b> · '+login+'<br><span style="color:var(--muted);font-size:12px">'+(r.role==="admin"?t("админ · "):"")+r.routes+" "+t("маршрутов")+" · "+r.countries+" "+t("стран")+" · "+((typeof RUSSIA_REGIONS!=="undefined"&&RUSSIA_REGIONS&&RUSSIA_REGIONS.length)?ofCount(r.regions, RUSSIA_REGIONS.length, t("регионов РФ")):(r.regions+" "+t("регионов РФ")))+' · '+r.kmPlane+' / '+r.kmTrain+' / '+r.kmCar+' '+t("км")+'</span>'+lines+'</button>'+(r.role==="admin"?"":'<button type="button" data-pass="'+r.userId+'" data-login="'+login+'">'+t("Сменить пароль")+'</button>')+'</div>';
         }).join("");
       }).catch(function(){
         var list=document.getElementById("admin-list");
-        if(list && !list.innerHTML) list.innerHTML='<p class="hint">Список аккаунтов не загрузился.</p>';
+        if(list && !list.innerHTML) list.innerHTML='<p class="hint">'+t("Список аккаунтов не загрузился.")+'</p>';
       });
     }
   }
@@ -9752,8 +9880,8 @@ window.__packStats=function(pack){
       document.getElementById("acc-pass-now").value="";
       document.getElementById("acc-pass").value="";
       document.getElementById("acc-pass2").value="";
-      alert("Пароль изменён");
-    }).catch(function(){ alert("Не удалось сменить пароль. Проверьте текущий."); });
+      alert(t("Пароль изменён"));
+    }).catch(function(){ alert(t("Не удалось сменить пароль. Проверьте текущий.")); });
   };
   var create=document.getElementById("new-user");
   if(create) create.onclick=function(){
@@ -9765,9 +9893,9 @@ window.__packStats=function(pack){
       document.getElementById("new-login").value="";
       document.getElementById("new-name").value="";
       document.getElementById("new-pass").value="";
-      alert("Аккаунт создан. Теперь по этому логину можно войти с любого телефона.");
+      alert(t("Аккаунт создан. Теперь по этому логину можно войти с любого телефона."));
       fillAccount();
-    }).catch(function(e){ alert(e && e.message ? e.message : "Не удалось создать"); });
+    }).catch(function(e){ alert(e && e.message ? t(e.message) : t("Не удалось создать")); });
   };
   var out=document.getElementById("account-logout");
   if(out) out.onclick=function(){ if(window.__signOut) window.__signOut(); };
@@ -9777,8 +9905,9 @@ window.__packStats=function(pack){
       if(!input) return;
       var show=input.type==="password";
       input.type=show?"text":"password";
-      btn.textContent=show?"Скрыть":"Показать";
+      btn.textContent=show?t("Скрыть"):t("Показать");
     });
   });
+  if(typeof applyI18n==="function") applyI18n();
 })();
 

@@ -69,6 +69,9 @@ input,select,textarea{font-size:16px!important}
   box-shadow:0 2px 10px rgba(0,0,0,.35);
 }
 .top p{font-size:11px;color:var(--muted);margin-top:2px;font-weight:500}
+#top-pct{display:flex;align-items:baseline;gap:6px;margin-top:1px}
+#top-pct b{font-size:18px;line-height:1;font-weight:800;color:var(--accent);letter-spacing:-.04em}
+#top-pct span{font-size:11px;font-weight:650;color:var(--muted)}
 .top-actions{display:flex;gap:8px;pointer-events:auto}
 #theme-btn,#add-btn,#settings-btn, .top-actions button{
   width:40px;height:40px;border-radius:50%;
@@ -359,7 +362,7 @@ input,select,textarea{font-size:16px!important}
   position:fixed;left:0;top:0;width:100vw;height:100dvh;z-index:1;display:none;touch-action:none;
   background:#05070f;cursor:grab;
 }
-body.globe-on #globe{display:block;z-index:4}
+body.globe-on #globe{display:block;z-index:23}
 body.globe-on #map{visibility:hidden}
 body.globe-on #globe:active{cursor:grabbing}
 #globe-hint{
@@ -501,7 +504,14 @@ body.globe-on #globe-hint{display:block}
   border:0;background:transparent;color:var(--muted);border-radius:999px;font-weight:700;
 }
 #settings-panel .map-switch button.on{color:#fff}
-.countries-pct{margin:0 0 6px;font-size:12px;font-weight:700;color:var(--accent)}
+.countries-pct,.visit-stats{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin:0 0 8px;padding:10px 12px;border-radius:14px;
+  background:rgba(59,130,246,.18);border:1px solid rgba(124,156,255,.45);
+  color:var(--text);font-size:13px;font-weight:750;
+}
+.countries-pct b,.visit-stats b{font-size:28px;line-height:1;letter-spacing:-.04em;color:var(--accent);font-weight:800}
+.countries-pct span,.visit-stats span{font-size:13px;font-weight:650}
 .legal-accept{display:flex;gap:8px;align-items:flex-start;margin:4px 0 10px;font-size:12px;line-height:1.4;color:#c5cedd}
 .legal-accept input{margin-top:2px;flex:none}
 .legal-accept button,.legal-link{
@@ -688,18 +698,18 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 <div id="file-login">
   <form id="file-login-form">
     <h1>ТравелЕк</h1>
-    <p>Каждый видит только свой дневник. Новый аккаунт создаёт только администратор.</p>
-    <input id="file-login-name" type="text" placeholder="Логин" autocomplete="username" />
+    <p data-i18n="Каждый видит только свой дневник. Новый аккаунт создаёт только администратор.">Каждый видит только свой дневник. Новый аккаунт создаёт только администратор.</p>
+    <input id="file-login-name" type="text" placeholder="Логин" data-i18n-ph="Логин" autocomplete="username" />
     <div class="passline">
-      <input id="file-login-pass" type="password" placeholder="Пароль" autocomplete="current-password" />
-      <button type="button" class="eye" data-eye="file-login-pass">Показать</button>
+      <input id="file-login-pass" type="password" placeholder="Пароль" data-i18n-ph="Пароль" autocomplete="current-password" />
+      <button type="button" class="eye" data-eye="file-login-pass" data-i18n="Показать">Показать</button>
     </div>
     <div id="file-login-err"></div>
     <label class="legal-accept">
       <input id="file-login-legal" type="checkbox" />
-      <span>Принимаю <button type="button" data-legal="terms">пользовательское соглашение</button> и <button type="button" data-legal="privacy">политику обработки данных</button></span>
+      <span><span data-i18n="Принимаю">Принимаю</span> <button type="button" data-legal="terms" data-i18n="пользовательское соглашение">пользовательское соглашение</button> <span data-i18n="и">и</span> <button type="button" data-legal="privacy" data-i18n="политику обработки данных">политику обработки данных</button></span>
     </label>
-    <button type="submit">Войти</button>
+    <button type="submit" data-i18n="Войти">Войти</button>
   </form>
 </div>
 <div id="map"></div>
@@ -707,137 +717,138 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 <div id="visit-confirm" class="visit-confirm" role="dialog" aria-modal="true" aria-labelledby="visit-confirm-title">
   <div class="visit-confirm-card">
     <div class="visit-confirm-icon">✓</div>
-    <h2 id="visit-confirm-title">Вы были тут?</h2>
+    <h2 id="visit-confirm-title" data-i18n="Вы были тут?">Вы были тут?</h2>
     <p id="visit-confirm-desc"></p>
     <div class="visit-confirm-actions">
-      <button type="button" class="visit-no" id="visit-confirm-no">Нет</button>
-      <button type="button" class="visit-yes" id="visit-confirm-yes">Да, был(а)</button>
+      <button type="button" class="visit-no" id="visit-confirm-no" data-i18n="Нет">Нет</button>
+      <button type="button" class="visit-yes" id="visit-confirm-yes" data-i18n="Да, был(а)">Да, был(а)</button>
     </div>
   </div>
 </div>
-<div class="pick-banner" id="pick-banner">Ткните точку на карте</div>
+<div class="pick-banner" id="pick-banner" data-i18n="Ткните точку на карте">Ткните точку на карте</div>
 <div class="top">
   <div class="top-row">
     <div>
       <h1><img class="logo" src="/art/logo.jpg" alt=""> ТравелЕк</h1>
       <p id="subtitle">Ваши маршруты</p>
+      <p id="top-pct"><b>0%</b><span id="top-pct-sub"></span></p>
     </div>
     <div class="top-actions">
-      <button type="button" id="settings-btn" title="Настройки">⚙</button>
-      <button type="button" id="add-btn" title="Добавить">＋</button>
-      <button type="button" id="account-btn" title="Аккаунт" aria-label="Аккаунт">
+      <button type="button" id="settings-btn" title="Настройки" data-i18n-title="Настройки">⚙</button>
+      <button type="button" id="add-btn" title="Добавить" data-i18n-title="Добавить">＋</button>
+      <button type="button" id="account-btn" title="Аккаунт" data-i18n-title="Аккаунт" aria-label="Аккаунт">
         <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5 19.2c1.4-3 3.8-4.5 7-4.5s5.6 1.5 7 4.5"/></svg>
       </button>
     </div>
   </div>
   <div class="tabs">
-    <button type="button" class="tab on" data-tab="future">Будущие</button>
-    <button type="button" class="tab" data-tab="past">История</button>
+    <button type="button" class="tab on" data-tab="future" data-i18n="Будущие">Будущие</button>
+    <button type="button" class="tab" data-tab="past" data-i18n="История">История</button>
   </div>
 </div>
 <div class="zoom">
-  <button type="button" id="z-fit" title="Все маршруты">⌂</button>
+  <button type="button" id="z-fit" title="Все маршруты" data-i18n-title="Все маршруты">⌂</button>
   <button type="button" id="z-in">+</button>
   <button type="button" id="z-out">−</button>
 </div>
 <div id="live-trip" aria-live="polite"></div>
-<div id="offline-pill">Нет сети · карта из кэша</div>
+<div id="offline-pill" data-i18n="Нет сети · карта из кэша">Нет сети · карта из кэша</div>
 <div class="sheet mid" id="sheet">
   <div class="handle-wrap" id="handle-wrap"><div class="handle"></div></div>
   <div class="cover">
     <img src="/art/cover.jpg" alt="">
-    <div class="cover-copy"><b>Дневник путешествий</b><span>самолёт, поезд и дорога</span></div>
+    <div class="cover-copy"><b data-i18n="Дневник путешествий">Дневник путешествий</b><span data-i18n="самолёт, поезд и дорога">самолёт, поезд и дорога</span></div>
   </div>
   <div class="stats">
-    <div class="stat"><img src="/art/plane.jpg" alt=""><div><b id="s-plane">0</b><span>небо, км</span></div></div>
-    <div class="stat"><img src="/art/train.jpg" alt=""><div><b id="s-train">0</b><span>поезд, км</span></div></div>
-    <div class="stat"><img src="/art/car.jpg" alt=""><div><b id="s-car">0</b><span>авто, км</span></div></div>
+    <div class="stat"><img src="/art/plane.jpg" alt=""><div><b id="s-plane">0</b><span data-i18n="небо, км">небо, км</span></div></div>
+    <div class="stat"><img src="/art/train.jpg" alt=""><div><b id="s-train">0</b><span data-i18n="поезд, км">поезд, км</span></div></div>
+    <div class="stat"><img src="/art/car.jpg" alt=""><div><b id="s-car">0</b><span data-i18n="авто, км">авто, км</span></div></div>
   </div>
   <div class="countries-open-wrap">
-    <p class="countries-pct" id="countries-pct">Посещено 0% стран</p>
-    <button type="button" id="countries-open"><img src="/art/passport.jpg" alt=""> Посещённые страны <b id="countries-count">0</b></button>
+    <p class="countries-pct" id="countries-pct"><b>0%</b><span id="countries-pct-sub">0 из 0</span></p>
+    <button type="button" id="countries-open"><img src="/art/passport.jpg" alt=""> <span data-i18n="Посещённые страны">Посещённые страны</span> <b id="countries-count">0</b></button>
   </div>
   <p class="visit-line" id="visit-line">Считаем страны по маршрутам…</p>
   <div class="year-filter" id="year-filter"></div>
   <div class="sheet-actions">
-    <button type="button" id="add-btn-2">＋ Добавить маршрут</button>
+    <button type="button" id="add-btn-2" data-i18n="＋ Добавить маршрут">＋ Добавить маршрут</button>
   </div>
   <div class="list" id="list"></div>
 </div>
 <div id="view-banner" hidden></div>
 
 <div id="settings-panel" style="max-height:70vh;overflow-y:auto">
-  <b style="font-size:14px">Настройки</b>
-  <label style="display:block;font-size:11px;color:var(--muted);margin-top:10px">Тема</label>
+  <b style="font-size:14px" data-i18n="Настройки">Настройки</b>
+  <label style="display:block;font-size:11px;color:var(--muted);margin-top:10px" data-i18n="Тема">Тема</label>
   <div class="row2 theme-row">
-    <button type="button" id="set-theme-dark">Тёмная</button>
-    <button type="button" id="set-theme-light">Светлая</button>
-    <button type="button" id="set-theme-system">Как на устройстве</button>
+    <button type="button" id="set-theme-dark" data-i18n="Тёмная">Тёмная</button>
+    <button type="button" id="set-theme-light" data-i18n="Светлая">Светлая</button>
+    <button type="button" id="set-theme-system" data-i18n="Как на устройстве">Как на устройстве</button>
   </div>
-  <label style="display:block;font-size:11px;color:var(--muted);margin-top:10px">Язык названий</label>
+  <label style="display:block;font-size:11px;color:var(--muted);margin-top:10px" data-i18n="Язык">Язык</label>
   <div class="row2 theme-row lang-row" id="lang-switch">
     <button type="button" data-lang="ru">Русский</button>
     <button type="button" data-lang="en">English</button>
     <button type="button" data-lang="zh">中文</button>
   </div>
-  <div class="map-switch" id="map-switch" role="group" aria-label="Карта или глобус">
+  <div class="map-switch" id="map-switch" role="group" aria-label="Карта или глобус" data-i18n-title="Карта или глобус">
     <span class="knob" aria-hidden="true"></span>
-    <button type="button" data-view="map" class="on" aria-pressed="true">Карта</button>
-    <button type="button" data-view="globe" aria-pressed="false">Глобус</button>
+    <button type="button" data-view="map" class="on" aria-pressed="true" data-i18n="Карта">Карта</button>
+    <button type="button" data-view="globe" aria-pressed="false" data-i18n="Глобус">Глобус</button>
   </div>
-  <p style="font-size:11px;color:var(--muted);margin-top:8px">Ночь на карте всегда включена. Глобус — шар: потяните, чтобы покрутить, двумя пальцами или +/− приблизьте. Железные дороги всегда по точной сети.</p>
-  <button type="button" id="set-reset" style="margin-top:14px;background:rgba(220,60,60,.2);color:#e88">Сбросить мои маршруты</button>
-  <p style="font-size:11px;color:var(--muted);margin-top:4px">Сброс — двойным нажатием.</p>
-  <button type="button" class="legal-link" data-legal="terms" style="margin-top:12px;text-align:left">Пользовательское соглашение</button>
-  <button type="button" class="legal-link" data-legal="privacy" style="text-align:left">Обработка персональных данных</button>
-  <button type="button" id="set-save" style="margin-top:8px;background:var(--accent);color:#1a1d26;border:none;font-weight:600">Сохранить настройки</button>
-  <button type="button" id="set-close" style="margin-top:8px">Закрыть</button>
+  <p style="font-size:11px;color:var(--muted);margin-top:8px" data-i18n="Ночь на карте всегда включена. Глобус — шар: потяните, чтобы покрутить, двумя пальцами или +/− приблизьте. Железные дороги всегда по точной сети.">Ночь на карте всегда включена. Глобус — шар: потяните, чтобы покрутить, двумя пальцами или +/− приблизьте. Железные дороги всегда по точной сети.</p>
+  <button type="button" id="set-reset" style="margin-top:14px;background:rgba(220,60,60,.2);color:#e88" data-i18n="Сбросить мои маршруты">Сбросить мои маршруты</button>
+  <p style="font-size:11px;color:var(--muted);margin-top:4px" data-i18n="Сброс — двойным нажатием.">Сброс — двойным нажатием.</p>
+  <button type="button" class="legal-link" data-legal="terms" style="margin-top:12px;text-align:left" data-i18n="Пользовательское соглашение">Пользовательское соглашение</button>
+  <button type="button" class="legal-link" data-legal="privacy" style="text-align:left" data-i18n="Обработка персональных данных">Обработка персональных данных</button>
+  <button type="button" id="set-save" style="margin-top:8px;background:var(--accent);color:#1a1d26;border:none;font-weight:600" data-i18n="Сохранить настройки">Сохранить настройки</button>
+  <button type="button" id="set-close" style="margin-top:8px" data-i18n="Закрыть">Закрыть</button>
 </div>
 <div id="account-panel">
   <div class="panel-head">
-    <b>Аккаунт</b>
-    <button type="button" id="account-close" class="panel-x" aria-label="Закрыть">×</button>
+    <b data-i18n="Аккаунт">Аккаунт</b>
+    <button type="button" id="account-close" class="panel-x" aria-label="Закрыть" data-i18n-title="Закрыть">×</button>
   </div>
   <p class="hint" id="account-who"></p>
   <div class="account-stats" id="account-stats"></div>
-  <label style="font-size:11px;color:var(--muted)">Имя</label>
+  <label style="font-size:11px;color:var(--muted)" data-i18n="Имя">Имя</label>
   <input id="acc-name" type="text" autocomplete="name" />
-  <button type="button" id="acc-name-save">Сохранить имя</button>
-  <label style="font-size:11px;color:var(--muted)">Сменить пароль</label>
+  <button type="button" id="acc-name-save" data-i18n="Сохранить имя">Сохранить имя</button>
+  <label style="font-size:11px;color:var(--muted)" data-i18n="Сменить пароль">Сменить пароль</label>
   <div class="passline">
-    <input id="acc-pass-now" type="password" placeholder="Текущий пароль" autocomplete="current-password" />
-    <button type="button" class="eye" data-eye="acc-pass-now">Показать</button>
+    <input id="acc-pass-now" type="password" placeholder="Текущий пароль" data-i18n-ph="Текущий пароль" autocomplete="current-password" />
+    <button type="button" class="eye" data-eye="acc-pass-now" data-i18n="Показать">Показать</button>
   </div>
   <div class="passline">
-    <input id="acc-pass" type="password" placeholder="Новый пароль, от 8 символов" autocomplete="new-password" />
-    <button type="button" class="eye" data-eye="acc-pass">Показать</button>
+    <input id="acc-pass" type="password" placeholder="Новый пароль, от 8 символов" data-i18n-ph="Новый пароль, от 8 символов" autocomplete="new-password" />
+    <button type="button" class="eye" data-eye="acc-pass" data-i18n="Показать">Показать</button>
   </div>
   <div class="passline">
-    <input id="acc-pass2" type="password" placeholder="Новый пароль ещё раз" autocomplete="new-password" />
-    <button type="button" class="eye" data-eye="acc-pass2">Показать</button>
+    <input id="acc-pass2" type="password" placeholder="Новый пароль ещё раз" data-i18n-ph="Новый пароль ещё раз" autocomplete="new-password" />
+    <button type="button" class="eye" data-eye="acc-pass2" data-i18n="Показать">Показать</button>
   </div>
-  <button type="button" id="acc-pass-save">Сменить пароль</button>
+  <button type="button" id="acc-pass-save" data-i18n="Сменить пароль">Сменить пароль</button>
   <div id="account-admin" hidden>
-    <b style="display:block;margin:16px 0 6px">Все аккаунты</b>
-    <p class="hint">Нажмите человека, чтобы открыть его дневник. Новый аккаунт сохраняется сразу на сайте, файл на GitHub для этого менять не нужно.</p>
+    <b style="display:block;margin:16px 0 6px" data-i18n="Все аккаунты">Все аккаунты</b>
+    <p class="hint" data-i18n="Нажмите человека, чтобы открыть его дневник. Новый аккаунт сохраняется сразу на сайте, файл на GitHub для этого менять не нужно.">Нажмите человека, чтобы открыть его дневник. Новый аккаунт сохраняется сразу на сайте, файл на GitHub для этого менять не нужно.</p>
     <div id="admin-list"></div>
-    <b style="display:block;margin:16px 0 6px">Новый аккаунт</b>
-    <input id="new-login" type="text" placeholder="Логин" autocomplete="off" />
-    <input id="new-name" type="text" placeholder="Имя" autocomplete="off" />
+    <b style="display:block;margin:16px 0 6px" data-i18n="Новый аккаунт">Новый аккаунт</b>
+    <input id="new-login" type="text" placeholder="Логин" data-i18n-ph="Логин" autocomplete="off" />
+    <input id="new-name" type="text" placeholder="Имя" data-i18n-ph="Имя" autocomplete="off" />
     <div class="passline">
-      <input id="new-pass" type="password" placeholder="Пароль" autocomplete="new-password" />
-      <button type="button" class="eye" data-eye="new-pass">Показать</button>
+      <input id="new-pass" type="password" placeholder="Пароль" data-i18n-ph="Пароль" autocomplete="new-password" />
+      <button type="button" class="eye" data-eye="new-pass" data-i18n="Показать">Показать</button>
     </div>
-    <button type="button" id="new-user">Создать аккаунт</button>
+    <button type="button" id="new-user" data-i18n="Создать аккаунт">Создать аккаунт</button>
   </div>
   <div id="account-userbtn" style="margin-top:12px"></div>
-  <button type="button" id="account-logout" style="margin-top:8px">Выйти</button>
+  <button type="button" id="account-logout" style="margin-top:8px" data-i18n="Выйти">Выйти</button>
 </div>
 <div id="countries-panel">
   <div class="panel-head">
     <button type="button" id="regions-back" class="panel-x" hidden aria-label="Назад">‹</button>
     <b id="countries-title">Посещённые страны</b>
-    <button type="button" id="countries-close" class="panel-x" aria-label="Закрыть">×</button>
+    <button type="button" id="countries-close" class="panel-x" aria-label="Закрыть" data-i18n-title="Закрыть">×</button>
   </div>
   <p class="hint" id="countries-hint">Считаются по маршрутам. Можно отметить и вручную.</p>
   <div class="visit-stats" id="visit-stats"></div>
@@ -845,7 +856,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   <div id="country-picked"></div>
   <div id="country-list"></div>
   <div id="region-list" style="display:none"></div>
-  <button type="button" id="countries-from-routes">Обновить по маршрутам</button>
+  <button type="button" id="countries-from-routes" data-i18n="Обновить по маршрутам">Обновить по маршрутам</button>
 </div>
 <div id="legal-panel" role="dialog" aria-modal="true" aria-labelledby="legal-title">
   <div class="card">
@@ -886,8 +897,8 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
       <p>Данные хранятся, пока аккаунт нужен. Можно попросить администратора исправить имя, сменить пароль или удалить аккаунт вместе с маршрутами. Согласие даётся отметкой на экране входа. Если отозвать согласие, вход в дневник прекращается: без этих данных аккаунт не работает.</p>
     </div>
     <div class="row2">
-      <button type="button" id="legal-close">Закрыть</button>
-      <button type="button" id="legal-ok">Принимаю</button>
+      <button type="button" id="legal-close" data-i18n="Закрыть">Закрыть</button>
+      <button type="button" id="legal-ok" data-i18n="Принимаю">Принимаю</button>
     </div>
   </div>
 </div>
@@ -895,11 +906,11 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   <div class="modal-card">
     <h2 id="modal-title">Новый маршрут</h2>
     <div class="field">
-      <label>Тип</label>
+      <label data-i18n="Тип">Тип</label>
       <select id="f-mode">
-        <option value="plane">Самолёт</option>
-        <option value="train">Поезд</option>
-        <option value="car">Авто</option>
+        <option value="plane" data-i18n="Самолёт">Самолёт</option>
+        <option value="train" data-i18n="Поезд">Поезд</option>
+        <option value="car" data-i18n="Авто">Авто</option>
       </select>
     </div>
     <div class="field">
@@ -920,26 +931,26 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     </div>
     <p id="pick-hint" style="display:none;font-size:12px;color:var(--muted);margin:0 0 8px">Для авто: 📍 — ткните точку на карте (Россия)</p>
     <div class="field" id="car-mode-wrap" style="display:none">
-      <label>Как ехали</label>
+      <label data-i18n="Как ехали">Как ехали</label>
       <select id="f-car-path">
-        <option value="road">По дорогам</option>
-        <option value="offroad">Бездорожье (через точки)</option>
+        <option value="road" data-i18n="По дорогам">По дорогам</option>
+        <option value="offroad" data-i18n="Бездорожье (через точки)">Бездорожье (через точки)</option>
       </select>
     </div>
     <div id="waypoints-wrap" style="display:none;margin-bottom:10px">
-      <label style="font-size:11px;color:var(--muted)">Промежуточные точки (обойти лес/реку)</label>
+      <label style="font-size:11px;color:var(--muted)" data-i18n="Промежуточные точки (обойти лес/реку)">Промежуточные точки (обойти лес/реку)</label>
       <div id="wp-list" style="font-size:12px;margin:6px 0;color:var(--muted)"></div>
-      <button type="button" id="wp-add" class="pick-btn" style="width:100%;height:40px;font-size:13px">＋ Точка на карте</button>
-      <button type="button" id="wp-clear" style="width:100%;margin-top:6px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--chip);color:var(--text);font-size:12px">Очистить точки</button>
+      <button type="button" id="wp-add" class="pick-btn" style="width:100%;height:40px;font-size:13px" data-i18n="＋ Точка на карте">＋ Точка на карте</button>
+      <button type="button" id="wp-clear" style="width:100%;margin-top:6px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--chip);color:var(--text);font-size:12px" data-i18n="Очистить точки">Очистить точки</button>
     </div>
     <div class="field-row">
-      <div class="field"><label>Дата</label><input id="f-date" type="date" /></div>
-      <div class="field"><label>Время</label><input id="f-time" type="time" /></div>
+      <div class="field"><label data-i18n="Дата">Дата</label><input id="f-date" type="date" /></div>
+      <div class="field"><label data-i18n="Время">Время</label><input id="f-time" type="time" /></div>
     </div>
     <div class="field" id="f-flight-wrap"><label id="lbl-flight">Рейс</label><input id="f-flight" type="text" placeholder="SU 100" /></div>
     <div class="modal-actions">
-      <button type="button" class="btn-cancel" id="f-cancel">Отмена</button>
-      <button type="button" class="btn-save" id="f-save">Сохранить</button>
+      <button type="button" class="btn-cancel" id="f-cancel" data-i18n="Отмена">Отмена</button>
+      <button type="button" class="btn-save" id="f-save" data-i18n="Сохранить">Сохранить</button>
     </div>
   </div>
 </div>
