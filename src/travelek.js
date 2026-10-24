@@ -7243,7 +7243,8 @@ function ensureGlobe(done){
 function globeRing(ring){
   var n=ring&&ring.length||0;
   if(n<4) return null;
-  var stride=n>72?Math.ceil(n/64):1;
+  var keep=n>520?320:(n>200?200:n);
+  var stride=n>keep?Math.ceil((n-1)/keep):1;
   var out=[], i;
   if(stride===1) out=ring.slice();
   else {
@@ -7253,15 +7254,6 @@ function globeRing(ring){
   if(out.length<4) return null;
   var a=out[0], b=out[out.length-1];
   if(a[0]!==b[0] || a[1]!==b[1]) out.push([a[0], a[1]]);
-  var minX=180, maxX=-180, minY=90, maxY=-90, pt;
-  for(i=0;i<out.length;i++){
-    pt=out[i];
-    if(pt[0]<minX) minX=pt[0];
-    if(pt[0]>maxX) maxX=pt[0];
-    if(pt[1]<minY) minY=pt[1];
-    if(pt[1]>maxY) maxY=pt[1];
-  }
-  if((maxX-minX)*(maxY-minY)<0.025 && out.length<12) return null;
   return out;
 }
 function orientLandRing(ring){
@@ -7376,10 +7368,11 @@ function drawGlobe(){
     ctx.fillStyle="rgba(255,255,255,"+(0.28+s[2]*0.6)+")";
     ctx.fillRect(s[0]*w, s[1]*h, s[2]>0.7?1.7:1, s[2]>0.7?1.7:1);
   });
-  var ocean=ctx.createRadialGradient(c[0]-R*0.32, c[1]-R*0.34, R*0.06, c[0], c[1], R);
-  ocean.addColorStop(0,"#8fd4f5");
-  ocean.addColorStop(0.42,"#2f86c4");
-  ocean.addColorStop(1,"#0b3358");
+  var ocean=ctx.createRadialGradient(c[0]-R*0.28, c[1]-R*0.32, R*0.08, c[0], c[1], R);
+  ocean.addColorStop(0,"#c5ecff");
+  ocean.addColorStop(0.38,"#3eabe6");
+  ocean.addColorStop(0.72,"#1c86cf");
+  ocean.addColorStop(1,"#1574bc");
   ctx.beginPath();
   ctx.arc(c[0], c[1], R, 0, Math.PI*2);
   ctx.fillStyle=ocean;
@@ -7387,23 +7380,34 @@ function drawGlobe(){
   var seen={};
   if(typeof visited!=="undefined" && visited && visited.forEach) visited.forEach(function(id){ seen[id]=1; });
   var geo=d3.geoPath(projection, ctx);
-  function paintGeom(geom, fill, stroke){
-    if(!geom) return;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(c[0], c[1], R-0.4, 0, Math.PI*2);
+  ctx.clip();
+  function paintGeom(geom, fill, seal){
+    if(!geom || !fill) return;
     ctx.beginPath();
     try{ geo(geom); }catch(err){ return; }
-    if(fill){ ctx.fillStyle=fill; ctx.fill(); }
-    if(stroke){ ctx.lineWidth=0.8; ctx.strokeStyle=stroke; ctx.stroke(); }
+    ctx.lineJoin="round";
+    ctx.lineCap="round";
+    if(seal){
+      ctx.lineWidth=seal;
+      ctx.strokeStyle=fill;
+      ctx.stroke();
+    }
+    ctx.fillStyle=fill;
+    ctx.fill();
   }
   var i, part, list=pack.countries||[];
   for(i=0;i<list.length;i++){
     part=list[i];
     if(seen[part.id]) continue;
-    paintGeom(part.geom, "#e6d3a3", "rgba(92,68,36,.55)");
+    paintGeom(part.geom, "#e4d0a4", 3.2);
   }
   for(i=0;i<list.length;i++){
     part=list[i];
     if(!seen[part.id]) continue;
-    paintGeom(part.geom, "rgba(59,130,246,.9)", "rgba(18,52,130,.5)");
+    paintGeom(part.geom, "#2f7eef", 3.2);
   }
   if(typeof visitedRegions!=="undefined" && visitedRegions && visitedRegions.length){
     var ron={};
@@ -7414,7 +7418,7 @@ function drawGlobe(){
       for(k=0;k<parts.length;k++){
         p=parts[k];
         if(!ron[p.id]) continue;
-        paintGeom(p.geom, "rgba(232,184,92,.96)", "rgba(120,78,16,.6)");
+        paintGeom(p.geom, "#e0b15a", 2.2);
       }
     }
     gold(pack.ru);
@@ -7423,8 +7427,8 @@ function drawGlobe(){
   if(d3.geoGraticule10){
     ctx.beginPath();
     try{ geo(d3.geoGraticule10()); }catch(err){}
-    ctx.strokeStyle="rgba(255,255,255,.33)";
-    ctx.lineWidth=0.7;
+    ctx.strokeStyle="rgba(255,255,255,.28)";
+    ctx.lineWidth=0.6;
     ctx.stroke();
   }
   var routes=typeof filtered==="function"?filtered():(typeof ROUTES!=="undefined"?ROUTES:[]);
@@ -7443,6 +7447,7 @@ function drawGlobe(){
     ctx.strokeStyle=(typeof COLORS!=="undefined"&&COLORS[r.mode])?COLORS[r.mode]:"#101820";
     ctx.stroke();
   });
+  ctx.restore();
   var shine=ctx.createRadialGradient(c[0]-R*0.36, c[1]-R*0.4, R*0.02, c[0], c[1], R);
   shine.addColorStop(0,"rgba(255,255,255,.3)");
   shine.addColorStop(0.42,"rgba(255,255,255,0)");
