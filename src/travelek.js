@@ -7264,16 +7264,43 @@ function globeRing(ring){
   if((maxX-minX)*(maxY-minY)<0.025 && out.length<12) return null;
   return out;
 }
+function orientLandRing(ring){
+  if(!ring || ring.length<4 || !window.d3 || !d3.geoArea) return ring;
+  var closed=ring.slice();
+  var a=closed[0], b=closed[closed.length-1];
+  if(a[0]!==b[0] || a[1]!==b[1]) closed.push([a[0], a[1]]);
+  var geom={type:"Polygon", coordinates:[closed]};
+  var area;
+  try{ area=d3.geoArea(geom); }catch(e){ return ring; }
+  if(area>2*Math.PI){
+    closed.reverse();
+    try{ area=d3.geoArea({type:"Polygon", coordinates:[closed]}); }catch(e){ return null; }
+  }
+  if(!(area>1e-7) || area>2*Math.PI) return null;
+  return closed;
+}
 function globePolys(item){
   var out=[];
   if(!item || typeof polysOf!=="function") return out;
   polysOf(item).forEach(function(poly){
-    var rings=[];
     (poly||[]).forEach(function(ring){
-      var s=globeRing(ring);
-      if(s) rings.push(s);
+      var oriented=orientLandRing(ring);
+      if(!oriented) return;
+      var s=globeRing(oriented);
+      if(!s) return;
+      var geom={type:"Polygon", coordinates:[s]};
+      if(window.d3 && d3.geoArea){
+        var area;
+        try{ area=d3.geoArea(geom); }catch(e){ return; }
+        if(area>2*Math.PI){
+          s=s.slice().reverse();
+          geom={type:"Polygon", coordinates:[s]};
+          try{ area=d3.geoArea(geom); }catch(e){ return; }
+        }
+        if(!(area>1e-7) || area>2*Math.PI) return;
+      }
+      out.push({id:item.i||item.id, geom:geom});
     });
-    if(rings.length) out.push({id:item.i||item.id, geom:{type:"Polygon", coordinates:rings}});
   });
   return out;
 }

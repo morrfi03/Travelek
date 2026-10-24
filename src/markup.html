@@ -112,11 +112,11 @@ input,select,textarea{font-size:16px!important}
   box-shadow:0 1px 4px rgba(0,0,0,.2);
 }
 
-/* Zoom controls */
+/* Zoom controls — on the map, not over the sheet */
 .zoom{
-  position:fixed;left:50%;right:auto;bottom:calc(12px + var(--safe-b));
-  transform:translateX(-50%);
-  z-index:40;display:flex;flex-direction:row;gap:8px;
+  position:fixed;left:auto;right:max(10px, env(safe-area-inset-right, 0px));
+  top:38%;bottom:auto;transform:none;
+  z-index:22;display:flex;flex-direction:column;gap:8px;
 }
 .zoom button{
   width:40px;height:40px;border-radius:50%;
@@ -585,7 +585,7 @@ body.globe-on #globe-hint{display:block}
     border:1px solid var(--line);border-radius:16px;
     box-shadow:0 8px 28px rgba(0,0,0,.25);
   }
-  .zoom{left:auto;right:18px;bottom:96px;transform:none;flex-direction:column}
+  .zoom{left:auto;right:18px;top:auto;bottom:96px;transform:none;flex-direction:column}
 }
 #settings-panel .theme-row{grid-template-columns:1fr}
 #settings-panel .lang-row{grid-template-columns:1fr 1fr 1fr}
