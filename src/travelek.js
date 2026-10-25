@@ -5225,7 +5225,7 @@ function findPortByQuery(q){
     var nk=norm(p.n), ck=portCityKey(p.n);
     if(nk===q || ck===q || norm(formatPortLabel(p))===q) return p;
     if(ck.indexOf(q)===0 && q.length>=3) return p;
-    if((nk.indexOf(q)>=0 || ck.indexOf(q)>=0) && q.length>=3 && (!best || nk.length<norm(best.n).length)) best=p;
+    if((nameHas(nk, q) || nameHas(ck, q)) && q.length>=3 && (!best || nk.length<norm(best.n).length)) best=p;
   }
   return best;
 }
@@ -6168,6 +6168,18 @@ var ROUTES = assembleRoutes();
 
 /* place lookup */
 function norm(s){ return (s||"").toLowerCase().replace(/\s+/g," ").trim(); }
+function nameHas(hay, needle){
+  if(!needle || !hay) return false;
+  if(hay===needle) return true;
+  var i=0, j, before, after;
+  while((j=hay.indexOf(needle, i))>=0){
+    before=j===0 || /[\s\-(/]/.test(hay.charAt(j-1));
+    after=j+needle.length>=hay.length || /[\s\-)/,]/.test(hay.charAt(j+needle.length));
+    if(before && after) return true;
+    i=j+1;
+  }
+  return false;
+}
 function place(name, code){
   var i, a, s, c, k, m;
   /* точка с карты: "Точка 55.1234, 37.5678" или "55.12, 37.56" */
@@ -6214,16 +6226,16 @@ function place(name, code){
   /* partial airport */
   for(i=0;i<AIRPORTS.length;i++){
     a = AIRPORTS[i];
-    if(norm(a.code).indexOf(k)===0 || norm(a.n).indexOf(k)>=0)
+    if(norm(a.code).indexOf(k)===0 || nameHas(norm(a.n), k))
       return {lat:a.lat,lng:a.lng,label:a.n+" ("+a.code+")"};
   }
   for(i=0;i<STATIONS.length;i++){
     s = STATIONS[i];
-    if(norm(s.n).indexOf(k)>=0) return {lat:s.lat,lng:s.lng,label:s.n};
+    if(nameHas(norm(s.n), k)) return {lat:s.lat,lng:s.lng,label:s.n};
   }
   for(i=0;i<CITIES.length;i++){
     c = CITIES[i];
-    if(norm(c.n).indexOf(k)>=0) return {lat:c.lat,lng:c.lng,label:c.n};
+    if(nameHas(norm(c.n), k)) return {lat:c.lat,lng:c.lng,label:c.n};
   }
   return null;
 }
@@ -6285,14 +6297,14 @@ function searchCatalog(mode, q, fromHint){
     var fromRail=null;
     if(fromHint){
       var pf=place(fromHint);
-      if(pf && typeof nearestRail==="function") fromRail=nearestRail(pf);
+      if(pf && typeof railNear==="function") fromRail=railNear(pf);
     }
     for(i=0;i<IDX_ST.length && out.length<12;i++){
       it=IDX_ST[i];
       if(it.key.indexOf(q)<0) continue;
       if(fromRail && typeof railPath==="function"){
         var pr=place(it.n);
-        var toRail=pr && nearestRail(pr);
+        var toRail=pr && railNear(pr);
         if(!toRail || toRail===fromRail) continue;
         if(!railPath(fromRail, toRail)) continue;
       }
@@ -6567,6 +6579,92 @@ var RAIL_EDGES = [
   ["khabarovsk","ussuriysk"],
   ["ussuriysk","vl"],
 ];
+[
+  ["w_warsaw",52.229,21.012],["w_berlin",52.525,13.369],["w_hamburg",53.553,10.006],
+  ["w_copenhagen",55.673,12.565],["w_stockholm",59.330,18.058],["w_oslo",59.911,10.753],
+  ["w_frankfurt",50.107,8.663],["w_cologne",50.943,6.958],["w_amsterdam",52.379,4.900],
+  ["w_brussels",50.835,4.336],["w_paris",48.844,2.374],["w_london",51.528,-0.134],
+  ["w_lyon",45.760,4.860],["w_prague",50.083,14.436],["w_vienna",48.185,16.376],
+  ["w_budapest",47.500,19.083],["w_munich",48.140,11.558],["w_zurich",47.378,8.540],
+  ["w_bucharest",44.446,26.075],["w_sofia",42.712,23.321],["w_istanbul",41.015,28.977],
+  ["w_belgrade",44.809,20.456],["w_athens",37.992,23.720],["w_madrid",40.407,-3.691],
+  ["w_barcelona",41.379,2.140],["w_lisbon",38.714,-9.139],["w_helsinki",60.172,24.941],
+  ["w_kyiv",50.440,30.489],["w_lviv",49.840,24.030],["w_krakow",50.068,19.947],
+  ["w_ulaanbaatar",47.918,106.917],["w_harbin",45.761,126.625],["w_urumqi",43.780,87.580],
+  ["w_ankara",39.936,32.844],["w_tehran",35.689,51.389],["w_ashgabat",37.960,58.326],
+  ["w_nanning",22.817,108.366],["w_hanoi",21.025,105.841],["w_bangkok",13.740,100.517],
+  ["w_kualalumpur",3.140,101.693],["w_singapore",1.290,103.852],
+  ["w_delhi",28.642,77.221],["w_mumbai",18.970,72.819],["w_kolkata",22.585,88.343],
+  ["w_tokyo",35.681,139.767],["w_nagoya",35.171,136.882],["w_osaka",34.703,135.496],
+  ["w_hiroshima",34.397,132.475],["w_fukuoka",33.590,130.420],
+  ["w_seoul",37.555,126.970],["w_busan",35.115,129.041],
+  ["w_nyc",40.750,-73.994],["w_boston",42.355,-71.061],["w_washington",38.897,-77.006],
+  ["w_atlanta",33.749,-84.388],["w_miami",25.761,-80.192],["w_chicago",41.878,-87.630],
+  ["w_denver",39.739,-104.990],["w_slc",40.760,-111.891],["w_sf",37.776,-122.420],
+  ["w_la",34.056,-118.236],["w_dallas",32.776,-96.797],["w_seattle",47.606,-122.332],
+  ["w_vancouver",49.283,-123.115],["w_portland",45.515,-122.678],
+  ["w_toronto",43.653,-79.384],["w_montreal",45.501,-73.567],["w_mexicocity",19.432,-99.133],
+  ["w_saopaulo",-23.534,-46.626],["w_rio",-22.903,-43.209],["w_brasilia",-15.794,-47.882],
+  ["w_buenosaires",-34.604,-58.382],["w_santiago",-33.448,-70.669],
+  ["w_bogota",4.711,-74.072],["w_quito",-0.180,-78.468],["w_lima",-12.046,-77.043],
+  ["w_cairo",30.063,31.246],["w_alexandria",31.200,29.918],["w_tripoli",32.887,13.191],
+  ["w_tunis",36.800,10.181],["w_algiers",36.753,3.059],["w_casablanca",33.573,-7.590],
+  ["w_marrakech",31.630,-8.009],["w_johannesburg",-26.198,28.042],["w_durban",-29.858,31.029],
+  ["w_capetown",-33.925,18.424],["w_nairobi",-1.292,36.822],["w_mombasa",-4.043,39.668],
+  ["w_lagos",6.455,3.384],["w_abuja",9.057,7.495],
+  ["w_sydney",-33.868,151.209],["w_melbourne",-37.813,144.963],["w_brisbane",-27.470,153.026],
+  ["w_adelaide",-34.928,138.601],["w_perth",-31.952,115.861]
+].forEach(function(x){ if(!RAIL_NODES[x[0]]) RAIL_NODES[x[0]]=[x[1],x[2]]; });
+[
+  ["brest","w_warsaw"],["w_warsaw","w_berlin"],["w_berlin","w_hamburg"],["w_hamburg","w_copenhagen"],
+  ["w_copenhagen","w_stockholm"],["w_stockholm","w_oslo"],["w_berlin","w_frankfurt"],
+  ["w_frankfurt","w_cologne"],["w_cologne","w_amsterdam"],["w_amsterdam","w_brussels"],
+  ["w_brussels","w_paris"],["w_frankfurt","w_paris"],["w_paris","w_london"],["w_paris","w_lyon"],
+  ["w_lyon","mil_c"],["w_berlin","w_prague"],["w_prague","w_vienna"],["w_vienna","w_budapest"],
+  ["w_vienna","w_munich"],["w_munich","w_frankfurt"],["w_munich","w_zurich"],["w_zurich","mil_c"],
+  ["w_budapest","w_bucharest"],["w_bucharest","w_sofia"],["w_sofia","w_istanbul"],
+  ["w_budapest","w_belgrade"],["w_belgrade","w_sofia"],["w_sofia","w_athens"],
+  ["w_madrid","w_barcelona"],["w_barcelona","w_lyon"],["w_madrid","w_lisbon"],
+  ["w_helsinki","spb_fin"],["msk_kie","w_kyiv"],["w_kyiv","w_lviv"],["w_lviv","w_warsaw"],
+  ["w_warsaw","w_krakow"],["w_krakow","w_vienna"],
+  ["omsk","astana"],["shymkent","tashkent"],["ulanude","w_ulaanbaatar"],["w_ulaanbaatar","beijing"],
+  ["vl","w_harbin"],["w_harbin","beijing"],["xian","w_urumqi"],["w_urumqi","almaty"],
+  ["w_istanbul","w_ankara"],["w_ankara","w_tehran"],["w_tehran","w_ashgabat"],["w_ashgabat","tashkent"],
+  ["guangzhou","w_nanning"],["w_nanning","w_hanoi"],["w_bangkok","w_kualalumpur"],["w_kualalumpur","w_singapore"],
+  ["w_delhi","w_mumbai"],["w_delhi","w_kolkata"],
+  ["w_tokyo","w_nagoya"],["w_nagoya","w_osaka"],["w_osaka","w_hiroshima"],["w_hiroshima","w_fukuoka"],
+  ["w_seoul","w_busan"],
+  ["w_nyc","w_boston"],["w_nyc","w_washington"],["w_washington","w_atlanta"],["w_atlanta","w_miami"],
+  ["w_nyc","w_chicago"],["w_chicago","w_denver"],["w_denver","w_slc"],["w_slc","w_sf"],
+  ["w_sf","w_la"],["w_la","w_dallas"],["w_dallas","w_chicago"],["w_seattle","w_vancouver"],
+  ["w_seattle","w_portland"],["w_portland","w_sf"],["w_chicago","w_toronto"],["w_toronto","w_montreal"],
+  ["w_nyc","w_montreal"],["w_la","w_mexicocity"],
+  ["w_saopaulo","w_rio"],["w_saopaulo","w_brasilia"],["w_saopaulo","w_buenosaires"],
+  ["w_santiago","w_buenosaires"],["w_bogota","w_quito"],["w_quito","w_lima"],["w_lima","w_santiago"],
+  ["w_cairo","w_alexandria"],["w_tunis","w_tripoli"],["w_tripoli","w_cairo"],
+  ["w_tunis","w_algiers"],["w_algiers","w_casablanca"],["w_casablanca","w_marrakech"],
+  ["w_johannesburg","w_durban"],["w_johannesburg","w_capetown"],["w_nairobi","w_mombasa"],
+  ["w_lagos","w_abuja"],
+  ["w_sydney","w_melbourne"],["w_sydney","w_brisbane"],["w_melbourne","w_adelaide"],
+  ["w_adelaide","w_sydney"],["w_adelaide","w_perth"],
+  ["msk_len","msk_kaz"],["msk_kaz","msk_yar"],["msk_yar","msk_kur"],["msk_kur","msk_pav"],
+  ["msk_pav","msk_bel"],["msk_bel","msk_kie"],["msk_kie","msk_east"],["msk_rig","msk_bel"],
+  ["spb_mos","spb_fin"],["spb_fin","spb_viteb"],["spb_viteb","spb_lad"],["spb_lad","spb_balt"]
+].forEach(function(e){ RAIL_EDGES.push(e); });
+(function linkOrphanStations(){
+  var linked={}, i, id, xy, best, bd, k, d;
+  for(i=0;i<RAIL_EDGES.length;i++){ linked[RAIL_EDGES[i][0]]=1; linked[RAIL_EDGES[i][1]]=1; }
+  for(id in RAIL_NODES){
+    if(!Object.prototype.hasOwnProperty.call(RAIL_NODES,id) || linked[id]) continue;
+    xy=RAIL_NODES[id]; best=null; bd=1e9;
+    for(k in linked){
+      if(!RAIL_NODES[k]) continue;
+      d=hav({lat:xy[0],lng:xy[1]},{lat:RAIL_NODES[k][0],lng:RAIL_NODES[k][1]});
+      if(d<bd){ bd=d; best=k; }
+    }
+    if(best && bd<=80){ RAIL_EDGES.push([id, best]); linked[id]=1; }
+  }
+})();
 var RAIL_ADJ={};
 RAIL_EDGES.forEach(function(e){
   (RAIL_ADJ[e[0]]=RAIL_ADJ[e[0]]||[]).push(e[1]);
@@ -6593,19 +6691,29 @@ function carAllowed(nameA, nameB){
 function trainAllowed(from, to){
   var a=place(from), b=place(to);
   if(!a||!b) return false;
-  var path=railPath(nearestRail(a), nearestRail(b));
+  var path=railPath(railNear(a), railNear(b));
   return !!(path && path.length>=2);
 }
 
 
 
-function nearestRail(pt){
+function nearestRailInfo(pt){
+  if(!pt) return null;
   var best=null,bd=1e9,k,xy,d;
   for(k in RAIL_NODES){
     xy=RAIL_NODES[k]; d=hav(pt,{lat:xy[0],lng:xy[1]});
     if(d<bd){bd=d;best=k;}
   }
-  return best;
+  return best?{id:best,d:bd}:null;
+}
+function nearestRail(pt){
+  var info=nearestRailInfo(pt);
+  return info?info.id:null;
+}
+function railNear(pt){
+  var info=nearestRailInfo(pt);
+  if(!info || info.d>450) return null;
+  return info.id;
 }
 function railPath(fk,tk){
   if(!fk||!tk) return null;
@@ -6628,7 +6736,13 @@ function railPath(fk,tk){
 function trainCoords(from,to){
   var a=place(from), b=place(to);
   if(!a||!b) return null;
-  var keys=railPath(nearestRail(a), nearestRail(b));
+  var keys=null, as=railCandidates(a), bs=railCandidates(b), i, j, path;
+  for(i=0;i<as.length && !keys;i++){
+    for(j=0;j<bs.length;j++){
+      path=railPath(as[i].id, bs[j].id);
+      if(path && path.length>=2){ keys=path; break; }
+    }
+  }
   if(keys&&keys.length>=2){
     var raw=keys.map(function(k){return [RAIL_NODES[k][0],RAIL_NODES[k][1]];});
     raw[0]=[a.lat,a.lng]; raw[raw.length-1]=[b.lat,b.lng];
@@ -6636,21 +6750,49 @@ function trainCoords(from,to){
   }
   return densify([[a.lat,a.lng],[b.lat,b.lng]],20);
 }
+function railCandidates(pt){
+  var out=[], k, xy, d;
+  for(k in RAIL_NODES){
+    xy=RAIL_NODES[k];
+    d=hav(pt,{lat:xy[0],lng:xy[1]});
+    if(d<=450) out.push({id:k,d:d});
+  }
+  out.sort(function(p,q){ return p.d-q.d; });
+  return out.slice(0,6);
+}
 
-/* OSRM real roads for cars */
+/* OSRM real roads for cars, with a second router if the first is down */
 var roadCache={};
+var roadWait={};
 function roadKey(a,b){ return a.lat.toFixed(4)+","+a.lng.toFixed(4)+";"+b.lat.toFixed(4)+","+b.lng.toFixed(4); }
 function fetchRoad(a,b,cb){
   var key=roadKey(a,b);
-  if(roadCache[key]){ cb(roadCache[key]); return; }
-  var url="https://router.project-osrm.org/route/v1/driving/"+
-    a.lng+","+a.lat+";"+b.lng+","+b.lat+"?overview=full&geometries=geojson";
-  fetch(url).then(function(r){return r.json();}).then(function(data){
-    if(data&&data.routes&&data.routes[0]){
-      var coords=data.routes[0].geometry.coordinates.map(function(c){return [c[1],c[0]];});
-      roadCache[key]=coords; cb(coords);
-    } else cb(null);
-  }).catch(function(){ cb(null); });
+  var hit=roadCache[key];
+  if(hit==="fail"){ cb(null); return; }
+  if(hit && hit!=="pending"){ cb(hit); return; }
+  (roadWait[key]=roadWait[key]||[]).push(cb);
+  if(hit==="pending") return;
+  roadCache[key]="pending";
+  var urls=[
+    "https://router.project-osrm.org/route/v1/driving/"+a.lng+","+a.lat+";"+b.lng+","+b.lat+"?overview=full&geometries=geojson",
+    "https://routing.openstreetmap.de/routed-car/route/v1/driving/"+a.lng+","+a.lat+";"+b.lng+","+b.lat+"?overview=full&geometries=geojson"
+  ];
+  function finish(coords){
+    roadCache[key]=(coords&&coords.length>=2)?coords:"fail";
+    var waits=roadWait[key]||[];
+    delete roadWait[key];
+    waits.forEach(function(fn){ try{ fn(roadCache[key]==="fail"?null:roadCache[key]); }catch(e){} });
+  }
+  function tryAt(i){
+    if(i>=urls.length){ finish(null); return; }
+    fetch(urls[i]).then(function(r){ if(!r.ok) throw new Error("http"); return r.json(); }).then(function(data){
+      var geom=data&&data.routes&&data.routes[0]&&data.routes[0].geometry;
+      if(geom&&geom.coordinates&&geom.coordinates.length>=2){
+        finish(geom.coordinates.map(function(c){ return [c[1],c[0]]; }));
+      } else tryAt(i+1);
+    }).catch(function(){ tryAt(i+1); });
+  }
+  tryAt(0);
 }
 
 
@@ -6819,21 +6961,112 @@ function buildYearFilter(){
   var years={}, i;
   ROUTES.forEach(function(r){ var y=routeYear(r); if(y) years[y]=1; });
   var list=Object.keys(years).sort().reverse();
-  var h='<button type="button" data-y="all" class="'+(yearFilter==="all"?"on":"")+'">'+t("Все годы")+"</button>";
+  var h='<button type="button" id="play-trips" class="play-trips'+(tripPlay.on?" on":"")+'" data-i18n="'+(tripPlay.on?"Стоп":"Показать поездку")+'">'+t(tripPlay.on?"Стоп":"Показать поездку")+"</button>";
+  h+='<button type="button" data-y="all" class="'+(yearFilter==="all"?"on":"")+'">'+t("Все годы")+"</button>";
   list.forEach(function(y){
     h+='<button type="button" data-y="'+y+'" class="'+(yearFilter===y?"on":"")+'">'+y+"</button>";
   });
   el.innerHTML=h;
   var btns=el.querySelectorAll("button");
   for(i=0;i<btns.length;i++){
+    if(btns[i].id==="play-trips") continue;
     btns[i].onclick=(function(b){ return function(){
       yearFilter=b.getAttribute("data-y");
+      var wasPlaying=tripPlay.on;
       buildYearFilter();
       render();
+      if(wasPlaying) startTripPlay();
     };})(btns[i]);
   }
 }
 
+var tripPlay={on:false, raf:0, marker:null, timer:0};
+function tripPlayRoutes(){
+  return ROUTES.filter(function(r){
+    if(typeof yearFilter!=="undefined" && yearFilter!=="all" && (r.date||"").slice(0,4)!==yearFilter) return false;
+    return true;
+  }).slice().sort(function(a,b){
+    return ((a.date||"")+" "+(a.time||"")).localeCompare((b.date||"")+" "+(b.time||""));
+  });
+}
+function tripDurationMs(r, g){
+  var km=g&&g.km||400;
+  var base=r.mode==="plane"?2200:(r.mode==="train"?2800:(r.mode==="ship"?2600:2000));
+  var extra=Math.min(1600, km*(r.mode==="plane"?0.12:0.35));
+  return Math.max(1600, Math.min(4200, base+extra));
+}
+function tripGlyph(mode){
+  if(mode==="train") return "🚂";
+  if(mode==="car") return "🚗";
+  if(mode==="walk") return "🚶";
+  if(mode==="bike") return "🚴";
+  if(mode==="ship") return "🚢";
+  return "✈️";
+}
+function setPlayButton(on){
+  var btn=document.getElementById("play-trips");
+  if(!btn) return;
+  btn.classList.toggle("on", !!on);
+  btn.setAttribute("data-i18n", on?"Стоп":"Показать поездку");
+  btn.textContent=t(on?"Стоп":"Показать поездку");
+}
+function stopTripPlay(){
+  tripPlay.on=false;
+  if(tripPlay.raf){ cancelAnimationFrame(tripPlay.raf); tripPlay.raf=0; }
+  if(tripPlay.timer){ clearTimeout(tripPlay.timer); tripPlay.timer=0; }
+  if(tripPlay.marker){ try{ map.removeLayer(tripPlay.marker); }catch(e){} tripPlay.marker=null; }
+  window.__tripMarker=null;
+  setPlayButton(false);
+  if(typeof globeOn!=="undefined" && globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
+}
+function ensureTripMarker(lat, lng, mode){
+  if(!map || typeof L==="undefined") return;
+  var html='<div class="trip-pin">'+tripGlyph(mode)+"</div>";
+  if(!tripPlay.marker){
+    tripPlay.marker=L.marker([lat,lng],{
+      icon:L.divIcon({className:"trip-icon", html:html, iconSize:[36,36], iconAnchor:[18,18]}),
+      interactive:false, zIndexOffset:1200
+    }).addTo(map);
+  } else {
+    tripPlay.marker.setLatLng([lat,lng]);
+    tripPlay.marker.setIcon(L.divIcon({className:"trip-icon", html:html, iconSize:[36,36], iconAnchor:[18,18]}));
+  }
+}
+function startTripPlay(){
+  stopTripPlay();
+  var routes=tripPlayRoutes().filter(function(r){
+    var g=buildGeoSync(r);
+    return g&&g.coords&&g.coords.length>=2;
+  });
+  if(!routes.length) return;
+  tripPlay.on=true;
+  setPlayButton(true);
+  var idx=0;
+  function playOne(){
+    if(!tripPlay.on) return;
+    if(idx>=routes.length){ stopTripPlay(); return; }
+    var r=routes[idx++];
+    var g=buildGeoSync(r);
+    if(!g||!g.coords||g.coords.length<2){ playOne(); return; }
+    if(map && !globeOn){ try{ map.fitBounds(g.coords,{padding:[70,70],maxZoom:6,animate:true}); }catch(e){} }
+    var ms=tripDurationMs(r, g);
+    var t0=performance.now();
+    function frame(now){
+      if(!tripPlay.on) return;
+      var t=Math.min(1,(now-t0)/ms);
+      var pt=pointAlong(g.coords, t);
+      if(pt){
+        if(!globeOn) ensureTripMarker(pt[0], pt[1], r.mode);
+        window.__tripMarker={lat:pt[0], lng:pt[1], mode:r.mode};
+        if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
+      }
+      if(t<1) tripPlay.raf=requestAnimationFrame(frame);
+      else tripPlay.timer=setTimeout(playOne, 320);
+    }
+    tripPlay.raf=requestAnimationFrame(frame);
+  }
+  playOne();
+}
 
 /* Кластеры точек на малом зуме */
 function drawEndpointClusters(list){
@@ -6994,9 +7227,10 @@ function buildGeoSync(r){
     return {coords:coords, km:pathKm(coords), a:a, b:b, needRoad:false};
   }
   var key=roadKey(a,b);
-  if(roadCache[key]) coords=roadCache[key];
+  var cached=roadCache[key];
+  if(cached && cached!=="fail" && cached!=="pending") coords=cached;
   else coords=densify([[a.lat,a.lng],[b.lat,b.lng]],15);
-  return {coords:coords, km:pathKm(coords), a:a, b:b, needRoad:!roadCache[key]};
+  return {coords:coords, km:pathKm(coords), a:a, b:b, needRoad:cached==null};
 }
 
 var COLORS={plane:"#101820",train:"#101c16",car:"#241c12",walk:"#1a2418",bike:"#241816",ship:"#101c22",future:"#1c1830"};
@@ -7194,7 +7428,7 @@ function applyGlobeEffect(){
   });
 }
 
-var globeCv=null, globeRot={lng:40, lat:26}, globeScale=1, globeLand=null, globeSpin=0, globePtr=null;
+var globeCv=null, globeRot={lng:40, lat:26}, globeScale=1, globeLand=null, globeSpin=0, globePtr=null, globeProjection=null, globeTapTimer=0;
 function loadScriptOnce(src){
   if(window.d3 && d3.geoOrthographic && String(src).indexOf("d3-")>=0) return Promise.resolve();
   return new Promise(function(resolve, reject){
@@ -7339,6 +7573,7 @@ function globeLayout(){
     .rotate([-globeRot.lng, -globeRot.lat])
     .clipAngle(90)
     .precision(0.7);
+  globeProjection=projection;
   return {ctx:ctx, w:w, h:h, R:R, path:d3.geoPath(projection), projection:projection, c:[cx, cy]};
 }
 function paintGlobe(ctx, d, color, stroke){
@@ -7407,7 +7642,7 @@ function drawGlobe(){
   for(i=0;i<list.length;i++){
     part=list[i];
     if(!seen[part.id]) continue;
-    paintGeom(part.geom, "#2f7eef", 3.2);
+    paintGeom(part.geom, "#e37b14", 3.2);
   }
   if(typeof visitedRegions!=="undefined" && visitedRegions && visitedRegions.length){
     var ron={};
@@ -7448,6 +7683,16 @@ function drawGlobe(){
     ctx.stroke();
   });
   ctx.restore();
+  if(window.__tripMarker && projection){
+    var tm=window.__tripMarker, xy=null;
+    try{ xy=projection([tm.lng, tm.lat]); }catch(err){ xy=null; }
+    if(xy && Math.hypot(xy[0]-c[0], xy[1]-c[1])<=R+2){
+      ctx.font="28px 'Segoe UI Emoji','Apple Color Emoji',sans-serif";
+      ctx.textAlign="center";
+      ctx.textBaseline="middle";
+      ctx.fillText(typeof tripGlyph==="function"?tripGlyph(tm.mode):"✈️", xy[0], xy[1]);
+    }
+  }
   var shine=ctx.createRadialGradient(c[0]-R*0.36, c[1]-R*0.4, R*0.02, c[0], c[1], R);
   shine.addColorStop(0,"rgba(255,255,255,.3)");
   shine.addColorStop(0.42,"rgba(255,255,255,0)");
@@ -7493,29 +7738,38 @@ function globeFit(){
   globeRot.lng=n?slng/n:40;
   scheduleGlobe();
 }
+function globeHit(clientX, clientY){
+  if(!globeProjection || !globeCv || typeof openVisitPrompt!=="function") return;
+  var rect=globeCv.getBoundingClientRect();
+  var ll;
+  try{ ll=globeProjection.invert([clientX-rect.left, clientY-rect.top]); }catch(e){ return; }
+  if(!ll || isNaN(ll[0]) || isNaN(ll[1])) return;
+  openVisitPrompt(ll[1], ll[0]);
+}
 function bindGlobePointer(){
-  function pos(e){
-    if(e.touches&&e.touches[0]) return {x:e.touches[0].clientX, y:e.touches[0].clientY};
-    return {x:e.clientX, y:e.clientY};
-  }
   globeCv.addEventListener("pointerdown", function(e){
     if(!globeOn) return;
     globeCv.setPointerCapture && globeCv.setPointerCapture(e.pointerId);
     globeSpin++;
-    globePtr={x:e.clientX, y:e.clientY, vx:0, vy:0, id:globeSpin};
+    globePtr={x:e.clientX, y:e.clientY, x0:e.clientX, y0:e.clientY, vx:0, vy:0, id:globeSpin, moved:false};
     e.preventDefault();
   });
   globeCv.addEventListener("pointermove", function(e){
     if(!globePtr || !globeOn) return;
     var dx=e.clientX-globePtr.x, dy=e.clientY-globePtr.y;
+    if(Math.hypot(e.clientX-globePtr.x0, e.clientY-globePtr.y0)>12) globePtr.moved=true;
     globePtr.x=e.clientX; globePtr.y=e.clientY;
     globePtr.vx=dx; globePtr.vy=dy;
-    globeNudge(dx, dy);
-    scheduleGlobe();
+    if(globePtr.moved){ globeNudge(dx, dy); scheduleGlobe(); }
   });
-  function end(){
+  function end(e){
+    var p=globePtr;
     globePtr=null;
     globeSpin++;
+    if(!p || p.moved || !e || e.type==="pointercancel") return;
+    var x=e.clientX, y=e.clientY;
+    if(globeTapTimer){ clearTimeout(globeTapTimer); globeTapTimer=0; return; }
+    globeTapTimer=setTimeout(function(){ globeTapTimer=0; globeHit(x, y); }, 320);
   }
   globeCv.addEventListener("pointerup", end);
   globeCv.addEventListener("pointercancel", end);
@@ -7526,6 +7780,7 @@ function bindGlobePointer(){
   }, {passive:false});
   globeCv.addEventListener("dblclick", function(e){
     if(!globeOn) return;
+    if(globeTapTimer){ clearTimeout(globeTapTimer); globeTapTimer=0; }
     e.preventDefault();
     globeZoom(1.6);
   });
@@ -7552,6 +7807,7 @@ function bindGlobePointer(){
       var t=e.changedTouches[0];
       var now=Date.now();
       if(now-lastTap<300 && Math.abs((t.clientX)-(globeCv._tapX||t.clientX))<24){
+        if(globeTapTimer){ clearTimeout(globeTapTimer); globeTapTimer=0; }
         globeZoom(1.6);
         lastTap=0;
       } else {
@@ -7669,6 +7925,10 @@ UI.en["Проверяем…"]="Checking…";
 UI.zh["Проверяем…"]="正在核对…";
 UI.en["Считаем страны по маршрутам…"]="Counting countries from routes…";
 UI.zh["Считаем страны по маршрутам…"]="正在按路线统计国家…";
+UI.en["Показать поездку"]="Play the trips";
+UI.zh["Показать поездку"]="播放行程";
+UI.en["Стоп"]="Stop";
+UI.zh["Стоп"]="停止";
 function regionLabel(name){
   var lang=currentLang();
   if(!name || lang==="ru") return name||"";
@@ -8117,6 +8377,15 @@ var visitModal=document.getElementById("visit-confirm");
 if(visitYesBtn) visitYesBtn.addEventListener("click",confirmVisitedPlace);
 if(visitNoBtn) visitNoBtn.addEventListener("click",closeVisitPrompt);
 if(visitModal) visitModal.addEventListener("click",function(e){if(e.target===visitModal) closeVisitPrompt();});
+var yearFilterEl=document.getElementById("year-filter");
+if(yearFilterEl) yearFilterEl.addEventListener("click", function(e){
+  var btn=e.target.closest && e.target.closest("#play-trips");
+  if(!btn) return;
+  e.preventDefault();
+  e.stopPropagation();
+  if(tripPlay.on) stopTripPlay();
+  else startTripPlay();
+});
 document.addEventListener("keydown",function(e){if(e.key==="Escape") closeVisitPrompt();});
 (function bindPinch(map){
   var el=map.getContainer();
@@ -9141,15 +9410,8 @@ function polyHas(poly, lat, lng){
 function countryAt(lat, lng){
   if(!COUNTRY_LIST) return null;
   var i, c, k, polys, region;
-  /* Personal map view: selected regions are assigned to Russia for country lookup
-     as well as for drawing. Check them before Ukraine's country polygon. */
   region=regionAtList(RUSSIA_REGIONS, lat, lng);
-  if(region==="Республика Крым" ||
-     region==="Севастополь" ||
-     region==="Донецкая Народная Республика" ||
-     region==="Луганская Народная Республика" ||
-     region==="Запорожская область" ||
-     region==="Херсонская область") return "RU";
+  if(region) return "RU";
   for(i=0;i<COUNTRY_LIST.length;i++){
     c=COUNTRY_LIST[i];
     if(c.i!=="RU") continue;
@@ -9166,15 +9428,19 @@ function countryAt(lat, lng){
 }
 function regionAtList(list, lat, lng){
   if(!list) return null;
-  var best=null, bestA=1e18, i, reg, b, area, polys, k;
+  var best=null, bestA=1e18, i, reg, b, area, polys, k, wraps;
   for(i=0;i<list.length;i++){
     reg=list[i];
     b=reg.b;
-    if(!b || lat<b[0] || lat>b[2] || lng<b[1] || lng>b[3]) continue;
+    wraps=b && (b[3]-b[1])>180;
+    if(b){
+      if(lat<b[0] || lat>b[2]) continue;
+      if(!wraps && (lng<b[1] || lng>b[3])) continue;
+    }
     polys=polysOf(reg);
     for(k=0;k<polys.length;k++){
       if(polyHas(polys[k], lat, lng)){
-        area=(b[2]-b[0])*(b[3]-b[1]);
+        area=(b[2]-b[0])*Math.min(360, b[3]-b[1]);
         if(area<bestA){ bestA=area; best=reg.id; }
         break;
       }
@@ -9331,20 +9597,20 @@ function drawCountries(){
   countryLayer.clearLayers();
   var on={}, i;
   for(i=0;i<visited.length;i++) on[visited[i]]=1;
-  var blue={color:"#3b82f6", weight:1.2, opacity:.35, lineJoin:"round", fillColor:"#3b82f6", fillOpacity:.34, interactive:false, smoothFactor:0};
+  var amber={color:"#9a4d00", weight:1.2, opacity:.55, lineJoin:"round", fillColor:"#e08a14", fillOpacity:.42, interactive:false, smoothFactor:0};
   var gold={color:"#8a5a12", weight:1.6, opacity:1, dashArray:"5 4", lineJoin:"round", fillColor:"#e8b85c", fillOpacity:.4, interactive:false, smoothFactor:0};
   COUNTRY_LIST.forEach(function(c){
     if(!on[c.i] || c.i==="RU" || c.i==="CN") return;
-    polysOf(c).forEach(function(poly){ paintPoly(poly, blue); });
+    polysOf(c).forEach(function(poly){ paintPoly(poly, amber); });
   });
   if(on["RU"] && RUSSIA_REGIONS){
     RUSSIA_REGIONS.forEach(function(reg){
-      polysOf(reg).forEach(function(poly){ paintPoly(poly, blue); });
+      polysOf(reg).forEach(function(poly){ paintPoly(poly, amber); });
     });
   }
   if(on["CN"] && CHINA_REGIONS){
     CHINA_REGIONS.forEach(function(reg){
-      polysOf(reg).forEach(function(poly){ paintPoly(poly, blue); });
+      polysOf(reg).forEach(function(poly){ paintPoly(poly, amber); });
     });
   }
   function paintVisited(list){
@@ -9616,11 +9882,11 @@ function bootGeo(){
   if(!countryLayer && typeof L!=="undefined" && typeof map!=="undefined") countryLayer=L.layerGroup().addTo(map);
   ensureHoverLayer();
   globeLand=null;
-  loadGeo("./geo/countries.json?v=6").then(function(data){
+  loadGeo("./geo/countries.json?v=7").then(function(data){
     COUNTRY_LIST=normalizeCountries(data&&data.items);
     finish();
   }).catch(function(){ COUNTRY_LIST=COUNTRY_LIST||[]; finish(); });
-  loadGeo("./geo/russia.json?v=6").then(function(data){
+  loadGeo("./geo/russia.json?v=7").then(function(data){
     RUSSIA_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||r.n; return r; });
     finish();
   }).catch(function(){ RUSSIA_REGIONS=[]; finish(); });
