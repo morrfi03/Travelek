@@ -9889,6 +9889,7 @@ function openSettings(){
   if(typeof syncMapSwitch==="function") syncMapSwitch();
   if(typeof syncLangButtons==="function") syncLangButtons();
   document.getElementById("settings-panel").classList.add("on");
+  if(typeof window.__fillAccount==="function") window.__fillAccount();
   var accountPanel=document.getElementById("account-panel");
   if(accountPanel) accountPanel.classList.remove("on");
   var trackPanel=document.getElementById("track-panel");
@@ -10562,10 +10563,16 @@ function drawCountries(){
   countryLayer.clearLayers();
   var on={}, i;
   for(i=0;i<visited.length;i++) on[visited[i]]=1;
-  var amber={color:"#9a4d00", weight:1.15, opacity:.9, lineJoin:"round", fillColor:"#e37b14", fillOpacity:.62, interactive:false, smoothFactor:0};
-  var gold={color:"#6a3d08", weight:1.7, opacity:1, lineJoin:"round", fillColor:"#f2c14e", fillOpacity:.9, interactive:false, smoothFactor:0};
+  var amber={color:"rgba(70,100,120,.35)", weight:0, opacity:0, lineJoin:"round", fillColor:"#5d7e96", fillOpacity:.22, interactive:false, smoothFactor:0};
+  var gold={color:"#9a4d00", weight:0, opacity:0, lineJoin:"round", fillColor:"#c4622d", fillOpacity:.34, interactive:false, smoothFactor:0};
+  var regional={};
+  if(typeof REGIONS_BY!=="undefined" && REGIONS_BY) Object.keys(REGIONS_BY).forEach(function(code){ if(REGIONS_BY[code] && REGIONS_BY[code].length) regional[code]=1; });
   COUNTRY_LIST.forEach(function(c){
-    if(!on[c.i]) return;
+    var been=!!on[c.i];
+    if(!been && regional[c.i] && visitedRegions){
+      for(var ri=0;ri<visitedRegions.length;ri++) if(countryOfRid(visitedRegions[ri])===c.i){ been=true; break; }
+    }
+    if(!been) return;
     polysOf(c).forEach(function(poly){ paintPoly(poly, amber); });
   });
   function paintVisited(list){
@@ -11822,14 +11829,7 @@ bindTripWindow();
     if(box) box.innerHTML=statBox(tot.countries,t("стран"))+statBox(ofCount((tot.regions&&tot.regions.got)||0, (tot.regions&&tot.regions.total)||0, "").replace(/\s+$/,""),t("регионов РФ"))+statBox((tot.plane||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("самолет, км"))+statBox((tot.train||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("поезд, км"))+statBox((tot.car||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("авто, км"))+statBox(String(tot.routes),t("маршрутов"));
   }
   window.__fillAccount=fillAccount;
-  var openUsers=document.getElementById("open-users");
-  var usersBox=document.getElementById("users-box");
-  if(openUsers && usersBox) openUsers.onclick=function(e){
-    e.stopPropagation();
-    usersBox.hidden=!usersBox.hidden;
-    openUsers.classList.toggle("on", !usersBox.hidden);
-    if(!usersBox.hidden) paintAccounts();
-  };
+  paintAccounts();
   var must=document.getElementById("must-pass");
   if(must && window.__TRAVELEK_ME && window.__TRAVELEK_ME.mustChange) must.classList.add("on");
   var mustSave=document.getElementById("must-pass-save");
