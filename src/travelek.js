@@ -9808,6 +9808,7 @@ function saveCurrentForm(){
   if(!trip) return;
   commitRoute(trip);
   editingId=null;
+  selectedTripId=null;
   document.getElementById("modal-title").textContent=t("Новый маршрут");
   closeForm(); fFrom.value=""; fTo.value=""; document.getElementById("f-flight").value=""; carWaypoints=[]; clearPickMarkers();
   setSheet("mid"); render();
@@ -11477,6 +11478,7 @@ var tw={id:null, title:"", routes:[], countries:[], regions:[], focus:""};
 function closeTripWindow(){
   var w=document.getElementById("trip-window");
   if(w) w.classList.remove("on");
+  if(selectedTripId){ selectedTripId=null; if(typeof render==="function") render(); }
 }
 function openTripWindow(seed){
   seed=seed||{};
@@ -11490,7 +11492,6 @@ function openTripWindow(seed){
       if(r) tw.routes.push({saved:true, id:r.id, mode:r.mode, from:r.from, to:r.to, date:r.date, time:r.time||"", fromCode:r.fromCode||"", toCode:r.toCode||"", coords:r.coords||null});
     });
     tw.routes.forEach(function(r){ absorbRoute(routeById(r.id)||r); });
-    selectedTripId=existing.id;
   }
   var name=document.getElementById("tw-name");
   if(name) name.value=tw.title||"";
@@ -11735,7 +11736,6 @@ function bindTripWindow(){
     var tid=tw.id||("j"+Date.now());
     list.unshift({id:tid, title:title, countries:tw.countries.slice(), regions:tw.regions.slice(), routes:ids});
     saveTrips(list);
-    selectedTripId=tid;
     activeTab="trips";
     document.querySelectorAll(".tab").forEach(function(tab){ tab.classList.toggle("on", tab.getAttribute("data-tab")==="trips"); });
     closeTripWindow();
