@@ -48,7 +48,9 @@ html,body{
   position:fixed;inset:0;
 }
 input,select,textarea{font-size:16px!important}
-#map,#globe{position:fixed;inset:0;z-index:0;background:var(--map-bg);touch-action:none}
+#map,#globe{position:fixed;inset:0;z-index:0;background:transparent!important;touch-action:none;pointer-events:none!important}
+#new-map-base{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:0;background:transparent}
+#map .leaflet-pane{visibility:hidden!important}
 .leaflet-control-attribution,.leaflet-bottom{display:none!important}
 
 /* ——— Top bar (Flighty-style glass) ——— */
@@ -766,6 +768,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     <button type="submit" data-i18n="Войти">Войти</button>
   </form>
 </div>
+<iframe id="new-map-base" title="Карта и глобус TravelEk" src="./world-map-globe.html" loading="eager"></iframe>
 <div id="map"></div>
 <div id="map-hover-label" class="map-hover-label" aria-live="polite"></div>
 <div id="visit-confirm" class="visit-confirm" role="dialog" aria-modal="true" aria-labelledby="visit-confirm-title">
