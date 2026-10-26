@@ -8604,8 +8604,6 @@ function t(s){
 }
 UI.en["Все годы"]="All years";
 UI.zh["Все годы"]="全部年份";
-UI.en["стран"]="countries";
-UI.zh["стран"]="个国家";
 UI.en["Проверяем…"]="Checking…";
 UI.zh["Проверяем…"]="正在核对…";
 UI.en["Считаем страны по маршрутам…"]="Counting countries from routes…";
@@ -10415,23 +10413,19 @@ function drawCountries(){
   try{ if(worldLayer) worldLayer.bringToBack(); countryLayer.bringToFront(); }catch(e){}
   if(typeof stackMapLayers==="function") stackMapLayers();
 }
+function countVisitedRegions(list){
+  var total=list?list.length:0, got=0, i;
+  if(list) for(i=0;i<list.length;i++) if(visitedRegions.indexOf(list[i].id)>=0) got++;
+  return {total:total, got:got};
+}
 function regionStatsFor(code){
-  var list=regionsFor(code)||[];
-  var got=0, i;
-  for(i=0;i<list.length;i++) if(visitedRegions.indexOf(list[i].id)>=0) got++;
-  return {total:list.length, got:got};
+  return countVisitedRegions(regionsFor(code));
 }
 function regionStats(){
-  var total=RUSSIA_REGIONS?RUSSIA_REGIONS.length:0;
-  var got=0, i;
-  if(RUSSIA_REGIONS) for(i=0;i<RUSSIA_REGIONS.length;i++) if(visitedRegions.indexOf(RUSSIA_REGIONS[i].id)>=0) got++;
-  return {total:total, got:got};
+  return countVisitedRegions(RUSSIA_REGIONS);
 }
 function chinaStats(){
-  var total=CHINA_REGIONS?CHINA_REGIONS.length:0;
-  var got=0, i;
-  if(CHINA_REGIONS) for(i=0;i<CHINA_REGIONS.length;i++) if(visitedRegions.indexOf(CHINA_REGIONS[i].id)>=0) got++;
-  return {total:total, got:got};
+  return countVisitedRegions(CHINA_REGIONS);
 }
 function regionMatches(r, q){
   if(!q) return "";
@@ -10549,6 +10543,12 @@ function renderCountryUi(){
     return '<button type="button" class="'+(on?"on":"")+'" data-iso="'+c.i+'"><span>'+countryLabel(c)+'</span><span>'+(on?"✓":"")+'</span></button>';
   }).join("") || '<p class="hint">'+t("Ничего не найдено")+'</p>';
 }
+function refreshVisitUi(){
+  syncVisited();
+  drawCountries();
+  renderCountryUi();
+  if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
+}
 function toggleCountry(id){
   if(!id) return;
   if(visited.indexOf(id)>=0){
@@ -10559,10 +10559,7 @@ function toggleCountry(id){
     if(manualCountries.indexOf(id)<0) manualCountries.push(id);
   }
   saveSets();
-  syncVisited();
-  drawCountries();
-  renderCountryUi();
-  if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
+  refreshVisitUi();
 }
 function toggleRegion(id){
   if(!id) return;
@@ -10575,16 +10572,10 @@ function toggleRegion(id){
     offCountries=offCountries.filter(function(x){ return x!==(id.indexOf("CN:")===0?"CN":"RU"); });
   }
   saveSets();
-  syncVisited();
-  drawCountries();
-  renderCountryUi();
-  if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
+  refreshVisitUi();
 }
 function countriesFromRoutes(){
-  syncVisited();
-  drawCountries();
-  renderCountryUi();
-  if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
+  refreshVisitUi();
   return visited.length;
 }
 var PLACE_CITIES=[
