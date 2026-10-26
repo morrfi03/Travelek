@@ -4466,7 +4466,8 @@ var EXTRA_FLIGHT_PAIRS = [
   "KGD-LED","KGD-SVO","SGC-SVX","SGC-OVB","NUX-SVX","YKS-SVO","YKS-OVB",
   "PKC-SVO","UUS-SVO","HTA-SVO","GDX-SVO","ABA-OVB","BAX-OVB","KEJ-OVB",
   "MSQ-SVO","MSQ-LED","EVN-SVO","EVN-LED","TBS-SVO","GYD-SVO","ALA-SVO","NQZ-SVO","TAS-SVO",
-  "DXB-SVO","DXB-DME","IST-SVO","AYT-SVO","BKK-SVO","HKT-SVO","PEK-SVO","PVG-SVO"
+  "DXB-SVO","DXB-DME","IST-SVO","AYT-SVO","BKK-SVO","HKT-SVO","PEK-SVO","PVG-SVO",
+  "BKK-HAK","HKT-TFU"
 ];
 function ensureFlightPairs(){
   if(typeof FLIGHT_PAIRS==="undefined") window.FLIGHT_PAIRS={};
@@ -10884,9 +10885,10 @@ function bootGeo(){
     drawCountries();
     renderCountryUi();
     if(typeof drawCityLabels==="function") drawCityLabels();
-    if(typeof absorbRoute==="function" && tw && tw.routes && document.getElementById("trip-window") && document.getElementById("trip-window").classList.contains("on")){
-      tw.routes.forEach(function(r){ absorbRoute(routeById(r.id)||r); });
-      paintTripWindow();
+    if(typeof absorbRoute==="function" && tw && document.getElementById("trip-window") && document.getElementById("trip-window").classList.contains("on")){
+      if(tw.routes) tw.routes.forEach(function(r){ absorbRoute(routeById(r.id)||r); });
+      if(typeof previewTripPlaces==="function") previewTripPlaces();
+      else if(typeof paintTripWindow==="function") paintTripWindow();
     }
     globeLand=null;
     if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
@@ -11181,11 +11183,31 @@ function endpointBag(r){
   function hit(lat, lng){
     if(lat==null || lng==null || isNaN(lat) || isNaN(lng) || typeof countryAt!=="function") return;
     lat=+lat; lng=+lng;
-    var cid=countryAt(lat, lng);
-    var rid=cid && typeof regionIn==="function" ? regionIn(cid, lat, lng) : null;
+    var cid=typeof countryAt==="function"?countryAt(lat, lng):null;
+    var rid=cid && typeof regionIn==="function"?regionIn(cid, lat, lng):null;
     if(!rid && typeof regionAt==="function") rid=regionAt(lat, lng);
     if(!rid && typeof chinaRegionAt==="function") rid=chinaRegionAt(lat, lng);
-    if(!cid && rid) cid=countryOfRid(rid);
+    if((!cid || !rid) && typeof map!=="undefined" && map && map.regionAt){
+      var h=map.regionAt(lat, lng);
+      if(h && h.layer && h.layer!=="W" && h.name){
+        if(!cid){
+          if(h.sub==="Россия" || h.layer==="R") cid="RU";
+          else if(h.sub==="Китай" || h.layer==="C") cid="CN";
+          else if(h.iso) cid=h.iso;
+          else if(h.sub && typeof COUNTRY_LIST!=="undefined" && COUNTRY_LIST){
+            for(var ci=0; ci<COUNTRY_LIST.length; ci++) if(COUNTRY_LIST[ci].n===h.sub){ cid=COUNTRY_LIST[ci].i; break; }
+          }
+        }
+        if(!rid && cid && typeof regionRecord==="function"){
+          var list=typeof regionsFor==="function"?regionsFor(cid):null, ri, rn, want=String(h.name).toLowerCase().replace(/ё/g,"е");
+          if(list) for(ri=0;ri<list.length;ri++){
+            rn=String(list[ri].n||"").toLowerCase().replace(/ё/g,"е");
+            if(rn===want || rn.indexOf(want)>=0 || want.indexOf(rn)>=0){ rid=list[ri].id; break; }
+          }
+        }
+      }
+    }
+    if(!cid && rid && typeof countryOfRid==="function") cid=countryOfRid(rid);
     if(cid && !sc[cid]){ sc[cid]=1; countries.push(cid); }
     if(rid && !sr[rid]){ sr[rid]=1; regions.push(rid); }
   }
@@ -11199,11 +11221,13 @@ function endpointBag(r){
     hitPair(r.coords[0]);
     hitPair(r.coords[r.coords.length-1]);
   }
-  if(!countries.length && typeof buildGeoSync==="function"){
-    var g=buildGeoSync(r);
-    if(g){ hitPt(g.a); hitPt(g.b); }
+  if(typeof buildGeoSync==="function"){
+    try{
+      var g=buildGeoSync(r);
+      if(g){ hitPt(g.a); hitPt(g.b); }
+    }catch(e){}
   }
-  if(!countries.length && typeof place==="function"){
+  if(typeof place==="function"){
     hitPt(place(r.from, r.fromCode));
     hitPt(place(r.to, r.toCode));
   }
@@ -11689,11 +11713,16 @@ function bindTripWindow(){
       alert(t("Отметьте страну, регион или маршрут"));
       return;
     }
-    var ids=[], i;
+    var ids=[], i, bag;
     for(i=0;i<tw.routes.length;i++){
       if(tw.routes[i].saved){ ids.push(tw.routes[i].id); continue; }
       var id=commitRoute(tw.routes[i]);
       if(id) ids.push(id);
+    }
+    for(i=0;i<tw.routes.length;i++){
+      bag=endpointBag(routeById(tw.routes[i].id)||tw.routes[i]);
+      bag.countries.forEach(function(cid){ if(tw.countries.indexOf(cid)<0) tw.countries.push(cid); });
+      bag.regions.forEach(function(rid){ if(tw.regions.indexOf(rid)<0) tw.regions.push(rid); });
     }
     var nameEl=document.getElementById("tw-name");
     var title=nameEl?nameEl.value.trim():"";
