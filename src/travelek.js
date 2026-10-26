@@ -6197,6 +6197,11 @@ wipeRoutesOnce();
       });
     });
   };
+  window.__peekUsers=function(){
+    return users().map(function(u){
+      return {userId:u.id, email:u.login, name:u.name||u.login, role:u.role, routes:0, countries:0, regions:0, kmPlane:0, kmTrain:0, kmCar:0};
+    });
+  };
   window.__cloudAdmin=function(){
     function packOf(vv, id){ return (vv && vv[id]) || {}; }
     function row(user, vv){
@@ -9881,7 +9886,6 @@ function openSettings(){
   if(typeof syncMapSwitch==="function") syncMapSwitch();
   if(typeof syncLangButtons==="function") syncLangButtons();
   document.getElementById("settings-panel").classList.add("on");
-  if(typeof window.__fillAccount==="function") window.__fillAccount();
   var accountPanel=document.getElementById("account-panel");
   if(accountPanel) accountPanel.classList.remove("on");
   var trackPanel=document.getElementById("track-panel");
@@ -11732,23 +11736,21 @@ bindTripWindow();
   }
   function paintAccounts(){
     var list=document.getElementById("admin-list");
-    var me=window.__TRAVELEK_ME||{};
-    var login=String(me.email||me.login||"").toLowerCase().replace(/@travelek\.app$/,"");
-    var isAdmin=me.role==="admin" || login==="admin" || String(me.name||"").toLowerCase()==="admin";
-    var admin=document.getElementById("account-admin");
-    if(admin) admin.hidden=!isAdmin;
-    if(!list || !isAdmin || typeof window.__cloudAdmin!=="function") return;
-    list.innerHTML='<p class="hint">'+t("Загрузка…")+'</p>';
-    window.__cloudAdmin().then(function(rows){
+    if(!list) return;
+    function draw(rows){
       if(!rows || !rows.length){ list.innerHTML='<p class="hint">'+t("Пока только вы.")+'</p>'; return; }
       list.innerHTML=rows.map(function(r){
         var login=String(r.email||"").replace(/@travelek\.app$/,"");
         var mine=r.userId===(window.__TRAVELEK_ME&&window.__TRAVELEK_ME.id);
         return '<div class="admin-row"><b>'+(r.name||login)+'</b> · '+login+(r.role==="admin"?" · "+t("админ"):"")+'<div class="route-line">'+r.routes+" "+t("маршрутов")+" · "+r.countries+" "+t("стран")+" · "+r.regions+" "+t("регионов")+'</div><div class="route-line">'+r.kmPlane+" "+t("самолет, км")+" · "+r.kmTrain+" "+t("поезд, км")+" · "+r.kmCar+" "+t("авто, км")+'</div>'+(mine?"":'<button type="button" data-user="'+r.userId+'">'+t("Смотреть карту")+'</button><button type="button" data-del="'+r.userId+'" data-login="'+login+'">'+t("Удалить")+'</button>')+'</div>';
       }).join("");
-    }).catch(function(){
-      list.innerHTML='<p class="hint">'+t("Список аккаунтов не загрузился.")+'</p>';
-    });
+    }
+    if(window.__peekUsers) draw(window.__peekUsers());
+    if(typeof window.__cloudAdmin==="function"){
+      window.__cloudAdmin().then(draw).catch(function(){
+        if(!list.innerHTML) list.innerHTML='<p class="hint">'+t("Список аккаунтов не загрузился.")+'</p>';
+      });
+    }
   }
   function fillAccount(){
     paintAccounts();
@@ -11763,14 +11765,23 @@ bindTripWindow();
     if(name && !name.value) name.value=me.name||"";
     var tot=diaryTotals();
     var box=document.getElementById("account-stats");
-    if(box) box.innerHTML=statBox(tot.countries,t("стран"))+statBox(ofCount(tot.regions.got||0, tot.regions.total||0, "").replace(/\s+$/,""),t("регионов РФ"))+statBox((tot.plane||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("самолет, км"))+statBox((tot.train||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("поезд, км"))+statBox((tot.car||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("авто, км"))+statBox(String(tot.routes),t("маршрутов"));
-    var admin=document.getElementById("account-admin");
-    var login=String(me.email||me.login||"").toLowerCase().replace(/@travelek\.app$/,"");
-    var isAdmin=me.role==="admin" || login==="admin" || String(me.name||"").toLowerCase()==="admin";
-    if(admin) admin.hidden=!isAdmin;
-    if(isAdmin && window.__TRAVELEK_ME) window.__TRAVELEK_ME.role="admin";
+    if(box) box.innerHTML=statBox(tot.countries,t("стран"))+statBox(ofCount((tot.regions&&tot.regions.got)||0, (tot.regions&&tot.regions.total)||0, "").replace(/\s+$/,""),t("регионов РФ"))+statBox((tot.plane||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("самолет, км"))+statBox((tot.train||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("поезд, км"))+statBox((tot.car||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("авто, км"))+statBox(String(tot.routes),t("маршрутов"));
   }
   window.__fillAccount=fillAccount;
+  var openUsers=document.getElementById("open-users");
+  var usersPanel=document.getElementById("users-panel");
+  if(openUsers && usersPanel) openUsers.onclick=function(){
+    var s=document.getElementById("settings-panel");
+    if(s) s.classList.remove("on");
+    usersPanel.classList.add("on");
+    paintAccounts();
+  };
+  var usersClose=document.getElementById("users-close");
+  if(usersClose && usersPanel) usersClose.onclick=function(){
+    usersPanel.classList.remove("on");
+    var s=document.getElementById("settings-panel");
+    if(s) s.classList.add("on");
+  };
   var must=document.getElementById("must-pass");
   if(must && window.__TRAVELEK_ME && window.__TRAVELEK_ME.mustChange) must.classList.add("on");
   var mustSave=document.getElementById("must-pass-save");
