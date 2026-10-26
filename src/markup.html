@@ -93,7 +93,7 @@ input,select,textarea{font-size:16px!important}
 
 /* Tabs — segmented control */
 .tabs{
-  display:grid;grid-template-columns:1fr 1fr;gap:0;margin-top:12px;
+  display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;margin-top:12px;
   pointer-events:auto;padding:3px;
   background:var(--glass);
   backdrop-filter:blur(20px) saturate(1.3);
@@ -148,14 +148,14 @@ input,select,textarea{font-size:16px!important}
   border-radius:22px 22px 0 0;
   box-shadow:var(--shadow);
   padding:0 0 calc(12px + var(--safe-b));
-  max-height:92vh;display:flex;flex-direction:column;
+  max-height:calc(100dvh - 188px - env(safe-area-inset-top, 0px));display:flex;flex-direction:column;
   overflow:hidden;min-height:0;
   transition:height .35s cubic-bezier(.32,.72,0,1);
 }
 .sheet.collapsed{height:100px}
 .sheet.low{height:22vh}
 .sheet.mid{height:54vh}
-.sheet.full{height:88vh}
+.sheet.full{height:calc(100dvh - 188px - env(safe-area-inset-top, 0px))}
 .sheet.dragging{transition:none!important}
 .sheet.dragging .list{pointer-events:none}
 .handle-wrap{padding:10px 0 6px;cursor:grab;flex-shrink:0}
@@ -807,17 +807,14 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   </div>
   <div class="tabs">
     <button type="button" class="tab on" data-tab="future" data-i18n="Будущие">Будущие</button>
-    <button type="button" class="tab" data-tab="past" data-i18n="История">История</button>
+    <button type="button" class="tab" data-tab="past" data-i18n="Прошлые">Прошлые</button>
+    <button type="button" class="tab" data-tab="trips" data-i18n="Поездки">Поездки</button>
   </div>
 </div>
 <div class="zoom">
   <button type="button" id="z-fit" title="Все маршруты" data-i18n-title="Все маршруты">⌂</button>
   <button type="button" id="z-in">+</button>
   <button type="button" id="z-out">−</button>
-</div>
-<div class="net-toggle" id="net-toggle">
-  <button type="button" id="net-roads" aria-pressed="false">Дороги</button>
-  <button type="button" id="net-rails" aria-pressed="false">ЖД</button>
 </div>
 <div id="live-trip" aria-live="polite"></div>
 <div id="offline-pill" data-i18n="Нет сети · карта из кэша">Нет сети · карта из кэша</div>

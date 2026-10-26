@@ -5704,7 +5704,7 @@ function scheduleCloudSave(){
   if(typeof window.__cloudPush!=="function") return;
   clearTimeout(cloudTimer);
   cloudTimer=setTimeout(function(){
-    var keys=["travelek-extra","travelek-del","travelek-app-settings","travelek-mapprefs","travelek-theme","travelek-theme-pref","travelek-countries","travelek-countries-off","travelek-regions","travelek-regions-off"];
+    var keys=["travelek-extra","travelek-del","travelek-app-settings","travelek-mapprefs","travelek-theme","travelek-theme-pref","travelek-countries","travelek-countries-off","travelek-regions","travelek-regions-off","travelek-trips"];
     var pack={}, i;
     for(i=0;i<keys.length;i++) pack[keys[i]]=localStorage.getItem(keys[i]);
     try{ window.__cloudPush(pack); }catch(e){}
@@ -5803,7 +5803,7 @@ wipeRoutesOnce();
   if(window.__TRAVELEK_PRIVATE) return;
   window.__TRAVELEK_PRIVATE=true;
   var USERS="travelek-users", SESSION="travelek-session", VAULT="travelek-vault";
-  var KEYS=["travelek-extra","travelek-del","travelek-app-settings","travelek-mapprefs","travelek-theme","travelek-theme-pref","travelek-countries","travelek-countries-off","travelek-regions","travelek-regions-off"];
+  var KEYS=["travelek-extra","travelek-del","travelek-app-settings","travelek-mapprefs","travelek-theme","travelek-theme-pref","travelek-countries","travelek-countries-off","travelek-regions","travelek-regions-off","travelek-trips"];
   var STORE_URL="https://keepjson.fourlegs.workers.dev/bins/BkoU663gNtadZ-zfQvPYx";
   var STORE_KEY="kj_w_qgNZJtClt_6vg01Eq5c8j1wpxzMTpSzUKrazvkb12AY";
   function read(k, fb){ try{ var v=JSON.parse(localStorage.getItem(k)||""); return v==null?fb:v; }catch(e){ return fb; } }
@@ -7910,18 +7910,7 @@ function ensureNet(){
   netCv.className="net-cv";
   pane.appendChild(netCv);
   map.on("move zoom resize", scheduleNet);
-  if(!NET && !netLoading){
-    netLoading=true;
-    fetch("./geo/network.json?v=8").then(function(r){ if(!r.ok) throw new Error("net"); return r.json(); }).then(function(data){
-      var prec=data.prec||1000;
-      NET={
-        roads:(data.roads||[]).map(function(t){ return decodeTier(t, prec); }),
-        rails:(data.rails||[]).map(function(t){ return decodeTier(t, prec); })
-      };
-      scheduleNet();
-      if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
-    }).catch(function(){ NET={roads:[], rails:[]}; });
-  }
+  if(!NET) NET={roads:[], rails:[]};
 }
 function scheduleNet(){
   if(netTimer) return;
@@ -8548,7 +8537,7 @@ function nearAnyRoute(lat,lng,maxKm){
 var layer=L.layerGroup().addTo(map);
 try{window.__travelekMapRoutesLayer=layer;}catch(e){}
 var labelsLayer=L.layerGroup().addTo(map);
-var selectedId=null, activeTab="future", sheetState="mid";
+var selectedId=null, activeTab="future", sheetState="mid", selectedTripId=null;
 var lastBounds=null;
 
 function fitAll(){
@@ -8622,6 +8611,32 @@ UI.en["нет автодороги"]="no through road";
 UI.zh["нет автодороги"]="没有直达公路";
 UI.en["регионов"]="regions";
 UI.zh["регионов"]="个地区";
+UI.en["Прошлые"]="Past";
+UI.zh["Прошлые"]="过去";
+UI.en["Поездки"]="Trips";
+UI.zh["Поездки"]="行程";
+UI.en["Поездка"]="Trip";
+UI.zh["Поездка"]="行程";
+UI.en["Новая поездка"]="New trip";
+UI.zh["Новая поездка"]="新行程";
+UI.en["Название поездки"]="Trip name";
+UI.zh["Название поездки"]="行程名称";
+UI.en["Страны"]="Countries";
+UI.zh["Страны"]="国家";
+UI.en["Регионы"]="Regions";
+UI.zh["Регионы"]="地区";
+UI.en["Маршруты"]="Routes";
+UI.zh["Маршруты"]="路线";
+UI.en["Поездок пока нет"]="No trips yet";
+UI.zh["Поездок пока нет"]="还没有行程";
+UI.en["Удалить поездку"]="Delete trip";
+UI.zh["Удалить поездку"]="删除行程";
+UI.en["Отметьте страну, регион или маршрут"]="Pick a country, a region or a route";
+UI.zh["Отметьте страну, регион или маршрут"]="请选择国家、地区或路线";
+UI.en["Нет предстоящих маршрутов. Откройте «Прошлые» или добавьте новый."]="No upcoming routes. Open Past or add one.";
+UI.zh["Нет предстоящих маршрутов. Откройте «Прошлые» или добавьте новый."]="没有即将出发的路线。打开「过去」或添加一条。";
+UI.en["В прошлых пока пусто"]="Nothing in the past yet";
+UI.zh["В прошлых пока пусто"]="过去里还是空的";
 function regionLabel(name){
   var lang=currentLang();
   if(!name || lang==="ru") return name||"";
@@ -8875,11 +8890,22 @@ function wordReis(n){ return n+" "+pluralRu(n,"рейс","рейса","рейс�
 function wordMarsh(n){ return n+" "+pluralRu(n,"маршрут","маршрута","маршрутов"); }
 
 function filtered(){
+  var tripIds=null;
+  if(activeTab==="trips"){
+    tripIds={};
+    loadTrips().forEach(function(tp){
+      if(selectedTripId && tp.id!==selectedTripId) return;
+      (tp.routes||[]).forEach(function(id){ tripIds[id]=1; });
+    });
+  }
   return ROUTES.filter(function(r){
-    var fut=isFuture(r);
-    if(activeTab==="future") { if(!fut) return false; }
-    else if(activeTab==="past") { if(fut) return false; }
-    if(typeof yearFilter!=="undefined" && yearFilter!=="all" && (r.date||"").slice(0,4)!==yearFilter) return false;
+    if(tripIds){ if(!tripIds[r.id]) return false; }
+    else {
+      var fut=isFuture(r);
+      if(activeTab==="future") { if(!fut) return false; }
+      else if(activeTab==="past") { if(fut) return false; }
+    }
+    if(activeTab!=="trips" && typeof yearFilter!=="undefined" && yearFilter!=="all" && (r.date||"").slice(0,4)!==yearFilter) return false;
     return true;
   }).slice().sort(function(a,b){ return (b.date||"").localeCompare(a.date||""); });
 }
@@ -8979,7 +9005,27 @@ function render(){
   }
 
   var el=document.getElementById("list");
-  if(!list.length){ el.innerHTML='<div class="empty"><img src="/art/empty.jpg" alt=""><p>'+(activeTab==="future"?t("Нет предстоящих маршрутов. Откройте «История» или добавьте новый."):t("В истории пока пусто"))+'</p></div>'; }
+  if(activeTab==="trips"){
+    var tripsNow=loadTrips();
+    if(!tripsNow.length){
+      el.innerHTML='<div class="empty"><img src="/art/empty.jpg" alt=""><p>'+t("Поездок пока нет")+'</p></div>';
+    } else {
+      el.innerHTML=tripsNow.map(function(tp){
+        var bits=[];
+        if((tp.countries||[]).length) bits.push((tp.countries||[]).length+" "+t("стран"));
+        if((tp.regions||[]).length) bits.push((tp.regions||[]).length+" "+t("регионов"));
+        if((tp.routes||[]).length) bits.push((tp.routes||[]).length+" "+t("маршрутов"));
+        return '<button type="button" class="row'+(selectedTripId===tp.id?" on":"")+'" data-trip="'+tp.id+'"><div class="title">'+escLabel(tp.title||t("Поездка"))+'</div><div class="meta">'+escLabel(bits.join(" · ")||t("Поездка"))+'</div></button>';
+      }).join("");
+      var tripBtns=el.querySelectorAll("[data-trip]");
+      for(var tbi=0;tbi<tripBtns.length;tbi++){
+        tripBtns[tbi].onclick=function(){
+          selectedTripId=this.getAttribute("data-trip");
+          openTripEditor({tripId:selectedTripId});
+        };
+      }
+    }
+  } else if(!list.length){ el.innerHTML='<div class="empty"><img src="/art/empty.jpg" alt=""><p>'+(activeTab==="future"?t("Нет предстоящих маршрутов. Откройте «Прошлые» или добавьте новый."):t("В прошлых пока пусто"))+'</p></div>'; }
   else {
     var html="", lastY="";
     list.forEach(function(r){
@@ -9043,6 +9089,10 @@ function render(){
     try{map.fitBounds(bounds,{padding:[40,100],maxZoom:5});}catch(e){}
   }
   if(typeof buildYearFilter==="function") buildYearFilter();
+  var yf=document.getElementById("year-filter");
+  if(yf) yf.style.display=activeTab==="trips"?"none":"";
+  var add2=document.getElementById("add-btn-2");
+  if(add2) add2.textContent=activeTab==="trips"?t("Новая поездка"):t("＋ Добавить маршрут");
 }
 
 
@@ -9142,11 +9192,12 @@ var dragY0=null, dragH0=0, dragging=false, didDrag=false;
 
 function sheetHeights(){
   var vh=window.innerHeight||600;
-  var tabs=document.querySelector(".tabs");
-  var cap=tabs?Math.ceil(tabs.getBoundingClientRect().top):150;
-  if(cap<72) cap=150;
-  var full=Math.max(180, vh-cap);
-  var mid=Math.round(Math.min(vh*0.46, full-40));
+  var topEl=document.querySelector(".top");
+  var topBottom=topEl?Math.ceil(topEl.getBoundingClientRect().bottom):180;
+  if(topBottom<96) topBottom=180;
+  var full=Math.max(200, vh-topBottom-28);
+  var mid=Math.round(Math.min(vh*0.46, full-48));
+  if(mid<160) mid=Math.min(160, full);
   return {
     collapsed: Math.min(104, Math.round(vh*0.14)),
     mid: mid,
@@ -9391,8 +9442,7 @@ function updateLabels(){
   document.getElementById("pick-to").style.display=showPick?"":"none";
   document.getElementById("pick-hint").style.display=showPick?"":"none";
   document.getElementById("car-mode-wrap").style.display=(m==="car")?"":"none";
-  if(m==="train" && typeof setRouteNetwork==="function") setRouteNetwork({rails:true});
-  else if(m==="car" && typeof setRouteNetwork==="function") setRouteNetwork({roads:true});
+  if(map && map.setNetwork) map.setNetwork({roads:false, rails:false});
   var ph=document.getElementById("pick-hint");
   if(ph){
     if(m==="ship") ph.textContent="Корабль: порты из списка или 📍 на воде; маршрут по фарватеру";
@@ -9499,7 +9549,10 @@ fFrom.addEventListener("change", function(){
 function openForm(){ updateLabels(); modal.classList.add("on"); }
 function closeForm(){ modal.classList.remove("on"); }
 document.getElementById("add-btn").onclick=function(){ openFormNew(); };
-document.getElementById("add-btn-2").onclick=function(){ openFormNew(); };
+document.getElementById("add-btn-2").onclick=function(){
+  if(activeTab==="trips") openTripEditor({});
+  else openFormNew();
+};
 document.getElementById("f-cancel").onclick=closeForm;
 modal.addEventListener("click",function(e){ if(e.target===modal) closeForm(); });
 
@@ -9644,12 +9697,15 @@ document.getElementById("f-save").onclick=function(){
     for(i=0;i<BUILTIN.length;i++) if(BUILTIN[i].id===editingId) isBuiltin=true;
     if(isBuiltin && deleted.indexOf(editingId)<0){ deleted.push(editingId); saveDeleted(deleted); }
   }
+  var wasNew=!editingId;
+  var savedId=trip.id;
   extra.push(trip); saveExtra(extra);
   ROUTES=assembleRoutes();
   editingId=null;
   document.getElementById("modal-title").textContent=t("Новый маршрут");
   closeForm(); fFrom.value=""; fTo.value=""; document.getElementById("f-flight").value=""; carWaypoints=[]; clearPickMarkers();
   setSheet("mid"); render();
+  if(wasNew) openTripEditor({routeId:savedId});
 };
 
 
@@ -10292,6 +10348,7 @@ function confirmVisitedPlace(){
   if(typeof drawCountries==="function") drawCountries();
   if(typeof renderCountryUi==="function") renderCountryUi();
   if(typeof render==="function") render();
+  openTripEditor({countryId:cid, regionId:rid});
 }
 function syncVisited(){
   if(!COUNTRY_LIST) return;
@@ -10557,6 +10614,10 @@ function toggleCountry(id){
   } else {
     offCountries=offCountries.filter(function(x){ return x!==id; });
     if(manualCountries.indexOf(id)<0) manualCountries.push(id);
+    saveSets();
+    refreshVisitUi();
+    openTripEditor({countryId:id});
+    return;
   }
   saveSets();
   refreshVisitUi();
@@ -10570,6 +10631,13 @@ function toggleRegion(id){
     offRegions=offRegions.filter(function(x){ return x!==id; });
     if(manualRegions.indexOf(id)<0) manualRegions.push(id);
     offCountries=offCountries.filter(function(x){ return x!==(id.indexOf("CN:")===0?"CN":"RU"); });
+    saveSets();
+    refreshVisitUi();
+    var cc=id.indexOf(":")>0?id.slice(0, id.indexOf(":")):"RU";
+    var rec=typeof regionRecord==="function"?regionRecord(id):null;
+    if(rec && rec.c) cc=rec.c;
+    openTripEditor({regionId:id, countryId:cc});
+    return;
   }
   saveSets();
   refreshVisitUi();
@@ -10912,6 +10980,211 @@ window.__packStats=function(pack){
     kmCar:Math.round(kmC)
   };
 };
+
+
+function loadTrips(){
+  try{ var a=JSON.parse(localStorage.getItem("travelek-trips")||"[]"); return Array.isArray(a)?a:[]; }
+  catch(e){ return []; }
+}
+function saveTrips(list){
+  if(typeof safeSetItem==="function") safeSetItem("travelek-trips", JSON.stringify(list||[]));
+  else try{ localStorage.setItem("travelek-trips", JSON.stringify(list||[])); }catch(e){}
+}
+var tripDraft=null;
+function closeTripEditor(){
+  var panel=document.getElementById("trip-panel");
+  if(panel) panel.classList.remove("on");
+  tripDraft=null;
+}
+function hasTrip(id, list){
+  var i;
+  for(i=0;i<(list||[]).length;i++) if(list[i]===id) return true;
+  return false;
+}
+function openTripEditor(seed){
+  if(document.body.classList.contains("ro")) return;
+  seed=seed||{};
+  var existing=null, all=loadTrips(), i;
+  if(seed.tripId){
+    for(i=0;i<all.length;i++) if(all[i].id===seed.tripId) existing=all[i];
+  }
+  tripDraft={
+    id: existing?existing.id:("j"+Date.now()),
+    title: existing?(existing.title||""):"",
+    countries: existing?(existing.countries||[]).slice():[],
+    regions: existing?(existing.regions||[]).slice():[],
+    routes: existing?(existing.routes||[]).slice():[],
+    isNew: !existing
+  };
+  function addC(id){ if(id && tripDraft.countries.indexOf(id)<0) tripDraft.countries.push(id); }
+  function addR(id){ if(id && tripDraft.regions.indexOf(id)<0) tripDraft.regions.push(id); }
+  function addRoute(id){ if(id && tripDraft.routes.indexOf(id)<0) tripDraft.routes.push(id); }
+  addC(seed.countryId);
+  addR(seed.regionId);
+  addRoute(seed.routeId);
+  if(seed.routeId){
+    var rr=null;
+    for(i=0;i<(ROUTES||[]).length;i++) if(ROUTES[i].id===seed.routeId) rr=ROUTES[i];
+    if(rr && typeof place==="function" && typeof countryAt==="function"){
+      [place(rr.from, rr.fromCode), place(rr.to, rr.toCode)].forEach(function(pt){
+        if(!pt) return;
+        var cid=countryAt(pt.lat, pt.lng);
+        var rid=cid && typeof regionIn==="function"?regionIn(cid, pt.lat, pt.lng):null;
+        addC(cid);
+        addR(rid);
+      });
+    }
+  }
+  paintTripEditor();
+  var panel=document.getElementById("trip-panel");
+  if(panel) panel.classList.add("on");
+  if(typeof applyI18n==="function") applyI18n();
+  if(existing){
+    selectedTripId=existing.id;
+    render();
+  }
+}
+function paintTripEditor(){
+  if(!tripDraft) return;
+  var title=document.getElementById("trip-title");
+  if(title && document.activeElement!==title) title.value=tripDraft.title||"";
+  var qEl=document.getElementById("trip-country-q");
+  var q=qEl?String(qEl.value||"").toLowerCase().replace(/ё/g,"е"):"";
+  var box=document.getElementById("trip-countries");
+  var list=(typeof COUNTRY_LIST!=="undefined" && COUNTRY_LIST)?COUNTRY_LIST.slice():[];
+  list.sort(function(a,b){
+    var av=tripDraft.countries.indexOf(a.i)>=0?0:1;
+    var bv=tripDraft.countries.indexOf(b.i)>=0?0:1;
+    if(av!==bv) return av-bv;
+    return countryLabel(a).localeCompare(countryLabel(b), "ru");
+  });
+  var html="", shown=0, c, name, on;
+  for(var i=0;i<list.length;i++){
+    c=list[i];
+    name=countryLabel(c);
+    if(q && name.toLowerCase().replace(/ё/g,"е").indexOf(q)<0 && String(c.i).toLowerCase().indexOf(q)<0) continue;
+    if(shown>=80 && tripDraft.countries.indexOf(c.i)<0) continue;
+    shown++;
+    on=tripDraft.countries.indexOf(c.i)>=0;
+    html+='<button type="button" class="'+(on?"on":"")+'" data-tc="'+c.i+'">'+escLabel(name)+(on?"  ✓":"")+'</button>';
+  }
+  if(box) box.innerHTML=html||('<p class="hint">'+t("Ничего не найдено")+'</p>');
+  var regs=[], code, src, j;
+  tripDraft.countries.forEach(function(code){
+    src=typeof regionsFor==="function"?regionsFor(code):null;
+    if(!src) return;
+    for(j=0;j<src.length;j++) regs.push(src[j]);
+  });
+  var wrap=document.getElementById("trip-regions-wrap");
+  var rbox=document.getElementById("trip-regions");
+  if(wrap) wrap.hidden=!regs.length;
+  if(rbox){
+    rbox.innerHTML=regs.map(function(r){
+      var on=tripDraft.regions.indexOf(r.id)>=0;
+      return '<button type="button" class="'+(on?"on":"")+'" data-tr="'+escLabel(r.id)+'">'+escLabel(regionLabel(r.n))+(on?"  ✓":"")+'</button>';
+    }).join("");
+  }
+  var routes=typeof ROUTES!=="undefined"?ROUTES:[];
+  var rt=document.getElementById("trip-routes");
+  if(rt){
+    rt.innerHTML=routes.map(function(r){
+      var on=tripDraft.routes.indexOf(r.id)>=0;
+      var label=(r.from||"")+" → "+(r.to||"")+(r.date?" · "+r.date:"");
+      return '<button type="button" class="'+(on?"on":"")+'" data-tu="'+r.id+'">'+escLabel(label)+(on?"  ✓":"")+'</button>';
+    }).join("") || '<p class="hint">'+t("Нет маршрутов")+'</p>';
+  }
+  var del=document.getElementById("trip-delete");
+  if(del) del.hidden=!!tripDraft.isNew;
+}
+function bindTripEditor(){
+  var panel=document.getElementById("trip-panel");
+  if(!panel || panel._bound) return;
+  panel._bound=1;
+  panel.addEventListener("click", function(e){
+    if(e.target===panel) closeTripEditor();
+    var c=e.target.closest && e.target.closest("[data-tc]");
+    var r=e.target.closest && e.target.closest("[data-tr]");
+    var u=e.target.closest && e.target.closest("[data-tu]");
+    if(!tripDraft) return;
+    if(c){
+      var id=c.getAttribute("data-tc");
+      var at=tripDraft.countries.indexOf(id);
+      if(at>=0){
+        tripDraft.countries.splice(at,1);
+        tripDraft.regions=tripDraft.regions.filter(function(rid){
+          var rec=typeof regionRecord==="function"?regionRecord(rid):null;
+          var cc=rec&&rec.c?rec.c:(String(rid).indexOf(":")>0?String(rid).slice(0,String(rid).indexOf(":")):"");
+          return cc!==id;
+        });
+      } else tripDraft.countries.push(id);
+      paintTripEditor();
+    } else if(r){
+      var rid=r.getAttribute("data-tr");
+      var ai=tripDraft.regions.indexOf(rid);
+      if(ai>=0) tripDraft.regions.splice(ai,1);
+      else tripDraft.regions.push(rid);
+      paintTripEditor();
+    } else if(u){
+      var uid=u.getAttribute("data-tu");
+      var aj=tripDraft.routes.indexOf(uid);
+      if(aj>=0) tripDraft.routes.splice(aj,1);
+      else tripDraft.routes.push(uid);
+      paintTripEditor();
+    }
+  });
+  var title=document.getElementById("trip-title");
+  if(title) title.addEventListener("input", function(){ if(tripDraft) tripDraft.title=title.value; });
+  var q=document.getElementById("trip-country-q");
+  if(q) q.addEventListener("input", function(){ paintTripEditor(); });
+  var closeBtn=document.getElementById("trip-close");
+  var cancel=document.getElementById("trip-cancel");
+  if(closeBtn) closeBtn.onclick=function(e){ e.stopPropagation(); closeTripEditor(); };
+  if(cancel) cancel.onclick=function(e){ e.stopPropagation(); closeTripEditor(); };
+  var save=document.getElementById("trip-save");
+  if(save) save.onclick=function(e){
+    e.stopPropagation();
+    if(!tripDraft) return;
+    var name=document.getElementById("trip-title");
+    if(name) tripDraft.title=name.value.trim();
+    if(!tripDraft.countries.length && !tripDraft.regions.length && !tripDraft.routes.length){
+      alert(t("Отметьте страну, регион или маршрут"));
+      return;
+    }
+    if(!tripDraft.title){
+      tripDraft.title=tripDraft.countries.map(function(id){
+        var rec=countryRecord(id);
+        return rec?countryLabel(rec):id;
+      }).filter(Boolean).slice(0,3).join(", ") || t("Поездка");
+    }
+    var list=loadTrips().filter(function(tp){ return tp.id!==tripDraft.id; });
+    list.unshift({
+      id:tripDraft.id,
+      title:tripDraft.title,
+      countries:tripDraft.countries.slice(),
+      regions:tripDraft.regions.slice(),
+      routes:tripDraft.routes.slice()
+    });
+    saveTrips(list);
+    selectedTripId=tripDraft.id;
+    activeTab="trips";
+    var tabs=document.querySelectorAll(".tab");
+    for(var i=0;i<tabs.length;i++) tabs[i].classList.toggle("on", tabs[i].getAttribute("data-tab")==="trips");
+    closeTripEditor();
+    render();
+  };
+  var del=document.getElementById("trip-delete");
+  if(del) del.onclick=function(e){
+    e.stopPropagation();
+    if(!tripDraft || tripDraft.isNew) return;
+    if(!confirm(t("Удалить поездку")+"?")) return;
+    saveTrips(loadTrips().filter(function(tp){ return tp.id!==tripDraft.id; }));
+    if(selectedTripId===tripDraft.id) selectedTripId=null;
+    closeTripEditor();
+    render();
+  };
+}
+bindTripEditor();
+
 
 })();
 
