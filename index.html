@@ -711,9 +711,7 @@ html,body{
   position:fixed;inset:0;
 }
 input,select,textarea{font-size:16px!important}
-#map,#globe{position:fixed;inset:0;z-index:0;background:transparent!important;touch-action:none;pointer-events:none!important}
-#new-map-base{position:fixed;inset:0;width:100%;height:100%;border:0;z-index:0;background:transparent}
-#map .leaflet-pane{visibility:hidden!important}
+#map,#globe{position:fixed;inset:0;z-index:0;background:var(--map-bg);touch-action:none}
 .leaflet-control-attribution,.leaflet-bottom{display:none!important}
 
 /* ——— Top bar (Flighty-style glass) ——— */
@@ -853,16 +851,12 @@ input,select,textarea{font-size:16px!important}
   font-size:11px;font-weight:700;cursor:pointer;
 }
 .play-trips.on{background:#e37b14;color:#fff;border-color:transparent}
-#trip-flyer{position:fixed;left:0;top:0;z-index:46;width:0;height:0;pointer-events:none;display:none}
+#trip-flyer{position:fixed;left:0;top:0;z-index:80;width:0;height:0;pointer-events:none;display:none}
 #trip-flyer.on{display:block}
-.trip-card{position:absolute;left:0;top:0;transform:translate(-50%,-62%)}
-.trip-country{position:absolute;left:50%;bottom:calc(100% + 8px);transform:translateX(-50%);max-width:220px;padding:5px 12px;border-radius:999px;background:rgba(12,16,24,.88);color:#fff;font-size:13px;font-weight:750;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 8px 22px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.22)}
-.trip-ring{position:absolute;left:50%;top:58%;width:74px;height:74px;border-radius:50%;transform:translate(-50%,-50%);border:2px solid var(--trip-c,#3b82f6);opacity:.85;animation:trip-ring 1.5s ease-out infinite}
-.trip-badge{width:62px;height:62px;border-radius:50%;position:relative;display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 32% 28%, #fff 0%, #f7f8fb 46%, #e6ebf2 100%);border:3px solid #fff;color:var(--trip-c,#3b82f6);box-shadow:0 10px 26px rgba(0,0,0,.38), 0 0 0 7px color-mix(in srgb, var(--trip-c,#3b82f6) 32%, transparent)}
-.trip-badge.pop{animation:trip-pop .42s ease}
-.trip-ico{width:32px;height:32px;display:block}
-.trip-ico svg{width:32px;height:32px;display:block}
-#trip-banner{position:fixed;z-index:46;left:50%;top:calc(70px + env(safe-area-inset-top,0px));transform:translateX(-50%);display:none;max-width:min(92vw,420px);padding:7px 14px;border-radius:999px;pointer-events:none;background:rgba(12,16,24,.9);color:#fff;font-size:13px;font-weight:750;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid rgba(255,255,255,.2);box-shadow:0 10px 28px rgba(0,0,0,.35)}
+.trip-card{position:absolute;left:0;top:0;transform:translate(-50%,-78%)}
+.trip-country{position:absolute;left:50%;bottom:calc(100% - 6px);transform:translateX(-50%);max-width:240px;padding:5px 12px;border-radius:999px;background:rgba(12,16,24,.88);color:#fff;font-size:13px;font-weight:750;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:0 8px 22px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.22)}
+.trip-model{width:112px;height:112px;display:block;pointer-events:none}
+#trip-banner{position:fixed;z-index:80;left:50%;top:calc(70px + env(safe-area-inset-top,0px));transform:translateX(-50%);display:none;max-width:min(92vw,420px);padding:7px 14px;border-radius:999px;pointer-events:none;background:rgba(12,16,24,.9);color:#fff;font-size:13px;font-weight:750;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:1px solid rgba(255,255,255,.2);box-shadow:0 10px 28px rgba(0,0,0,.35)}
 #trip-banner.on{display:block}
 @keyframes trip-ring{0%{transform:translate(-50%,-50%) scale(.72);opacity:.8}100%{transform:translate(-50%,-50%) scale(1.35);opacity:0}}
 @keyframes trip-pop{0%{transform:scale(.86)}55%{transform:scale(1.08)}100%{transform:scale(1)}}
@@ -954,7 +948,8 @@ input,select,textarea{font-size:16px!important}
   font-size:13px;line-height:1.35;
 }
 #live-trip.on{display:block}
-#live-trip .lt-title{font-weight:700;font-size:14px;margin-bottom:4px;letter-spacing:-0.02em}
+#live-trip .lt-title{font-weight:700;font-size:14px;margin-bottom:4px;letter-spacing:-0.02em;display:flex;justify-content:space-between;align-items:center;gap:8px}
+#live-hide{border:0;background:transparent;color:var(--muted);font-weight:700;font-size:12px;cursor:pointer;padding:4px 2px}
 #live-trip .lt-meta{opacity:.8;font-size:12px}
 #live-trip .lt-bar{height:3px;background:rgba(255,255,255,.1);border-radius:4px;margin-top:8px;overflow:hidden}
 #live-trip .lt-bar>i{display:block;height:100%;background:linear-gradient(90deg,#60a5fa,#818cf8);border-radius:4px;width:0%;transition:width .6s}
@@ -1395,7 +1390,6 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     <button type="submit" data-i18n="Войти">Войти</button>
   </form>
 </div>
-<iframe id="new-map-base" title="Карта и глобус TravelEk" src="./world-map-globe.html" loading="eager"></iframe>
 <div id="map"></div>
 <div id="map-hover-label" class="map-hover-label" aria-live="polite"></div>
 <div id="visit-confirm" class="visit-confirm" role="dialog" aria-modal="true" aria-labelledby="visit-confirm-title"><div class="visit-confirm-card"><div class="visit-confirm-icon">✓</div><h2 id="visit-confirm-title" data-i18n="Вы были тут?">Вы были тут?</h2><p id="visit-confirm-desc"></p><div class="visit-confirm-actions"><button type="button" class="visit-no" id="visit-confirm-no" data-i18n="Нет">Нет</button><button type="button" class="visit-yes" id="visit-confirm-yes" data-i18n="Да, был(а)">Да, был(а)</button></div></div></div>
@@ -1702,6 +1696,8 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 </script>
 
 <script src="src/polygon-clipping.min.js"></script>
+<script src="geo/atlas-data.js"></script>
+<script src="src/atlas.js"></script>
 <script>
 
 (function(){
@@ -8343,9 +8339,8 @@ var RAIL_EDGES = [
   ["w_nyc","w_chicago"],["w_chicago","w_denver"],["w_denver","w_slc"],["w_slc","w_sf"],
   ["w_sf","w_la"],["w_la","w_dallas"],["w_dallas","w_chicago"],["w_seattle","w_vancouver"],
   ["w_seattle","w_portland"],["w_portland","w_sf"],["w_chicago","w_toronto"],["w_toronto","w_montreal"],
-  ["w_nyc","w_montreal"],["w_la","w_mexicocity"],
-  ["w_saopaulo","w_rio"],["w_saopaulo","w_brasilia"],["w_saopaulo","w_buenosaires"],
-  ["w_santiago","w_buenosaires"],["w_bogota","w_quito"],["w_quito","w_lima"],["w_lima","w_santiago"],
+  ["w_nyc","w_montreal"],
+  ["w_saopaulo","w_rio"],["w_saopaulo","w_brasilia"],
   ["w_cairo","w_alexandria"],["w_tunis","w_tripoli"],["w_tripoli","w_cairo"],
   ["w_tunis","w_algiers"],["w_algiers","w_casablanca"],["w_casablanca","w_marrakech"],
   ["w_johannesburg","w_durban"],["w_johannesburg","w_capetown"],["w_nairobi","w_mombasa"],
@@ -8452,7 +8447,7 @@ function trainPlan(from, to){
   if(keys&&keys.length>=2){
     pts=keys.map(function(k){ return [RAIL_NODES[k][0], RAIL_NODES[k][1]]; });
     pts[0]=[a.lat,a.lng]; pts[pts.length-1]=[b.lat,b.lng];
-  } else pts=[[a.lat,a.lng],[b.lat,b.lng]];
+  } else return {coords:null, hops:[], a:a, b:b, linked:false};
   var coords=[], hops=[], p, q, d, key, cached, seg;
   function append(line){
     var s=0, last;
@@ -8477,7 +8472,7 @@ function trainPlan(from, to){
     if(d>=55 && cached==null) hops.push([p,q]);
   }
   if(coords.length<2) coords=pts;
-  return {coords:coords, hops:hops, a:a, b:b};
+  return {coords:coords, hops:hops, a:a, b:b, linked:true};
 }
 function trainCoords(from,to){
   var plan=trainPlan(from,to);
@@ -8537,7 +8532,7 @@ function routeSmart(a,b,depth,cb){
   fetchOsrm(a,b,function(coords){
     if(coords&&coords.length>=2&&(coords.length>=8||d<90)){ cb(coords); return; }
     if(depth>=3 || d<160){
-      cb(coords&&coords.length>=2?coords:densify([[a.lat,a.lng],[b.lat,b.lng]], 16));
+      cb(null);
       return;
     }
     var midPt=flightArc(a,b,2)[1];
@@ -8610,8 +8605,25 @@ function tripWindow(r){
 }
 function isInProgress(r){
   var w=tripWindow(r); if(!w) return false;
+  if(liveHidden(r.id)) return false;
   var now=new Date();
-  return now>=w.start && now<=w.end;
+  if(now<w.start || now>w.end) return false;
+  /* Без времени прибытия длинная оценка не должна висеть карточкой несколько суток. */
+  if(!(r.arrDate||r.arrTime)){
+    var hours=(w.end.getTime()-w.start.getTime())/36e5;
+    if(hours>16) return false;
+  }
+  return true;
+}
+function liveHidden(id){
+  if(!id) return false;
+  try{ return JSON.parse(localStorage.getItem("travelek-live-hide")||"[]").indexOf(id)>=0; }catch(e){ return false; }
+}
+function hideLive(ids){
+  var cur=[];
+  try{ cur=JSON.parse(localStorage.getItem("travelek-live-hide")||"[]"); }catch(e){}
+  ids.forEach(function(id){ if(id && cur.indexOf(id)<0) cur.push(id); });
+  try{ localStorage.setItem("travelek-live-hide", JSON.stringify(cur.slice(-80))); }catch(e){}
 }
 function tripProgress(r){
   var w=tripWindow(r); if(!w) return 0;
@@ -8660,7 +8672,7 @@ function updateLiveTrip(){
     return;
   }
   var icons={plane:"✈️",train:"🚂",car:"🚗",walk:"🚶",bike:"🚴",ship:"🚢"};
-  var htmlL='<div class="lt-title">Сейчас в пути · '+live.length+'</div><div class="lt-list">';
+  var htmlL='<div class="lt-title"><span>'+t("Сейчас в пути")+" · "+live.length+'</span><button type="button" id="live-hide">'+t("Убрать")+"</button></div><div class=\"lt-list\">";
   live.forEach(function(r, idx){
     var g=buildGeoSync(r);
     var p=tripProgress(r);
@@ -8682,6 +8694,12 @@ function updateLiveTrip(){
   htmlL+="</div>";
   box.innerHTML=htmlL;
   box.classList.add("on");
+  var hideBtn=document.getElementById("live-hide");
+  if(hideBtn) hideBtn.onclick=function(ev){
+    ev.stopPropagation();
+    hideLive(live.map(function(r){ return r.id; }));
+    updateLiveTrip();
+  };
 }
 
 /* Анимация выбранного / текущего рейса по времени */
@@ -8776,6 +8794,136 @@ function tripDurationMs(r, g){
   var extra=Math.min(1600, km*(r.mode==="plane"?0.12:0.35));
   return Math.max(1600, Math.min(4200, base+extra));
 }
+var VEHICLE_MESH={};
+function vtri(out, a, b, c, col){
+  out.push([a[0],a[1],a[2], b[0],b[1],b[2], c[0],c[1],c[2], col]);
+}
+function vquad(out, a, b, c, d, col){
+  vtri(out, a, b, c, col);
+  vtri(out, a, c, d, col);
+}
+function vbox(out, x, y, z, sx, sy, sz, col){
+  var x0=x-sx/2, x1=x+sx/2, y0=y-sy/2, y1=y+sy/2, z0=z-sz/2, z1=z+sz/2;
+  var p=[[x0,y0,z1],[x1,y0,z1],[x1,y1,z1],[x0,y1,z1],[x0,y0,z0],[x1,y0,z0],[x1,y1,z0],[x0,y1,z0]];
+  vquad(out, p[0], p[1], p[2], p[3], col);
+  vquad(out, p[5], p[4], p[7], p[6], col);
+  vquad(out, p[3], p[2], p[6], p[7], col);
+  vquad(out, p[4], p[5], p[1], p[0], col);
+  vquad(out, p[1], p[5], p[6], p[2], col);
+  vquad(out, p[4], p[0], p[3], p[7], col);
+}
+function vehicleMesh(mode){
+  if(VEHICLE_MESH[mode]) return VEHICLE_MESH[mode];
+  var o=[], W=0xf7f8fb, BLUE=0x1f4f97, RED=0xc8102e, GLASS=0x9ecff0, STEEL=0xb7c3ce, DARK=0x2a3038;
+  if(mode==="train"){
+    vbox(o, 0, 0.72, 3.15, 1.55, 1.35, 3.3, 0xc1121f);
+    vbox(o, 0, 0.78, 5.05, 1.35, 1.05, 1.15, 0x9a1018);
+    vbox(o, 0, 1.05, 3.2, 1.35, 0.42, 2.4, GLASS);
+    vbox(o, 0, 0.95, 4.85, 1.15, 0.38, 0.7, GLASS);
+    vbox(o, 0, 1.42, 3.1, 1.35, 0.12, 3.1, 0x5c656e);
+    vbox(o, 0, 0.62, -0.55, 1.48, 1.22, 3.5, 0x8e1c24);
+    vbox(o, 0, 0.95, -0.55, 1.28, 0.36, 2.6, GLASS);
+    vbox(o, 0, 1.28, -0.55, 1.32, 0.1, 3.3, 0x5c656e);
+    vbox(o, 0, 0.62, -4.25, 1.48, 1.22, 3.5, 0x8e1c24);
+    vbox(o, 0, 0.95, -4.25, 1.28, 0.36, 2.6, GLASS);
+    vbox(o, 0, 1.28, -4.25, 1.32, 0.1, 3.3, 0x5c656e);
+    [-1.4,1.4].forEach(function(z){ vbox(o, -0.62, 0.08, z, 0.38, 0.38, 0.38, DARK); vbox(o, 0.62, 0.08, z, 0.38, 0.38, 0.38, DARK); });
+    [-0.5,-4.2].forEach(function(z){ vbox(o, -0.58, 0.08, z, 0.36, 0.36, 0.36, DARK); vbox(o, 0.58, 0.08, z, 0.36, 0.36, 0.36, DARK); });
+    vbox(o, 0, 0.55, 5.55, 0.9, 0.28, 0.12, 0xf6e27a);
+  } else if(mode==="car"){
+    vbox(o, 0, 0.48, 0.15, 1.55, 0.62, 2.7, 0xe6e1d4);
+    vbox(o, 0, 0.95, -0.15, 1.38, 0.52, 1.45, GLASS);
+    vbox(o, 0, 0.78, -0.15, 1.42, 0.22, 1.55, 0xfbfbfb);
+    vbox(o, 0, 0.42, 1.15, 1.48, 0.42, 0.7, 0xd9d3c4);
+    vbox(o, 0, 0.38, -1.15, 1.48, 0.4, 0.55, 0xd0c9b8);
+    vbox(o, -0.78, 0.22, 0.85, 0.38, 0.46, 0.46, DARK);
+    vbox(o, 0.78, 0.22, 0.85, 0.38, 0.46, 0.46, DARK);
+    vbox(o, -0.78, 0.22, -0.85, 0.38, 0.46, 0.46, DARK);
+    vbox(o, 0.78, 0.22, -0.85, 0.38, 0.46, 0.46, DARK);
+    vbox(o, -0.42, 0.48, 1.48, 0.22, 0.16, 0.08, 0xf6e27a);
+    vbox(o, 0.42, 0.48, 1.48, 0.22, 0.16, 0.08, 0xf6e27a);
+    vbox(o, 0, 0.62, 0.15, 1.58, 0.08, 2.2, RED);
+  } else if(mode==="ship"){
+    vbox(o, 0, 0.25, 0, 1.6, 0.45, 5.2, 0xf4f7fb);
+    vbox(o, 0, 0.05, 0.2, 1.9, 0.28, 4.2, 0x1a6ea8);
+    vbox(o, 0, 0.85, -0.4, 1.2, 0.7, 1.8, W);
+    vbox(o, 0, 1.55, -0.4, 0.12, 1.1, 0.12, STEEL);
+  } else if(mode==="bike"){
+    vbox(o, 0, 0.35, 0.7, 0.12, 0.7, 0.9, 0x234e8c);
+    vbox(o, -0.55, 0.15, 0.9, 0.12, 0.55, 0.55, DARK);
+    vbox(o, 0.55, 0.15, 0.9, 0.12, 0.55, 0.55, DARK);
+    vbox(o, -0.55, 0.15, -0.8, 0.12, 0.55, 0.55, DARK);
+    vbox(o, 0.55, 0.15, -0.8, 0.12, 0.55, 0.55, DARK);
+  } else if(mode==="walk"){
+    vbox(o, 0, 1.15, 0, 0.55, 0.85, 0.35, 0x1f4f97);
+    vbox(o, 0, 1.85, 0, 0.38, 0.38, 0.38, 0xf0c7a4);
+    vbox(o, 0, 0.45, 0.1, 0.22, 0.7, 0.22, 0x243044);
+    vbox(o, 0.28, 0.45, -0.05, 0.22, 0.7, 0.22, 0x243044);
+  } else {
+    vbox(o, 0, 0.35, 0.2, 1.15, 1.15, 7.6, W);
+    vbox(o, 0, 0.28, 4.5, 0.72, 0.78, 1.7, W);
+    vbox(o, 0, 0.15, 0.4, 10.6, 0.16, 2.05, 0xe7eef6);
+    vbox(o, 0, 0.22, 0.15, 1.2, 0.14, 6.4, BLUE);
+    vbox(o, 0, 0.42, -3.55, 3.5, 0.12, 1.05, W);
+    vbox(o, 0, 1.25, -3.55, 0.16, 1.85, 1.25, BLUE);
+    vbox(o, 0, 1.25, -3.05, 0.18, 1.9, 0.28, RED);
+    vbox(o, -2.15, -0.05, 0.55, 0.72, 0.72, 2.15, STEEL);
+    vbox(o, 2.15, -0.05, 0.55, 0.72, 0.72, 2.15, STEEL);
+    vbox(o, 0, 0.55, 1.6, 0.7, 0.32, 0.9, GLASS);
+    vbox(o, 0, 0.15, 5.15, 0.2, 0.2, 0.2, RED);
+  }
+  VEHICLE_MESH[mode]=o;
+  return o;
+}
+function paintVehicle(cv, mode, heading){
+  if(!cv) return;
+  var w=180, h=180, dpr=2;
+  if(cv.width!==w*dpr){ cv.width=w*dpr; cv.height=h*dpr; }
+  var ctx=cv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle="rgba(8,12,20,.28)";
+  ctx.beginPath();
+  ctx.ellipse(w/2, h*0.8, 36, 10, 0, 0, Math.PI*2);
+  ctx.fill();
+  var faces=vehicleMesh(mode||"plane");
+  var rad=(heading||0)*Math.PI/180, co=Math.cos(rad), si=Math.sin(rad);
+  var items=[], i, f, j, x, y, z, xr, zr, depth, pts, col, R, G, B, shade;
+  var ux, uy, uz, vx, vy, vz, nx, ny, nz, nxr, nzr, nl, light;
+  for(i=0;i<faces.length;i++){
+    f=faces[i];
+    pts=[]; depth=0;
+    for(j=0;j<3;j++){
+      x=f[j*3]; y=f[j*3+1]; z=f[j*3+2];
+      xr=x*co+z*si; zr=-x*si+z*co;
+      depth+=zr;
+      pts.push([w/2+xr*8.1, h*0.66-zr*6.15-y*7.1]);
+    }
+    ux=f[3]-f[0]; uy=f[4]-f[1]; uz=f[5]-f[2];
+    vx=f[6]-f[0]; vy=f[7]-f[1]; vz=f[8]-f[2];
+    nx=uy*vz-uz*vy; ny=uz*vx-ux*vz; nz=ux*vy-uy*vx;
+    nl=Math.hypot(nx,ny,nz)||1;
+    nxr=nx*co+nz*si; nzr=-nx*si+nz*co;
+    light=(-0.4*nxr+0.82*ny+0.42*nzr)/nl;
+    shade=0.38+0.7*Math.max(0, light);
+    col=f[9];
+    R=Math.max(0, Math.min(255, ((col>>16)&255)*shade));
+    G=Math.max(0, Math.min(255, ((col>>8)&255)*shade));
+    B=Math.max(0, Math.min(255, (col&255)*shade));
+    items.push({pts:pts, depth:depth, col:"rgb("+Math.round(R)+","+Math.round(G)+","+Math.round(B)+")"});
+  }
+  items.sort(function(a,b){ return a.depth-b.depth; });
+  for(i=0;i<items.length;i++){
+    pts=items[i].pts;
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], pts[0][1]);
+    ctx.lineTo(pts[1][0], pts[1][1]);
+    ctx.lineTo(pts[2][0], pts[2][1]);
+    ctx.closePath();
+    ctx.fillStyle=items[i].col;
+    ctx.fill();
+  }
+}
 function tripIconSvg(mode){
   if(mode==="train") return '<svg viewBox="0 0 48 48"><path fill="currentColor" d="M16 5h16c4 0 8 3 8 8v18c0 4-3 7-7 8l2 6h-5l-2-6H20l-2 6h-5l2-6c-4-1-7-4-7-8V13c0-5 4-8 8-8z"/><rect x="18" y="12" width="12" height="8" rx="2" fill="#fff"/><circle cx="19" cy="29" r="2" fill="#fff"/><circle cx="29" cy="29" r="2" fill="#fff"/></svg>';
   if(mode==="car") return '<svg viewBox="0 0 48 48"><path fill="currentColor" d="M17 6h14l3 9v15c0 2-2 4-4 4v6h-5v-6h-2v6h-5v-6c-2 0-4-2-4-4V15l3-9z"/><rect x="18" y="16" width="12" height="7" rx="2" fill="#fff"/></svg>';
@@ -8801,19 +8949,15 @@ function countryNameAt(lat, lng){
   return (rec&&(rec.n||rec.i))||id;
 }
 function routeCountryNames(r){
-  var g=buildGeoSync(r), names=[], i, step;
-  function add(lat, lng){
-    var n=countryNameAt(lat, lng);
-    if(n && names[names.length-1]!==n) names.push(n);
+  var g=buildGeoSync(r), names=[];
+  function add(p){
+    if(!p) return;
+    var n=countryNameAt(p.lat, p.lng);
+    if(n && names.indexOf(n)<0) names.push(n);
   }
-  if(!g||!g.a) return names;
-  add(g.a.lat, g.a.lng);
-  if(g.coords&&g.coords.length){
-    step=Math.max(1, Math.floor(g.coords.length/7));
-    for(i=0;i<g.coords.length;i+=step) add(g.coords[i][0], g.coords[i][1]);
-    var last=g.coords[g.coords.length-1];
-    add(last[0], last[1]);
-  } else if(g.b) add(g.b.lat, g.b.lng);
+  if(!g) return names;
+  add(g.a);
+  add(g.b);
   return names;
 }
 function ensureTripFlyer(){
@@ -8821,7 +8965,7 @@ function ensureTripFlyer(){
   if(!el){
     el=document.createElement("div");
     el.id="trip-flyer";
-    el.innerHTML='<div class="trip-card"><div class="trip-country"></div><div class="trip-ring"></div><div class="trip-badge"><i class="trip-ico"></i></div></div>';
+    el.innerHTML='<div class="trip-card"><div class="trip-country"></div><canvas class="trip-model" width="180" height="180"></canvas></div>';
     document.body.appendChild(el);
   }
   if(!document.getElementById("trip-banner")){
@@ -8842,7 +8986,11 @@ function headingDeg(a, b){
 function placeFlyer(lat, lng, mode, country){
   var el=ensureTripFlyer();
   var x=null, y=null, visible=false;
-  if(typeof globeOn!=="undefined" && globeOn && globeCv && globeProjection){
+  if(typeof map!=="undefined" && map && map._isAtlas){
+    var ptA=map.latLngToContainerPoint([lat, lng]);
+    var boxA=map.getContainer().getBoundingClientRect();
+    if(ptA && !ptA.hidden){ x=boxA.left+ptA.x; y=boxA.top+ptA.y; visible=true; }
+  } else if(typeof globeOn!=="undefined" && globeOn && globeCv && globeProjection){
     var xy=null;
     try{ xy=globeProjection([lng, lat]); }catch(e){}
     if(xy){
@@ -8863,23 +9011,17 @@ function placeFlyer(lat, lng, mode, country){
   el.style.left=Math.round(x)+"px";
   el.style.top=Math.round(y)+"px";
   el.style.setProperty("--trip-c", tripColor(mode));
-  var ico=el.querySelector(".trip-ico");
-  if(ico && tripPlay.iconMode!==mode){
-    ico.innerHTML=tripIconSvg(mode);
+  var cv=el.querySelector(".trip-model");
+  var qh=Math.round((tripPlay.heading||0)/4)*4;
+  if(cv && (tripPlay.iconMode!==mode || tripPlay.modelH!==qh)){
+    paintVehicle(cv, mode, tripPlay.heading||0);
     tripPlay.iconMode=mode;
+    tripPlay.modelH=qh;
   }
-  if(ico) ico.style.transform="rotate("+(tripPlay.heading||0)+"deg)";
   var chip=el.querySelector(".trip-country");
   if(chip){
     chip.textContent=country||"";
     chip.style.display=country?"block":"none";
-  }
-  var badge=el.querySelector(".trip-badge");
-  if(badge && country && country!==tripPlay.popCountry){
-    tripPlay.popCountry=country;
-    badge.classList.remove("pop");
-    void badge.offsetWidth;
-    badge.classList.add("pop");
   }
 }
 function updateTripBanner(){
@@ -8962,7 +9104,7 @@ function startTripPlay(){
   });
   tripPlay.on=true;
   tripPlay.seen={};
-  tripPlay.seenCount=0;
+  tripPlay.seenCount=bag.length;
   tripPlay.country="";
   tripPlay.countryTotal=bag.length;
   tripPlay.popCountry="";
@@ -8999,13 +9141,13 @@ function startTripPlay(){
         var ahead=pointAlong(g.coords, Math.min(1, t+0.035));
         if(pt){
           tripPlay.heading=headingDeg({lat:pt[0],lng:pt[1]}, ahead?{lat:ahead[0],lng:ahead[1]}:null);
-          if(!tripPlay.sampleAt || now-tripPlay.sampleAt>260){
+          if(!r._stopLabel){
+            var stops=routeCountryNames(r);
+            r._stopLabel=stops.length>1?stops[0]+" → "+stops[stops.length-1]:(stops[0]||"");
+          }
+          tripPlay.country=r._stopLabel;
+          if(!tripPlay.sampleAt || now-tripPlay.sampleAt>400){
             tripPlay.sampleAt=now;
-            var name=countryNameAt(pt[0], pt[1]);
-            if(name){
-              if(!tripPlay.seen[name]){ tripPlay.seen[name]=1; tripPlay.seenCount++; }
-              tripPlay.country=name;
-            }
             updateTripBanner();
           }
           tripPlay.lat=pt[0];
@@ -9191,7 +9333,7 @@ function buildGeoSync(r){
   }
   if(r.mode==="train"){
     var plan=trainPlan(r.from, r.to);
-    if(!plan) return null;
+    if(!plan || !plan.linked || !plan.coords) return {coords:null, km:0, a:plan&&plan.a, b:plan&&plan.b, needRoad:false, railMiss:true};
     return {coords:plan.coords, km:pathKm(plan.coords), a:plan.a, b:plan.b, needRoad:plan.hops.length>0, hops:plan.hops};
   }
   /* car: roads via OSRM or offroad via waypoints */
@@ -9205,6 +9347,7 @@ function buildGeoSync(r){
   }
   var key=roadKey(a,b);
   var cached=roadCache[key];
+  if(cached==="fail" && hav(a,b)>100) return {coords:null, km:0, a:a, b:b, needRoad:false, roadMiss:true};
   if(cached && cached!=="fail" && cached!=="pending") coords=cached;
   else coords=densify([[a.lat,a.lng],[b.lat,b.lng]],15);
   return {coords:coords, km:pathKm(coords), a:a, b:b, needRoad:cached==null, hops:cached==null?[[a,b]]:[]};
@@ -9228,7 +9371,13 @@ var CITY_LABELS = [
 ];
 
 /* map */
-var map=L.map("map",{
+var map;
+if(window.TravelekAtlas){
+  map=window.TravelekAtlas.createMap();
+  try{ map.setAirports(AIRPORTS); }catch(e){}
+  map.setView([48, 37], 3.4);
+}else{
+map=L.map("map",{
   zoomControl:false,
   attributionControl:false,
   minZoom:2,
@@ -9241,6 +9390,7 @@ var map=L.map("map",{
   touchZoom:true,
   tap:true
 }).setView([45,20],4);
+}
 /* Dedicated top pane: route lines must never sit beneath country/night polygons. */
 var routePane=map.getPane("routePane")||map.createPane("routePane");
 routePane.style.zIndex="680";
@@ -9287,7 +9437,7 @@ function paintOn(group, poly, style, keepRaw){
   L.polygon(latlngs, style).addTo(group);
 }
 function drawWorld(){
-  if(typeof map==="undefined" || !map || typeof L==="undefined") return;
+  if(typeof map!=="undefined" && map && map._isAtlas) return;
   if(!worldLayer) worldLayer=L.layerGroup().addTo(map);
   worldLayer.clearLayers();
   if(typeof COUNTRY_LIST==="undefined" || !COUNTRY_LIST) return;
@@ -9338,10 +9488,177 @@ function drawWorld(){
   try{ worldLayer.bringToBack(); }catch(e){}
   if(typeof countryLayer!=="undefined" && countryLayer) try{ countryLayer.bringToFront(); }catch(e){}
   if(typeof layer!=="undefined" && layer) try{ layer.bringToFront(); }catch(e){}
+  if(typeof scheduleNet==="function") scheduleNet();
 }
 function makeBase(){
   drawWorld();
   return L.layerGroup();
+}
+
+var NET=null, netCv=null, netTimer=0, netLoading=false;
+function decodePolyline(str, prec){
+  var coords=[], i=0, lat=0, lng=0, shift, result, b, val, k;
+  while(i<str.length){
+    for(k=0;k<2;k++){
+      shift=0; result=0;
+      do{
+        if(i>=str.length) break;
+        b=str.charCodeAt(i++)-63;
+        result|=(b&0x1f)<<shift;
+        shift+=5;
+      } while(b>=0x20);
+      val=(result&1)?~(result>>1):(result>>1);
+      if(k===0) lat+=val; else lng+=val;
+    }
+    coords.push(lat/prec, lng/prec);
+  }
+  return coords;
+}
+function decodeTier(text, prec){
+  if(!text) return [];
+  var parts=text.split("\n"), out=[], i, pts, j, minLa, maxLa, minLn, maxLn;
+  for(i=0;i<parts.length;i++){
+    if(!parts[i]) continue;
+    pts=decodePolyline(parts[i], prec);
+    if(pts.length<4) continue;
+    minLa=maxLa=pts[0]; minLn=maxLn=pts[1];
+    for(j=0;j<pts.length;j+=2){
+      if(pts[j]<minLa) minLa=pts[j];
+      if(pts[j]>maxLa) maxLa=pts[j];
+      if(pts[j+1]<minLn) minLn=pts[j+1];
+      if(pts[j+1]>maxLn) maxLn=pts[j+1];
+    }
+    out.push({bb:[minLa, minLn, maxLa, maxLn], pts:pts});
+  }
+  return out;
+}
+function ensureNet(){
+  if((map && map._isAtlas) || netCv || !map) return;
+  var pane=map.getPane("netPane");
+  if(!pane) pane=map.createPane("netPane");
+  pane.style.zIndex="460";
+  pane.style.pointerEvents="none";
+  netCv=document.createElement("canvas");
+  netCv.className="net-cv";
+  pane.appendChild(netCv);
+  map.on("move zoom resize", scheduleNet);
+  if(!NET && !netLoading){
+    netLoading=true;
+    fetch("./geo/network.json?v=8").then(function(r){ if(!r.ok) throw new Error("net"); return r.json(); }).then(function(data){
+      var prec=data.prec||1000;
+      NET={
+        roads:(data.roads||[]).map(function(t){ return decodeTier(t, prec); }),
+        rails:(data.rails||[]).map(function(t){ return decodeTier(t, prec); })
+      };
+      scheduleNet();
+      if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
+    }).catch(function(){ NET={roads:[], rails:[]}; });
+  }
+}
+function scheduleNet(){
+  if(netTimer) return;
+  netTimer=1;
+  var run=function(){ netTimer=0; drawNet(); };
+  if(window.requestAnimationFrame) requestAnimationFrame(run); else run();
+}
+function drawNet(){
+  ensureNet();
+  if(!netCv || !map) return;
+  var size=map.getSize();
+  var dpr=Math.min(window.devicePixelRatio||1, 2);
+  if(netCv.width!==Math.round(size.x*dpr) || netCv.height!==Math.round(size.y*dpr)){
+    netCv.width=Math.round(size.x*dpr);
+    netCv.height=Math.round(size.y*dpr);
+    netCv.style.width=size.x+"px";
+    netCv.style.height=size.y+"px";
+  }
+  var topLeft=map.containerPointToLayerPoint([0,0]);
+  if(window.L && L.DomUtil) L.DomUtil.setPosition(netCv, topLeft);
+  var ctx=netCv.getContext("2d");
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,size.x,size.y);
+  var z=map.getZoom();
+  var b=map.getBounds();
+  var south=b.getSouth(), north=b.getNorth(), west=b.getWest(), east=b.getEast();
+  var theme=document.documentElement.getAttribute("data-theme")||"dark";
+  ctx.lineJoin="round";
+  ctx.lineCap="round";
+  ctx.strokeStyle=theme==="light"?"rgba(72,48,28,.72)":"rgba(232,214,186,.92)";
+  ctx.lineWidth=z>=6?1.25:1.05;
+  ctx.beginPath();
+  if(typeof REGIONS_BY!=="undefined" && REGIONS_BY){
+    Object.keys(REGIONS_BY).forEach(function(code){
+      var list=REGIONS_BY[code], i, reg, polys, k, ring, p, pt, on;
+      for(i=0;i<list.length;i++){
+        reg=list[i];
+        if(z<5 && reg.b && (reg.b[2]-reg.b[0])<1.1 && Math.min(8, reg.b[3]-reg.b[1])<1.1) continue;
+        if(reg.b && (reg.b[2]<south || reg.b[0]>north)) continue;
+        polys=polysOf(reg);
+        for(k=0;k<polys.length;k++){
+          ring=polys[k][0];
+          if(!ring||ring.length<2) continue;
+          on=false;
+          for(p=0;p<ring.length;p++){
+            pt=map.latLngToContainerPoint([ring[p][1], ring[p][0]]);
+            if(!on){ ctx.moveTo(pt.x, pt.y); on=true; }
+            else ctx.lineTo(pt.x, pt.y);
+          }
+        }
+      }
+    });
+  }
+  ctx.stroke();
+  function strokeLines(lines, color, width){
+    if(!lines||!lines.length) return;
+    ctx.beginPath();
+    ctx.strokeStyle=color;
+    ctx.lineWidth=width;
+    var i, line, pts, j, pt, on, bb;
+    for(i=0;i<lines.length;i++){
+      line=lines[i]; bb=line.bb;
+      if(bb[2]<south||bb[0]>north||bb[3]<west||bb[1]>east) continue;
+      pts=line.pts; on=false;
+      for(j=0;j<pts.length;j+=2){
+        pt=map.latLngToContainerPoint([pts[j], pts[j+1]]);
+        if(!on){ ctx.moveTo(pt.x, pt.y); on=true; }
+        else ctx.lineTo(pt.x, pt.y);
+      }
+    }
+    ctx.stroke();
+  }
+  if(NET){
+    var rc=theme==="light"?"rgba(92,64,40,.8)":"rgba(214,164,96,.9)";
+    var lc=theme==="light"?"rgba(40,48,58,.82)":"rgba(186,198,210,.9)";
+    var ri=z>=8?3:z>=5?2:z>=3?1:0;
+    var oi=z>=10?4:z>=8?3:z>=6?2:z>=4?1:0;
+    var t;
+    for(t=0;t<ri && t<NET.rails.length;t++) strokeLines(NET.rails[t], lc, t===0?1.35:0.9);
+    for(t=0;t<oi && t<NET.roads.length;t++) strokeLines(NET.roads[t], rc, t===0?1.15:0.75);
+  }
+}
+function strokeGlobeNet(ctx, projection){
+  if(!NET || !projection) return;
+  function stroke(lines, color, width){
+    if(!lines) return;
+    ctx.beginPath();
+    ctx.strokeStyle=color;
+    ctx.lineWidth=width;
+    ctx.lineJoin="round";
+    ctx.lineCap="round";
+    var i, pts, j, xy, on;
+    for(i=0;i<lines.length;i+= (lines.length>2500?2:1)){
+      pts=lines[i].pts; on=false;
+      for(j=0;j<pts.length;j+=2){
+        try{ xy=projection([pts[j+1], pts[j]]); }catch(e){ xy=null; }
+        if(!xy || isNaN(xy[0])){ on=false; continue; }
+        if(!on){ ctx.moveTo(xy[0], xy[1]); on=true; }
+        else ctx.lineTo(xy[0], xy[1]);
+      }
+    }
+    ctx.stroke();
+  }
+  if(NET.rails && NET.rails[0]) stroke(NET.rails[0], "rgba(55,62,72,.72)", 0.8);
+  if(globeScale>=1.35 && NET.roads && NET.roads[0]) stroke(NET.roads[0], "rgba(150,102,48,.7)", 0.7);
 }
 
 /* ——— Ночь на карте (терминатор Солнца) ——— */
@@ -9388,9 +9705,30 @@ function buildNightLatLngs(date){
   return pts;
 }
 
-function postMapMessage(data){var f=document.getElementById("new-map-base");if(f&&f.contentWindow)try{f.contentWindow.postMessage(data,"*");}catch(e){}}
-function syncMapBridge(){postMapMessage({type:"travelek-mode",mode:globeOn?"globe":"flat"});postMapMessage({type:"travelek-airports",airports:typeof AIRPORTS!=="undefined"?AIRPORTS:[]});if(window.__travelekOverlayRoutes)postMapMessage({type:"travelek-routes",routes:window.__travelekOverlayRoutes});}
-function applyGlobeEffect(){var el=document.getElementById("map");if(el){el.classList.remove("globe-mode");el.style.visibility="";}document.body.classList.toggle("globe-on",!!globeOn);if(globeCv)globeCv.style.display="none";postMapMessage({type:"travelek-mode",mode:globeOn?"globe":"flat"});}
+function applyGlobeEffect(){
+  if(typeof map!=="undefined" && map && map._isAtlas){
+    document.body.classList.toggle("globe-on", !!globeOn);
+    var el=document.getElementById("map");
+    if(el){ el.style.visibility=""; el.classList.remove("globe-mode"); }
+    if(globeCv) globeCv.style.display="none";
+    map.setMode(globeOn ? "globe" : "flat");
+    return;
+  }
+  var el=document.getElementById("map");
+  if(el) el.classList.remove("globe-mode");
+  document.body.classList.toggle("globe-on", !!globeOn);
+  if(el) el.style.visibility=globeOn?"hidden":"";
+  if(!globeOn){
+    if(globeCv) globeCv.style.display="none";
+    return;
+  }
+  ensureGlobe(function(){
+    globeCv.style.display="block";
+    globeCv.style.zIndex="23";
+    scheduleGlobe();
+    setTimeout(function(){ if(globeOn) drawGlobe(); }, 50);
+  });
+}
 
 var globeCv=null, globeRot={lng:40, lat:26}, globeScale=1, globeLand=null, globeSpin=0, globePtr=null, globeProjection=null, globeTapTimer=0;
 function loadScriptOnce(src){
@@ -9622,6 +9960,19 @@ function drawGlobe(){
     }
     gold(pack.ru);
     gold(pack.cn);
+    if(typeof REGIONS_BY!=="undefined" && REGIONS_BY){
+      Object.keys(REGIONS_BY).forEach(function(code){
+        if(code==="RU" || code==="CN") return;
+        var list=REGIONS_BY[code], k, reg, parts, p;
+        for(k=0;k<list.length;k++){
+          reg=list[k];
+          if(!ron[reg.id]) continue;
+          if(!reg._gpolys) reg._gpolys=globePolys(reg);
+          parts=reg._gpolys||[];
+          for(p=0;p<parts.length;p++) paintGeom(parts[p].geom, "#e0b15a", 2.2);
+        }
+      });
+    }
   }
   if(d3.geoGraticule10){
     ctx.beginPath();
@@ -9630,6 +9981,7 @@ function drawGlobe(){
     ctx.lineWidth=0.6;
     ctx.stroke();
   }
+  if(typeof strokeGlobeNet==="function") strokeGlobeNet(ctx, projection);
   var routes=typeof filtered==="function"?filtered():(typeof ROUTES!=="undefined"?ROUTES:[]);
   routes.forEach(function(r){
     var g=typeof buildGeoSync==="function"?buildGeoSync(r):null;
@@ -9665,6 +10017,7 @@ function drawGlobe(){
   ctx.stroke();
 }
 function scheduleGlobe(){
+  if(typeof map!=="undefined" && map && map._isAtlas) return;
   if(scheduleGlobe.pending) return;
   scheduleGlobe.pending=1;
   var run=function(){ scheduleGlobe.pending=0; drawGlobe(); };
@@ -9777,6 +10130,10 @@ function bindGlobePointer(){
 
 function updateNightLayer(){
   if(!map) return;
+  if(map._isAtlas){
+    if(nightLayer){ try{ map.removeLayer(nightLayer); }catch(e){} nightLayer=null; }
+    return;
+  }
   if(nightLayer){ try{ map.removeLayer(nightLayer); }catch(e){} nightLayer=null; }
   if(!nightOn) return;
   var ll=buildNightLatLngs(new Date());
@@ -9825,7 +10182,14 @@ var labelsLayer=L.layerGroup().addTo(map);
 var selectedId=null, activeTab="future", sheetState="mid";
 var lastBounds=null;
 
-function fitAll(){if(window.__travelekOverlayRoutes&&window.__travelekOverlayRoutes.length){var coords=[];window.__travelekOverlayRoutes.forEach(function(r){coords=coords.concat(r.coords||[]);});postMapMessage({type:"travelek-fit",coords:coords});}else postMapMessage({type:"travelek-zoom",action:"reset"});selectedId=null;}
+function fitAll(){
+  if(lastBounds&&lastBounds.length){
+    try{ map.fitBounds(lastBounds,{padding:[50,120],maxZoom:6}); }catch(e){}
+  } else {
+    map.setView([45,20],4);
+  }
+  selectedId=null;
+}
 
 var pickModeLabels=false;
 var worldLabelCache=null;
@@ -9881,6 +10245,16 @@ UI.en["Показать поездку"]="Play the trips";
 UI.zh["Показать поездку"]="播放行程";
 UI.en["Стоп"]="Stop";
 UI.zh["Стоп"]="停止";
+UI.en["Убрать"]="Hide";
+UI.zh["Убрать"]="关闭";
+UI.en["Сейчас в пути"]="On the way";
+UI.zh["Сейчас в пути"]="正在途中";
+UI.en["нет железной дороги"]="no through railway";
+UI.zh["нет железной дороги"]="没有直达铁路";
+UI.en["нет автодороги"]="no through road";
+UI.zh["нет автодороги"]="没有直达公路";
+UI.en["регионов"]="regions";
+UI.zh["регионов"]="个地区";
 function regionLabel(name){
   var lang=currentLang();
   if(!name || lang==="ru") return name||"";
@@ -9991,6 +10365,7 @@ function drawCityLabels(){
   var theme=document.documentElement.getAttribute("data-theme")||"dark";
   var color=theme==="light"?"#142033":"#f7f9fc";
   var bg=theme==="light"?"rgba(255,255,255,.88)":"rgba(6,10,18,.72)";
+  if(map && map._isAtlas){ color="#1f2a26"; bg="rgba(255,255,255,.92)"; }
   var list=(typeof PLACE_LABELS!=="undefined" && PLACE_LABELS && PLACE_LABELS.length)?PLACE_LABELS:[];
   if(!list.length) return;
   var b=map.getBounds();
@@ -10045,8 +10420,10 @@ function applyTheme(pref){
   scheduleCloudSave();
   var themeBtn=document.getElementById("theme-btn");
   if(themeBtn) themeBtn.textContent=theme==="light"?"☀️":"🌙";
+  if(!(map && map._isAtlas)){
   if(baseLayer) map.removeLayer(baseLayer);
   baseLayer=makeBase().addTo(map);
+  }
   var meta=document.querySelector('meta[name="theme-color"]');
   if(meta) meta.setAttribute("content",theme==="light"?"#f4f5f7":"#12151f");
   if(typeof render==="function") render();
@@ -10186,7 +10563,6 @@ function render(){
   var fill=getComputedStyle(document.documentElement).getPropertyValue("--map-bg").trim()||"#0a0c10";
   var routeCounts={};
   ROUTES.forEach(function(r){var k=routeRepeatKey(r);if(k&&k!==" ⇄ ")routeCounts[k]=(routeCounts[k]||0)+1;});
-  var overlayRoutes=[];
 
   list.forEach(function(r){
     var g=buildGeoSync(r); if(!g||!g.coords) return;
@@ -10198,7 +10574,6 @@ function render(){
     var repeats=routeCounts[routeRepeatKey(r)]||1;
     var w=repeats>1?5.2:2.15;
     if(selectedId===r.id) w+=1.2;
-    overlayRoutes.push({coords:g.coords.map(function(p){return [Number(p.lat!=null?p.lat:p[0]),Number(p.lng!=null?p.lng:p[1])];}),color:col,casing:casing,width:w,casingExtra:repeats>1?2.8:1.5,future:fut});
     L.polyline(g.coords,{pane:"routePane",color:casing,weight:w+(repeats>1?2.8:1.5),opacity:.94,lineJoin:"round",lineCap:"round",interactive:false,smoothFactor:0}).addTo(layer);
     L.polyline(g.coords,{pane:"routePane",color:col,weight:w,opacity:1,dashArray:fut?"7 6":null,lineJoin:"round",lineCap:"round",interactive:false,smoothFactor:0}).addTo(layer);
     [g.coords[0],g.coords[g.coords.length-1]].forEach(function(p){
@@ -10206,7 +10581,6 @@ function render(){
     });
     g.coords.forEach(function(c){bounds.push(c);});
   });
-  window.__travelekOverlayRoutes=overlayRoutes;postMapMessage({type:"travelek-routes",routes:overlayRoutes});
   drawCityLabels();
   if(typeof syncVisited==="function") syncVisited();
   if(typeof drawCountries==="function") drawCountries();
@@ -10253,13 +10627,14 @@ function render(){
       else toL=shortPlaceLabel(r.to);
       var dur=formatTripDuration(r, km);
       var art=r.mode==="train"?"/art/train.jpg":(r.mode==="car"?"/art/car.jpg":"/art/plane.jpg");
+      var kmNote=g&&g.railMiss?(" · "+t("нет железной дороги")):(g&&g.roadMiss?(" · "+t("нет автодороги")):(km?" · "+km.toLocaleString(currentLang()==="en"?"en":"ru-RU")+" "+t("км"):""));
       html+='<div class="row '+(selectedId===r.id?"on ":"")+(fut?"future":"")+'" data-id="'+r.id+'">'+
         '<img class="thumb" alt="" src="'+art+'">'+
         '<button type="button" class="edit" data-edit="'+r.id+'" title="'+t("Изменить")+'">✎</button>'+'<button type="button" class="del" data-del="'+r.id+'" title="'+t("Удалить")+'">×</button>'+
         '<div class="title">'+fromL+" → "+toL+"</div>"+
         '<div class="meta"><span class="badge '+bc+'">'+(r.flight||r.mode)+"</span>"+
         (fut?'<span class="badge fut">'+t("скоро")+'</span>':"")+" "+(r.date||"")+
-        (r.time?" · "+r.time:"")+(km?" · "+km.toLocaleString(currentLang()==="en"?"en":"ru-RU")+" "+t("км"):"")+
+        (r.time?" · "+r.time:"")+kmNote+
         (dur?" · "+dur:"")+"</div></div>";
     });
     el.innerHTML=html;
@@ -10269,7 +10644,7 @@ function render(){
         if(ev.target.classList.contains("del")||ev.target.classList.contains("edit")) return;
         selectedId=row.getAttribute("data-id"); render();
         var r=null; for(var j=0;j<ROUTES.length;j++) if(ROUTES[j].id===selectedId) r=ROUTES[j];
-        var g=r&&buildGeoSync(r); if(g&&g.coords) postMapMessage({type:"travelek-fit",coords:g.coords.map(function(p){return [Number(p.lat!=null?p.lat:p[0]),Number(p.lng!=null?p.lng:p[1])];})});
+        var g=r&&buildGeoSync(r); if(g&&g.coords) map.fitBounds(g.coords,{padding:[50,50],maxZoom:8});
       };})(rows[i]);
     }
     var dels=el.querySelectorAll(".del");
@@ -10306,8 +10681,6 @@ function render(){
 
 
 /* init */
-var mapBridgeFrame=document.getElementById("new-map-base");if(mapBridgeFrame)mapBridgeFrame.addEventListener("load",function(){syncMapBridge();});
-window.addEventListener("message",function(e){var d=e.data||{};if(d.type!=="travelek-mapselect"||!d.detail||!isFinite(d.detail.lat)||!isFinite(d.detail.lng))return;var ll=L.latLng(+d.detail.lat,+d.detail.lng);if(pickTarget)finishPick(ll);else openVisitPrompt(ll.lat,ll.lng);});
 var savedPref="dark";
 try{savedPref=localStorage.getItem("travelek-theme-pref")||localStorage.getItem("travelek-theme")||"dark";}catch(e){}
 applyTheme(savedPref);
@@ -10321,9 +10694,9 @@ if(themeBtnInit) themeBtnInit.onclick=function(){
   var cur=document.documentElement.getAttribute("data-theme")||"dark";
   applyTheme(cur==="dark"?"light":"dark");
 };
-document.getElementById("z-in").onclick=function(){postMapMessage({type:"travelek-zoom",action:"in"});};
-document.getElementById("z-out").onclick=function(){postMapMessage({type:"travelek-zoom",action:"out"});};
-document.getElementById("z-fit").onclick=function(){fitAll();render();};
+document.getElementById("z-in").onclick=function(){map.zoomIn();};
+document.getElementById("z-out").onclick=function(){map.zoomOut();};
+document.getElementById("z-fit").onclick=function(){ fitAll(); render(); };
 map.on("zoomend",drawCityLabels);
 map.on("moveend",function(){ if(pickModeLabels||map.getZoom()>=3.4) drawCityLabels(); });
 map.on("mousemove",function(e){
@@ -10357,6 +10730,7 @@ if(yearFilterEl) yearFilterEl.addEventListener("click", function(e){
 });
 document.addEventListener("keydown",function(e){if(e.key==="Escape") closeVisitPrompt();});
 (function bindPinch(map){
+  if(map && map._isAtlas) return;
   var el=map.getContainer();
   var startDist=0, startZoom=0, live=false;
   el.addEventListener("touchstart", function(e){
@@ -11395,7 +11769,26 @@ function countryAt(lat, lng){
   }
   return null;
 }
-function regionAtList(list, lat, lng){
+function regionEdgeDist(reg, lat, lng){
+  var polys=polysOf(reg), best=1e9, k, ring, i, a, b, dx, dy, den, t, d;
+  for(k=0;k<polys.length;k++){
+    ring=polys[k][0];
+    if(!ring) continue;
+    for(i=1;i<ring.length;i++){
+      a=ring[i-1]; b=ring[i];
+      dx=b[0]-a[0]; dy=b[1]-a[1];
+      den=dx*dx+dy*dy;
+      if(!den) d=Math.hypot(lng-a[0], lat-a[1]);
+      else {
+        t=Math.max(0, Math.min(1, ((lng-a[0])*dx+(lat-a[1])*dy)/den));
+        d=Math.hypot(lng-(a[0]+t*dx), lat-(a[1]+t*dy));
+      }
+      if(d<best) best=d;
+    }
+  }
+  return best;
+}
+function regionAtList(list, lat, lng, snap){
   if(!list) return null;
   var best=null, bestA=1e18, i, reg, b, area, polys, k, wraps;
   for(i=0;i<list.length;i++){
@@ -11415,10 +11808,34 @@ function regionAtList(list, lat, lng){
       }
     }
   }
+  if(!snap) return best;
+  var near=null, nearD=snap, nearA=1e18, dlt;
+  for(i=0;i<list.length;i++){
+    reg=list[i];
+    b=reg.b;
+    if(!b) continue;
+    wraps=b && (b[3]-b[1])>180;
+    if(lat<b[0]-snap || lat>b[2]+snap) continue;
+    if(!wraps && (lng<b[1]-snap || lng>b[3]+snap)) continue;
+    dlt=regionEdgeDist(reg, lat, lng);
+    area=(b[2]-b[0])*Math.min(360, Math.abs(b[3]-b[1]));
+    if(dlt<=snap && (dlt<nearD-1e-6 || (Math.abs(dlt-nearD)<0.02 && area<nearA))){
+      nearD=dlt; near=reg.id; nearA=area;
+    }
+  }
+  if(near && (!best || nearA<bestA*0.5)) return near;
   return best;
 }
-function regionAt(lat, lng){ return regionAtList(RUSSIA_REGIONS, lat, lng); }
-function chinaRegionAt(lat, lng){ return regionAtList(CHINA_REGIONS, lat, lng); }
+function regionAt(lat, lng){ return regionAtList(RUSSIA_REGIONS, lat, lng, 0.11); }
+function chinaRegionAt(lat, lng){ return regionAtList(CHINA_REGIONS, lat, lng, 0.11); }
+function regionsFor(code){
+  return (typeof REGIONS_BY!=="undefined" && REGIONS_BY && REGIONS_BY[code]) || null;
+}
+function regionIn(code, lat, lng){
+  var list=regionsFor(code);
+  if(!list) return null;
+  return regionAtList(list, lat, lng, 0.11);
+}
 
 var hoverLayer=null, hoverKey="", pendingVisit=null;
 function ensureHoverLayer(){
@@ -11431,14 +11848,18 @@ function countryRecord(id){
   return null;
 }
 function regionRecord(id){
-  var lists=[RUSSIA_REGIONS||[],CHINA_REGIONS||[]], i,j;
-  for(i=0;i<lists.length;i++) for(j=0;j<lists[i].length;j++) if(lists[i][j].id===id) return lists[i][j];
+  if(!id || typeof REGIONS_BY==="undefined" || !REGIONS_BY) return null;
+  var code, list, j;
+  for(code in REGIONS_BY){
+    list=REGIONS_BY[code];
+    for(j=0;j<list.length;j++) if(list[j].id===id) return list[j];
+  }
   return null;
 }
 function showMapHover(lat,lng,containerPoint){
-  if(!COUNTRY_LIST || !COUNTRY_LIST.length) return;
+  if(map && map._isAtlas) return;
   var cid=countryAt(lat,lng);
-  var rid=cid==="RU"?regionAt(lat,lng):(cid==="CN"?chinaRegionAt(lat,lng):null);
+  var rid=cid?regionIn(cid, lat, lng):null;
   var key=(cid||"")+"|"+(rid||"");
   var label=document.getElementById("map-hover-label");
   if(key===hoverKey){
@@ -11472,7 +11893,7 @@ function openVisitPrompt(lat,lng){
   if(pickTarget || !COUNTRY_LIST || !COUNTRY_LIST.length) return;
   var cid=countryAt(lat,lng);
   if(!cid) return;
-  var rid=cid==="RU"?regionAt(lat,lng):(cid==="CN"?chinaRegionAt(lat,lng):null);
+  var rid=regionIn(cid, lat, lng);
   var c=countryRecord(cid), reg=rid?regionRecord(rid):null;
   pendingVisit={countryId:cid,regionId:rid,name:reg?(regionLabel(reg.n)+" · "+(c?countryLabel(c):cid)):(c?countryLabel(c):cid)};
   var modal=document.getElementById("visit-confirm");
@@ -11511,25 +11932,17 @@ function syncVisited(){
     var id=countryAt(lat, lng);
     if(!id) return;
     autoC[id]=1;
-    if(id==="RU"){
-      var rid=regionAt(lat, lng);
-      if(rid) autoR[rid]=1;
-    } else if(id==="CN"){
-      var cid=chinaRegionAt(lat, lng);
-      if(cid) autoR[cid]=1;
-    }
+    var rid=regionIn(id, lat, lng);
+    if(rid) autoR[rid]=1;
   }
   (typeof ROUTES!=="undefined"?ROUTES:[]).forEach(function(r){
-    if(r.coords && r.coords.length>=2){
-      var step=Math.max(1, Math.floor(r.coords.length/30));
-      var i;
-      for(i=0;i<r.coords.length;i+=step) hit(r.coords[i][0], r.coords[i][1]);
-      var last=r.coords[r.coords.length-1];
-      hit(last[0], last[1]);
-      return;
-    }
     if(typeof place!=="function") return;
     var a=place(r.from, r.fromCode), b=place(r.to, r.toCode);
+    if(r.coords && r.coords.length>=2){
+      hit(r.coords[0][0], r.coords[0][1]);
+      var last=r.coords[r.coords.length-1];
+      hit(last[0], last[1]);
+    }
     if(a) hit(a.lat, a.lng);
     if(b) hit(b.lat, b.lng);
   });
@@ -11540,8 +11953,16 @@ function syncVisited(){
   }
   Object.keys(autoC).forEach(addC);
   manualCountries.forEach(addC);
-  if((Object.keys(autoR).some(function(id){ return id.indexOf("CN:")!==0; }) || manualRegions.some(function(id){ return id.indexOf("CN:")!==0; })) && offCountries.indexOf("RU")<0) addC("RU");
-  if((Object.keys(autoR).some(function(id){ return id.indexOf("CN:")===0; }) || manualRegions.some(function(id){ return id.indexOf("CN:")===0; })) && offCountries.indexOf("CN")<0) addC("CN");
+  function countryOfRegion(id){
+    if(!id) return null;
+    var rec=regionRecord(id);
+    if(rec && rec.c) return rec.c;
+    var cut=String(id).indexOf(":");
+    if(cut>0) return String(id).slice(0, cut);
+    return "RU";
+  }
+  Object.keys(autoR).forEach(function(id){ var c=countryOfRegion(id); if(c && offCountries.indexOf(c)<0) addC(c); });
+  manualRegions.forEach(function(id){ var c=countryOfRegion(id); if(c && offCountries.indexOf(c)<0) addC(c); });
   visited=next;
   var nextR=[], seenR={};
   function addR(id){
@@ -11562,26 +11983,20 @@ function paintPoly(poly, style){
   L.polygon(latlngs, style).addTo(countryLayer);
 }
 function drawCountries(){
-  if(!countryLayer||!COUNTRY_LIST) return;
+  if(map && map._isAtlas && map.setVisited){
+    if(countryLayer) countryLayer.clearLayers();
+    map.setVisited(visited||[], visitedRegions||[]);
+    return;
+  }
   countryLayer.clearLayers();
   var on={}, i;
   for(i=0;i<visited.length;i++) on[visited[i]]=1;
-  var amber={color:"#9a4d00", weight:1.2, opacity:.55, lineJoin:"round", fillColor:"#e08a14", fillOpacity:.42, interactive:false, smoothFactor:0};
-  var gold={color:"#8a5a12", weight:1.6, opacity:1, dashArray:"5 4", lineJoin:"round", fillColor:"#e8b85c", fillOpacity:.4, interactive:false, smoothFactor:0};
+  var amber={color:"#9a4d00", weight:1.15, opacity:.9, lineJoin:"round", fillColor:"#e37b14", fillOpacity:.62, interactive:false, smoothFactor:0};
+  var gold={color:"#6a3d08", weight:1.7, opacity:1, lineJoin:"round", fillColor:"#f2c14e", fillOpacity:.9, interactive:false, smoothFactor:0};
   COUNTRY_LIST.forEach(function(c){
-    if(!on[c.i] || c.i==="RU" || c.i==="CN") return;
+    if(!on[c.i]) return;
     polysOf(c).forEach(function(poly){ paintPoly(poly, amber); });
   });
-  if(on["RU"] && RUSSIA_REGIONS){
-    RUSSIA_REGIONS.forEach(function(reg){
-      polysOf(reg).forEach(function(poly){ paintPoly(poly, amber); });
-    });
-  }
-  if(on["CN"] && CHINA_REGIONS){
-    CHINA_REGIONS.forEach(function(reg){
-      polysOf(reg).forEach(function(poly){ paintPoly(poly, amber); });
-    });
-  }
   function paintVisited(list){
     if(!list || !visitedRegions.length) return;
     var ron={};
@@ -11591,10 +12006,20 @@ function drawCountries(){
       polysOf(reg).forEach(function(poly){ paintPoly(poly, gold); });
     });
   }
-  paintVisited(RUSSIA_REGIONS);
-  paintVisited(CHINA_REGIONS);
+  if(typeof REGIONS_BY!=="undefined" && REGIONS_BY){
+    Object.keys(REGIONS_BY).forEach(function(code){ paintVisited(REGIONS_BY[code]); });
+  } else {
+    paintVisited(RUSSIA_REGIONS);
+    paintVisited(CHINA_REGIONS);
+  }
   try{ if(worldLayer) worldLayer.bringToBack(); countryLayer.bringToFront(); }catch(e){}
   if(typeof stackMapLayers==="function") stackMapLayers();
+}
+function regionStatsFor(code){
+  var list=regionsFor(code)||[];
+  var got=0, i;
+  for(i=0;i<list.length;i++) if(visitedRegions.indexOf(list[i].id)>=0) got++;
+  return {total:list.length, got:got};
 }
 function regionStats(){
   var total=RUSSIA_REGIONS?RUSSIA_REGIONS.length:0;
@@ -11651,12 +12076,15 @@ function renderCountryUi(){
   var list=document.getElementById("country-list");
   var regions=document.getElementById("region-list");
   var fromBtn=document.getElementById("countries-from-routes");
-  var scopeList=regionScope==="CN"?CHINA_REGIONS:regionScope==="RU"?RUSSIA_REGIONS:null;
-  var scopeStats=regionScope==="CN"?cst:st;
+  var scopeList=regionScope?regionsFor(regionScope):null;
+  var scopeStats=regionScope?regionStatsFor(regionScope):st;
   if(back) back.hidden=!regionScope;
-  if(title) title.textContent=regionScope==="CN"?t("Регионы Китая"):regionScope==="RU"?t("Регионы России"):t("Посещённые страны");
+  if(title){
+    var scopeCountry=regionScope?countryRecord(regionScope):null;
+    title.textContent=regionScope?(scopeCountry?countryLabel(scopeCountry):regionScope):t("Посещённые страны");
+  }
   if(regionScope){
-    var scopeNoun=regionScope==="CN"?t("регионов Китая"):t("регионов РФ");
+    var scopeNoun=t("регионов");
     var scopeLine=ofCount(scopeStats.got, scopeStats.total, scopeNoun);
     if(hint) hint.textContent=scopeLine+" · "+t("Можно найти по городу.");
     if(stats){ stats.hidden=false; stats.innerHTML="<b>"+pctOf(scopeStats.got, scopeStats.total)+"</b><span>"+scopeLine+"</span>"; }
@@ -11713,11 +12141,10 @@ function renderCountryUi(){
   if(q) rows=rows.slice(0,80);
   list.innerHTML=rows.map(function(c){
     var on=visited.indexOf(c.i)>=0;
-    if(c.i==="RU"){
-      return '<button type="button" class="'+(on?"on":"")+'" data-open="RU"><span>'+countryLabel(c)+'</span><span>'+pctOf(st.got, st.total)+" · "+ofCount(st.got, st.total, t("регионов РФ"))+'</span></button>';
-    }
-    if(c.i==="CN"){
-      return '<button type="button" class="'+(on?"on":"")+'" data-open="CN"><span>'+countryLabel(c)+'</span><span>'+pctOf(cst.got, cst.total)+" · "+ofCount(cst.got, cst.total, t("регионов Китая"))+'</span></button>';
+    var regs=regionsFor(c.i);
+    if(regs && regs.length){
+      var rs=regionStatsFor(c.i);
+      return '<button type="button" class="'+(on?"on":"")+'" data-open="'+c.i+'"><span>'+countryLabel(c)+'</span><span>'+pctOf(rs.got, rs.total)+" · "+ofCount(rs.got, rs.total, t("регионов"))+'</span></button>';
     }
     return '<button type="button" class="'+(on?"on":"")+'" data-iso="'+c.i+'"><span>'+countryLabel(c)+'</span><span>'+(on?"✓":"")+'</span></button>';
   }).join("") || '<p class="hint">'+t("Ничего не найдено")+'</p>';
@@ -11794,7 +12221,11 @@ function normalizeCountries(items){
   }).filter(function(c){ return c && c.i && c.i!=="KOS" && c.i!=="TW" && c.i!=="TWN"; });
 }
 function bindRegionCities(){
-  var lists=[RUSSIA_REGIONS, CHINA_REGIONS], i, by={};
+  var lists=[], code;
+  if(typeof REGIONS_BY!=="undefined" && REGIONS_BY){
+    for(code in REGIONS_BY) lists.push(REGIONS_BY[code]);
+  } else lists=[RUSSIA_REGIONS, CHINA_REGIONS];
+  var i, by={};
   for(i=0;i<lists.length;i++){
     if(!lists[i]) continue;
     lists[i].forEach(function(r){ r._cities=[]; by[r.id]=r; });
@@ -11802,7 +12233,8 @@ function bindRegionCities(){
   var seen={};
   function add(raw, lat, lng){
     if(!raw || lat==null || lng==null || isNaN(lat) || isNaN(lng)) return;
-    var id=regionAt(lat, lng)||chinaRegionAt(lat, lng);
+    var cid=typeof countryAt==="function"?countryAt(lat, lng):null;
+    var id=cid?regionIn(cid, lat, lng):(regionAt(lat, lng)||chinaRegionAt(lat, lng));
     var reg=id&&by[id];
     if(!reg || reg._cities.length>=48) return;
     var full=String(raw).replace(/\s+/g," ").trim();
@@ -11834,10 +12266,26 @@ function loadGeo(url){
   });
 }
 var PLACE_LABELS=[];
+var WORLD_REGIONS=null;
+var REGIONS_BY={};
+function indexRegions(){
+  REGIONS_BY={};
+  function add(list, code){
+    (list||[]).forEach(function(r){
+      if(!r.c) r.c=code || (String(r.id).indexOf(":")>0?String(r.id).split(":")[0]:code);
+      if(!r.c) return;
+      (REGIONS_BY[r.c]=REGIONS_BY[r.c]||[]).push(r);
+    });
+  }
+  add(RUSSIA_REGIONS, "RU");
+  add(CHINA_REGIONS, "CN");
+  add(WORLD_REGIONS, "");
+}
 function bootGeo(){
-  var left=4;
+  var left=5;
   function finish(){
     if(--left>0) return;
+    indexRegions();
     bindRegionCities();
     syncVisited();
     if(typeof drawWorld==="function") drawWorld();
@@ -11846,23 +12294,28 @@ function bootGeo(){
     if(typeof drawCityLabels==="function") drawCityLabels();
     globeLand=null;
     if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
+    if(typeof scheduleNet==="function") scheduleNet();
     if(window.__fillAccount && document.getElementById("account-panel") && document.getElementById("account-panel").classList.contains("on")) window.__fillAccount();
   }
   if(!countryLayer && typeof L!=="undefined" && typeof map!=="undefined") countryLayer=L.layerGroup().addTo(map);
   ensureHoverLayer();
   globeLand=null;
-  loadGeo("./geo/countries.json?v=7").then(function(data){
+  loadGeo("./geo/countries.json?v=8").then(function(data){
     COUNTRY_LIST=normalizeCountries(data&&data.items);
     finish();
   }).catch(function(){ COUNTRY_LIST=COUNTRY_LIST||[]; finish(); });
-  loadGeo("./geo/russia.json?v=7").then(function(data){
-    RUSSIA_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||r.n; return r; });
+  loadGeo("./geo/russia.json?v=8").then(function(data){
+    RUSSIA_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||r.n; r.c="RU"; return r; });
     finish();
   }).catch(function(){ RUSSIA_REGIONS=[]; finish(); });
-  loadGeo("./geo/china.json?v=6").then(function(data){
-    CHINA_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||("CN:"+r.n); return r; });
+  loadGeo("./geo/china.json?v=8").then(function(data){
+    CHINA_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||("CN:"+r.n); r.c="CN"; return r; });
     finish();
   }).catch(function(){ CHINA_REGIONS=[]; finish(); });
+  loadGeo("./geo/regions.json?v=8").then(function(data){
+    WORLD_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||((r.c||"")+" "+r.n); return r; });
+    finish();
+  }).catch(function(){ WORLD_REGIONS=[]; finish(); });
   loadGeo("./geo/labels.json?v=1").then(function(data){
     PLACE_LABELS=Array.isArray(data)?data:((data&&data.items)||[]);
     finish();
