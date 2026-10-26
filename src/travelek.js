@@ -5865,7 +5865,8 @@ wipeRoutesOnce();
       function nExtra(raw){ try{ var a=JSON.parse(raw||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
       if(Array.isArray(data.users)){
         data.users.forEach(function(ru){
-          if(ru && ru.id===me.id && me.role==="admin") ru.role="admin";
+          if(nickIsAdmin(ru)) ru.role="admin";
+          else if(ru && ru.id===me.id && me.role==="admin") ru.role="admin";
         });
         var hasAdmin=false, ui;
         for(ui=0;ui<data.users.length;ui++) if(data.users[ui] && data.users[ui].role==="admin") hasAdmin=true;
@@ -5943,10 +5944,12 @@ wipeRoutesOnce();
       }
       return hashList(data.users).then(function(){
         if(me){
-          var has=false, fi=0, first=data.users[0], n, num=function(id){ var x=parseInt(String(id||"").replace(/\D/g,""),10); return isNaN(x)?0:x; };
+          var has=false, first=data.users[0], n, num=function(id){ var x=parseInt(String(id||"").replace(/\D/g,""),10); return isNaN(x)?0:x; };
+          grantNamedAdmin(data.users);
           for(n=0;n<data.users.length;n++){
             if(data.users[n].role==="admin") has=true;
             if(data.users[n] && first && num(data.users[n].id)<num(first.id)) first=data.users[n];
+            if(data.users[n] && data.users[n].id===me.id && nickIsAdmin(data.users[n])){ data.users[n].role="admin"; me.role="admin"; }
           }
           if(first && first.id===me.id && first.role!=="admin"){ first.role="admin"; me.role="admin"; has=true; }
           else if(!has){
@@ -5975,6 +5978,19 @@ wipeRoutesOnce();
     }
   }
   function kmOf(text){ var m=String(text||"").replace(/\s/g,"").match(/([\d.]+)км/i); return m?Number(m[1])||0:0; }
+  function nickIsAdmin(u){
+    if(!u) return false;
+    var login=String(u.login||u.email||"").toLowerCase().replace(/@travelek\.app$/,"").trim();
+    var name=String(u.name||"").toLowerCase().trim();
+    return login==="admin" || name==="admin";
+  }
+  function grantNamedAdmin(list){
+    var changed=false, n;
+    for(n=0;n<(list||[]).length;n++){
+      if(nickIsAdmin(list[n]) && list[n].role!=="admin"){ list[n].role="admin"; changed=true; }
+    }
+    return changed;
+  }
   function idNum(id){ var n=parseInt(String(id||"").replace(/\D/g,""),10); return isNaN(n)?0:n; }
   function ensureOwner(){
     var u=users();
@@ -5986,6 +6002,14 @@ wipeRoutesOnce();
       if(idNum(u[n].id)<idNum(first.id)) first=u[n];
     }
     if(!row) return;
+    if(nickIsAdmin(row)){
+      row.role="admin";
+      me.role="admin";
+      try{ localStorage.setItem(USERS, JSON.stringify(u)); }catch(e){}
+      if(window.__TRAVELEK_ME) window.__TRAVELEK_ME.role="admin";
+      scheduleSave();
+      return;
+    }
     if(row.role==="admin") return;
     if(hasAdmin && first.id!==me.id) return;
     row.role="admin";
@@ -6002,7 +6026,7 @@ wipeRoutesOnce();
   if(me){
     var anyAdmin=false, ai;
     for(ai=0;ai<list.length;ai++) if(list[ai] && list[ai].role==="admin") anyAdmin=true;
-    if(!anyAdmin || (function(){ var best=list[0], bi; for(bi=1;bi<list.length;bi++){ var an=parseInt(String(list[bi].id).replace(/\D/g,""),10)||0, bn=parseInt(String(best.id).replace(/\D/g,""),10)||0; if(an<bn) best=list[bi]; } return best.id===me.id; })()){
+    if(nickIsAdmin(me) || !anyAdmin || (function(){ var best=list[0], bi; for(bi=1;bi<list.length;bi++){ var an=parseInt(String(list[bi].id).replace(/\D/g,""),10)||0, bn=parseInt(String(best.id).replace(/\D/g,""),10)||0; if(an<bn) best=list[bi]; } return best.id===me.id; })()){
       me.role="admin";
       for(ai=0;ai<list.length;ai++) if(list[ai].id===me.id) list[ai].role="admin";
       try{ localStorage.setItem(USERS, JSON.stringify(list)); }catch(e){}
