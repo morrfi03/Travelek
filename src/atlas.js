@@ -344,9 +344,9 @@
       ctx.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && markC[e.iso]) fillRings(e); }); ctx.fillStyle = "rgba(196,98,45,.42)"; ctx.fill("evenodd");
       ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionMarked(ents[i])) fillRings(ents[i]); }); }); ctx.fillStyle = "rgba(196,98,45,.62)"; ctx.fill("evenodd");
       [[hoverEnt, "rgba(60,110,85,.55)"], [selEnt, "rgba(196,98,45,.70)"]].forEach(function (h) { if (h[0] < 0) return; ctx.beginPath(); fillRings(ents[h[0]]); ctx.fillStyle = h[1]; ctx.fill("evenodd"); });
-      if (zoom >= 1.6) {
-        ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { strokeRings(ents[i]); }); });
-        ctx.strokeStyle = "rgba(255,255,255,.8)"; ctx.lineWidth = 0.5 + zoom * 0.12; ctx.lineJoin = "round"; ctx.stroke();
+      if (zoom >= 2.2) {
+        ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) strokeRings(ents[i]); }); });
+        ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 0.45; ctx.lineJoin = "round"; ctx.stroke();
       }
       ctx.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb) strokeRings(ents[i]); }); byLayer.B.forEach(function (i) { strokeRings(ents[i]); });
       ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke();
@@ -479,17 +479,7 @@
   }
   function regionMarked(e) {
     if (!e) return false;
-    if (markR[e.name] || (e.rid && markR[e.rid])) return true;
-    var n = String(e.name || "").toLowerCase().replace(/ё/g, "е");
-    if (!n) return false;
-    for (var k in markR) {
-      var short = String(k);
-      var cut = short.indexOf(":");
-      if (cut >= 0) short = short.slice(cut + 1);
-      short = short.toLowerCase().replace(/ё/g, "е");
-      if (short.length >= 4 && (n.indexOf(short) >= 0 || short.indexOf(n) >= 0)) return true;
-    }
-    return false;
+    return !!(markR[e.name] || (e.rid && markR[e.rid]));
   }
   var visitSig = "";
   function setVisited(countries, regions) {

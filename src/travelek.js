@@ -5810,9 +5810,6 @@ wipeRoutesOnce();
   function users(){
     var u=read(USERS, null);
     if(!Array.isArray(u)) u=[];
-    var has=false, n;
-    for(n=0;n<u.length;n++) if(u[n] && String(u[n].login||"").toLowerCase()==="admin") has=true;
-    if(!has) u.unshift({id:"admin", login:"admin", name:"Администратор", password:"f6e718809f4092afc94ad388ee7d808498c19b4dbb7b0f5568a2ca528aaa6ade", role:"admin"});
     return u;
   }
   function vault(){ var v=read(VAULT, {}); return v&&typeof v==="object"&&!Array.isArray(v)?v:{}; }
@@ -5932,7 +5929,6 @@ wipeRoutesOnce();
         if(!Object.prototype.hasOwnProperty.call(ids,id)) continue;
         data.vault[id]=better(data.vault[id], lv&&lv[id]);
       }
-      if(!have.admin) data.users.unshift({id:"admin", login:"admin", name:"Администратор", password:"f6e718809f4092afc94ad388ee7d808498c19b4dbb7b0f5568a2ca528aaa6ade", role:"admin"});
       return hashList(data.users).then(function(){
         try{
           localStorage.setItem(USERS, JSON.stringify(data.users));
@@ -6078,6 +6074,16 @@ wipeRoutesOnce();
       }).then(function(){ resolve({ok:true}); }).catch(function(e){
         reject(new Error(e&&e.message?e.message:"Не удалось сменить пароль"));
       });
+    });
+  };
+  window.__createFirst=function(login, password){
+    login=String(login||"").trim().toLowerCase();
+    return sha256(password).then(function(h){
+      var row={id:"u"+Date.now(), login:login, name:login, password:h, role:"admin"};
+      var u=users();
+      u.push(row);
+      try{ localStorage.setItem(USERS, JSON.stringify(u)); localStorage.setItem(SESSION, row.id); }catch(e){}
+      return saveStoreNow().catch(function(){}).then(function(){ location.reload(); });
     });
   };
   window.__cloudCreate=function(login, password, name){
@@ -10277,20 +10283,18 @@ function openVisitPrompt(lat,lng){
   var cid=countryAt(lat,lng);
   if(!cid) return;
   var been=visited && visited.indexOf(cid)>=0;
-  if(!been){
-    if(manualCountries.indexOf(cid)<0) manualCountries.push(cid);
-    offCountries=offCountries.filter(function(id){return id!==cid;});
-    saveSets(); syncVisited();
-    if(typeof drawCountries==="function") drawCountries();
-    return;
-  }
-  if(!regionsFor(cid)) return;
-  var rid=regionIn(cid, lat, lng);
-  if(!rid || (visitedRegions && visitedRegions.indexOf(rid)>=0)) return;
-  offRegions=offRegions.filter(function(id){return id!==rid;});
-  if(manualRegions.indexOf(rid)<0) manualRegions.push(rid);
-  saveSets(); syncVisited();
-  if(typeof drawCountries==="function") drawCountries();
+  var regs=regionsFor(cid);
+  var rid=been && regs ? regionIn(cid, lat, lng) : null;
+  if(been && (!regs || !rid)) return;
+  if(rid && visitedRegions && visitedRegions.indexOf(rid)>=0) return;
+  var c=countryRecord(cid), reg=rid?regionRecord(rid):null;
+  pendingVisit={countryId:cid, regionId:rid, name:reg?(regionLabel(reg.n)+" · "+(c?countryLabel(c):cid)):(c?countryLabel(c):cid)};
+  var modal=document.getElementById("visit-confirm");
+  var title=document.getElementById("visit-confirm-title");
+  var desc=document.getElementById("visit-confirm-desc");
+  if(title) title.textContent=t("Вы были тут?");
+  if(desc) desc.textContent=pendingVisit.name;
+  if(modal) modal.classList.add("on");
 }
 function closeVisitPrompt(){
   var modal=document.getElementById("visit-confirm");
@@ -11301,6 +11305,18 @@ function bindTripWindow(){
     if(!made) return;
     tw.routes.push(made);
     absorbRoute(made);
+    var both=document.getElementById("tw-both");
+    if(both && both.checked){
+      var backDate=document.getElementById("tw-date-back").value;
+      if(!backDate){ alert("Укажите дату обратно"); return; }
+      var back={id:"u"+(Date.now()+1), mode:made.mode, flight:made.flight, from:made.to, to:made.from, date:backDate};
+      if(made.time) back.time=made.time;
+      if(made.toCode) back.fromCode=made.toCode;
+      if(made.fromCode) back.toCode=made.fromCode;
+      if(made.coords) back.coords=made.coords.slice().reverse();
+      tw.routes.push(back);
+      absorbRoute(back);
+    }
     document.getElementById("tw-from").value="";
     document.getElementById("tw-to").value="";
     paintTripWindow();
@@ -11337,6 +11353,8 @@ function bindTripWindow(){
     }
   });
   document.getElementById("tw-close").onclick=closeTripWindow;
+  var bothBox=document.getElementById("tw-both"), backDate=document.getElementById("tw-date-back");
+  if(bothBox && backDate) bothBox.onchange=function(){ backDate.hidden=!bothBox.checked; };
   var freeMore=document.getElementById("tw-free-more");
   if(freeMore) freeMore.onclick=function(){ tw.freeAll=true; paintTripWindow(); };
   document.getElementById("tw-save").onclick=function(){

@@ -1,32 +1,9 @@
 (function(){
   if(window.__TRAVELEK_PRIVATE) return;
-  var USERS="travelek-users", SESSION="travelek-session", REV="4";
+  var USERS="travelek-users", SESSION="travelek-session";
   function users(){
-    var u=null, i, admin=null, next=[], seen=false, L;
-    try{ u=JSON.parse(localStorage.getItem(USERS)||""); }catch(e){ u=null; }
-    if(!Array.isArray(u)) u=[];
-    var rev="";
-    try{ rev=localStorage.getItem("travelek-auth-rev")||""; }catch(e){}
-    if(rev!==REV){
-      for(i=0;i<u.length;i++){
-        L=String((u[i]&&(u[i].login||u[i].email))||"").toLowerCase().replace(/@travelek\.app$/,"");
-        if(u[i] && (u[i].id==="admin" || u[i].role==="admin" || L==="admin")){
-          if(!seen){ next.push({id:"admin", login:"admin", name:"Администратор", password:"Travelek#Admin89", role:"admin"}); seen=true; }
-        } else next.push(u[i]);
-      }
-      if(!seen) next.unshift({id:"admin", login:"admin", name:"Администратор", password:"Travelek#Admin89", role:"admin"});
-      u=next;
-      try{
-        localStorage.setItem(USERS, JSON.stringify(u));
-        localStorage.setItem("travelek-auth-rev", REV);
-      }catch(e){}
-    }
-    for(i=0;i<u.length;i++) if(u[i] && (u[i].id==="admin" || String(u[i].login||"").toLowerCase()==="admin")) admin=u[i];
-    if(!admin){
-      u.unshift({id:"admin", login:"admin", name:"Администратор", password:"Travelek#Admin89", role:"admin"});
-      try{ localStorage.setItem(USERS, JSON.stringify(u)); }catch(e){}
-    }
-    return u;
+    try{ var u=JSON.parse(localStorage.getItem(USERS)||"[]"); if(Array.isArray(u)) return u; }catch(e){}
+    return [];
   }
   var gate=document.getElementById("file-login");
   var form=document.getElementById("file-login-form");
@@ -36,9 +13,26 @@
   var list=users(), i, me=null;
   for(i=0;i<list.length;i++) if(list[i].id===sid) me=list[i];
   if(!me) gate.style.display="flex";
+  if(!list.length){
+    var hint=form.querySelector("p");
+    if(hint) hint.textContent="Аккаунтов ещё нет. Придумайте логин и пароль от 8 символов. Они сохранятся только на устройстве, не в коде.";
+    form.dataset.setup="1";
+  }
   form.addEventListener("submit", function(e){
     e.preventDefault();
     var err=document.getElementById("file-login-err");
+    if(form.dataset.setup==="1"){
+      var login=document.getElementById("file-login-name").value.trim();
+      var pass=document.getElementById("file-login-pass").value;
+      if(login.length<2 || pass.length<8){ if(err) err.textContent="Логин от 2 символов, пароль от 8"; return; }
+      function make(){
+        if(!window.__createFirst){ if(err) err.textContent="Подождите секунду и нажмите ещё раз"; return; }
+        window.__createFirst(login, pass);
+      }
+      if(window.__TRAVELEK_STORE_READY) make();
+      else setTimeout(make, 400);
+      return;
+    }
     function show(ok){ if(!ok && err) err.textContent="Неверный логин или пароль"; }
     function go(){
       if(!window.__localLogin){ show(false); return; }
