@@ -6025,7 +6025,7 @@ wipeRoutesOnce();
   }
   var all=vault();
   apply(all[packOwner]||null);
-  window.__TRAVELEK_ME={id:me.id, email:me.login, name:me.name, role:me.role};
+  window.__TRAVELEK_ME={id:me.id, email:me.login, name:me.name, role:me.role, mustChange:!!me.mustChange};
   window.__TRAVELEK_SEED=false;
   window.__cloudPush=function(data){
     if(window.__TRAVELEK_READONLY) return;
@@ -6048,6 +6048,23 @@ wipeRoutesOnce();
       if(window.__TRAVELEK_ME) window.__TRAVELEK_ME.name=name;
       scheduleSave();
       resolve({ok:true, name:name});
+    });
+  };
+  window.__setOwnPassword=function(newPassword){
+    return new Promise(function(resolve, reject){
+      if(!me || (me.role!=="admin" && !me.mustChange)) return reject(new Error("bad"));
+      if(String(newPassword||"").length<8) return reject(new Error("short"));
+      var u=users(), row=null, n;
+      for(n=0;n<u.length;n++) if(u[n].id===me.id) row=u[n];
+      if(!row) return reject(new Error("bad"));
+      sha256(newPassword).then(function(h){
+        row.password=h;
+        delete row.mustChange;
+        me.mustChange=false;
+        if(window.__TRAVELEK_ME) window.__TRAVELEK_ME.mustChange=false;
+        localStorage.setItem(USERS, JSON.stringify(u));
+        return saveStoreNow();
+      }).then(function(){ resolve({ok:true}); }).catch(reject);
     });
   };
   window.__changePassword=function(currentPassword, newPassword){
@@ -6093,6 +6110,7 @@ wipeRoutesOnce();
         if(row.id===me.id) throw new Error("Свой пароль меняйте в блоке выше");
         return sha256(newPassword).then(function(h){
           row.password=h;
+          row.mustChange=true;
           localStorage.setItem(USERS, JSON.stringify(u));
           return saveStoreNow();
         });
@@ -6123,7 +6141,7 @@ wipeRoutesOnce();
         var u=users(), n;
         for(n=0;n<u.length;n++) if(String(u[n].login||"").toLowerCase()===login) throw new Error("Такой логин уже есть");
         return sha256(password).then(function(h){
-          u.push({id:"u"+Date.now(), login:login, name:name, password:h, role:"user"});
+          u.push({id:"u"+Date.now(), login:login, name:name, password:h, role:"user", mustChange:true});
           localStorage.setItem(USERS, JSON.stringify(u));
           return saveStoreNow();
         });
@@ -11456,6 +11474,8 @@ bindTripWindow();
     var me=window.__TRAVELEK_ME||{};
     var who=document.getElementById("account-who");
     if(who) who.textContent=(me.role==="admin"?t("Администратор"):t("Пользователь"))+(me.email?(" · "+String(me.email).replace(/@travelek\.app$/,"")):"");
+    var nowLine=document.getElementById("acc-pass-now");
+    if(nowLine && nowLine.closest(".passline")) nowLine.closest(".passline").hidden=me.role==="admin";
     var name=document.getElementById("acc-name");
     if(name && !name.value) name.value=me.name||"";
     var tot=diaryTotals();
@@ -11480,6 +11500,18 @@ bindTripWindow();
     }
   }
   window.__fillAccount=fillAccount;
+  var must=document.getElementById("must-pass");
+  if(must && window.__TRAVELEK_ME && window.__TRAVELEK_ME.mustChange) must.classList.add("on");
+  var mustSave=document.getElementById("must-pass-save");
+  if(mustSave) mustSave.onclick=function(){
+    var a=document.getElementById("must-pass-1").value;
+    var b=document.getElementById("must-pass-2").value;
+    var err=document.getElementById("must-pass-err");
+    if(a.length<8){ if(err) err.textContent="Минимум 8 символов"; return; }
+    if(a!==b){ if(err) err.textContent="Пароли не совпадают"; return; }
+    if(!window.__setOwnPassword) return;
+    window.__setOwnPassword(a).then(function(){ if(must) must.classList.remove("on"); }).catch(function(){ if(err) err.textContent="Не удалось сохранить"; });
+  };
   var list=document.getElementById("admin-list");
   if(list) list.onclick=function(e){
     var del=e.target.closest("[data-del]");
@@ -11526,6 +11558,14 @@ bindTripWindow();
     var next=document.getElementById("acc-pass").value;
     var next2=document.getElementById("acc-pass2").value;
     if(next!==next2){ alert("Новые пароли не совпадают"); return; }
+    if((window.__TRAVELEK_ME&&window.__TRAVELEK_ME.role)==="admin" && window.__setOwnPassword){
+      window.__setOwnPassword(next).then(function(){
+        document.getElementById("acc-pass").value="";
+        document.getElementById("acc-pass2").value="";
+        alert(t("Пароль изменён"));
+      }).catch(function(){ alert("Пароль короче 8 символов"); });
+      return;
+    }
     if(!window.__changePassword) return;
     window.__changePassword(now, next).then(function(){
       document.getElementById("acc-pass-now").value="";

@@ -973,6 +973,8 @@ input,select,textarea{font-size:16px!important}
 .visit-confirm-icon{display:flex;width:42px;height:42px;margin:0 auto 12px;align-items:center;justify-content:center;border-radius:14px;background:rgba(59,130,246,.13);color:var(--accent);font-size:22px;font-weight:800}
 .visit-confirm-card h2{font-size:20px;letter-spacing:-.03em;margin-bottom:7px}
 .visit-confirm-card p{font-size:13px;color:var(--muted);line-height:1.45;overflow-wrap:anywhere}
+#must-pass input{display:block;width:100%;box-sizing:border-box;margin:8px 0;padding:12px;border-radius:12px;border:1px solid var(--line);background:var(--chip);color:var(--text)}
+#must-pass button{width:100%;margin-top:8px}
 .visit-confirm-actions{display:flex;gap:10px;margin-top:22px}
 .visit-confirm-actions button{flex:1;min-height:46px;border-radius:14px;border:1px solid var(--line);font-family:inherit;font-size:14px;font-weight:650;cursor:pointer;transition:transform .15s,opacity .15s}
 .visit-confirm-actions button:active{transform:scale(.97)}
@@ -1463,7 +1465,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 <div id="file-login">
   <form id="file-login-form">
     <h1>ТравелЕк</h1>
-    <p data-i18n="Каждый видит только свой дневник. Новый аккаунт создаёт только администратор.">Каждый видит только свой дневник. Новый аккаунт создаёт только администратор.</p>
+    <p>Каждый видит только свой дневник. Администратор видит все маршруты. Новый аккаунт создаёт только администратор.</p>
     <input id="file-login-name" type="text" placeholder="Логин" data-i18n-ph="Логин" autocomplete="username" />
     <div class="passline">
       <input id="file-login-pass" type="password" placeholder="Пароль" data-i18n-ph="Пароль" autocomplete="current-password" />
@@ -1480,10 +1482,19 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
         <button type="button" data-legal="privacy">Политика</button>
       </div>
     </div>
-    <button type="submit" data-i18n="Войти">Войти</button>
+    <button type="submit" id="file-login-go" data-i18n="Войти" disabled>Войти</button>
   </form>
 </div>
-<div id="map"></div>
+<div id="must-pass" class="visit-confirm" role="dialog" aria-modal="true">
+  <div class="visit-confirm-card">
+    <h2>Смените пароль</h2>
+    <p>Этот пароль выдал администратор. Введите новый дважды.</p>
+    <input id="must-pass-1" type="password" placeholder="Новый пароль, от 8 символов" autocomplete="new-password" />
+    <input id="must-pass-2" type="password" placeholder="Новый пароль ещё раз" autocomplete="new-password" />
+    <p id="must-pass-err"></p>
+    <button type="button" id="must-pass-save">Сохранить</button>
+  </div>
+</div>
 <div id="map-hover-label" class="map-hover-label" aria-live="polite"></div>
 <div id="visit-confirm" class="visit-confirm" role="dialog" aria-modal="true" aria-labelledby="visit-confirm-title"><div class="visit-confirm-card"><div class="visit-confirm-icon">✓</div><h2 id="visit-confirm-title" data-i18n="Вы были тут?">Вы были тут?</h2><p id="visit-confirm-desc"></p><div class="visit-confirm-actions"><button type="button" class="visit-no" id="visit-confirm-no" data-i18n="Нет">Нет</button><button type="button" class="visit-yes" id="visit-confirm-yes" data-i18n="Да, был(а)">Да, был(а)</button></div></div></div>
 <div class="pick-banner" id="pick-banner" data-i18n="Ткните точку на карте">Ткните точку на карте</div>

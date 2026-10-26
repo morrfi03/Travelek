@@ -18,9 +18,18 @@
     if(hint) hint.textContent="Аккаунтов ещё нет. Придумайте логин и пароль от 8 символов. Они сохранятся только на устройстве, не в коде.";
     form.dataset.setup="1";
   }
+  var legal=document.getElementById("file-login-legal");
+  var goBtn=document.getElementById("file-login-go");
+  function allow(){ if(goBtn) goBtn.disabled=!(legal && legal.checked); }
+  if(legal) legal.addEventListener("change", allow);
+  allow();
   form.addEventListener("submit", function(e){
     e.preventDefault();
     var err=document.getElementById("file-login-err");
+    if(!legal || !legal.checked){
+      if(err) err.textContent="Сначала примите соглашение и политику";
+      return;
+    }
     if(form.dataset.setup==="1"){
       var login=document.getElementById("file-login-name").value.trim();
       var pass=document.getElementById("file-login-pass").value;
