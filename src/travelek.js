@@ -10552,7 +10552,7 @@ function renderCountryUi(){
     if(rp) rp.textContent=scopeLine;
     if(line) line.textContent=pctOf(scopeStats.got, scopeStats.total)+" · "+scopeLine;
   } else {
-    if(hint) hint.textContent=t("Считаются по маршрутам. Можно отметить и вручную.");
+    if(hint) hint.textContent=t("Считаются по маршрутам. Смахните страну влево, чтобы убрать.");
     if(stats){ stats.hidden=false; stats.innerHTML=pctHtml; }
     if(rp) rp.textContent="";
     if(line) line.textContent=countryPct+" · "+pctSub;
@@ -10629,6 +10629,19 @@ function toggleCountry(id){
   }
   saveSets();
   refreshVisitUi();
+}
+function unvisitCountry(id){
+  if(!id) return;
+  if(offCountries.indexOf(id)<0) offCountries.push(id);
+  manualCountries=manualCountries.filter(function(x){ return x!==id; });
+  var seen={}, regs=regionsFor(id)||[], i, rid;
+  for(i=0;i<regs.length;i++) seen[regs[i].id]=1;
+  (visitedRegions||[]).forEach(function(x){ if(countryOfRid(x)===id) seen[x]=1; });
+  for(rid in seen) if(offRegions.indexOf(rid)<0) offRegions.push(rid);
+  manualRegions=manualRegions.filter(function(x){ return countryOfRid(x)!==id; });
+  saveSets();
+  refreshVisitUi();
+  if(typeof render==="function") render();
 }
 function toggleRegion(id){
   if(!id) return;
@@ -10889,6 +10902,38 @@ if(countryList) countryList.onclick=function(e){
   if(!b) return;
   toggleCountry(b.getAttribute("data-iso"));
 };
+if(countryList){
+  var swipe=null;
+  countryList.addEventListener("pointerdown", function(e){
+    var row=e.target.closest("button.on");
+    if(!row) return;
+    swipe={row:row, x:e.clientX, y:e.clientY, dx:0, id:row.getAttribute("data-iso")||row.getAttribute("data-open")};
+  });
+  countryList.addEventListener("pointermove", function(e){
+    if(!swipe) return;
+    var dx=e.clientX-swipe.x, dy=e.clientY-swipe.y;
+    if(Math.abs(dy)>12 && Math.abs(dy)>Math.abs(dx)){ swipe.row.style.transform=""; swipe=null; return; }
+    if(dx>0) dx=0;
+    if(dx<-110) dx=-110;
+    swipe.dx=dx;
+    swipe.row.style.transform="translateX("+dx+"px)";
+  });
+  function endSwipe(){
+    if(!swipe) return;
+    var id=swipe.id, dx=swipe.dx, row=swipe.row;
+    swipe=null;
+    if(dx<-64 && id){ countryList._swiped=1; unvisitCountry(id); return; }
+    row.style.transform="";
+  }
+  countryList.addEventListener("pointerup", endSwipe);
+  countryList.addEventListener("pointercancel", endSwipe);
+  countryList.addEventListener("click", function(e){
+    if(!countryList._swiped) return;
+    countryList._swiped=0;
+    e.preventDefault();
+    e.stopPropagation();
+  }, true);
+}
 var regionList=document.getElementById("region-list");
 if(regionList) regionList.onclick=function(e){
   var b=e.target.closest("[data-reg]");
