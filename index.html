@@ -1578,22 +1578,6 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 
 <div id="settings-panel" style="max-height:70vh;overflow-y:auto">
   <b style="font-size:14px" data-i18n="Настройки">Настройки</b>
-  <b style="display:block;margin:14px 0 6px" data-i18n="Пользователи">Пользователи</b>
-  <div id="users-box">
-    <b style="display:block;margin:14px 0 6px" data-i18n="Создать аккаунт">Создать аккаунт</b>
-    <input id="new-login" type="text" placeholder="Логин" data-i18n-ph="Логин" autocomplete="off" />
-    <div class="passline">
-      <input id="new-pass" type="password" placeholder="Пароль" data-i18n-ph="Пароль" autocomplete="new-password" />
-      <button type="button" class="eye" data-eye="new-pass" data-i18n="Показать">Показать</button>
-    </div>
-    <div class="passline">
-      <input id="new-pass2" type="password" placeholder="Повторите пароль" data-i18n-ph="Повторите пароль" autocomplete="new-password" />
-      <button type="button" class="eye" data-eye="new-pass2" data-i18n="Показать">Показать</button>
-    </div>
-    <button type="button" id="new-user" data-i18n="Создать аккаунт">Создать аккаунт</button>
-    <b style="display:block;margin:16px 0 6px" data-i18n="Список аккаунтов">Список аккаунтов</b>
-    <div id="admin-list"></div>
-  </div>
   <label style="display:block;font-size:11px;color:var(--muted);margin-top:10px" data-i18n="Тема">Тема</label>
   <div class="row2 theme-row">
     <button type="button" id="set-theme-dark" data-i18n="Тёмная">Тёмная</button>
@@ -1625,6 +1609,21 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     <button type="button" id="account-close" class="panel-x" aria-label="Закрыть" data-i18n-title="Закрыть">×</button>
   </div>
   <p class="hint" id="account-who"></p>
+  <div id="users-box">
+    <b style="display:block;margin:8px 0 6px" data-i18n="Создать аккаунт">Создать аккаунт</b>
+    <input id="new-login" type="text" placeholder="Логин" data-i18n-ph="Логин" autocomplete="off" />
+    <div class="passline">
+      <input id="new-pass" type="password" placeholder="Пароль" data-i18n-ph="Пароль" autocomplete="new-password" />
+      <button type="button" class="eye" data-eye="new-pass" data-i18n="Показать">Показать</button>
+    </div>
+    <div class="passline">
+      <input id="new-pass2" type="password" placeholder="Повторите пароль" data-i18n-ph="Повторите пароль" autocomplete="new-password" />
+      <button type="button" class="eye" data-eye="new-pass2" data-i18n="Показать">Показать</button>
+    </div>
+    <button type="button" id="new-user" data-i18n="Создать аккаунт">Создать аккаунт</button>
+    <b style="display:block;margin:16px 0 6px" data-i18n="Список аккаунтов">Список аккаунтов</b>
+    <div id="admin-list"></div>
+  </div>
   <div class="account-stats" id="account-stats"></div>
   <label style="font-size:11px;color:var(--muted)" data-i18n="Имя">Имя</label>
   <input id="acc-name" type="text" autocomplete="name" />

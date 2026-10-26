@@ -183,8 +183,8 @@
       c.imageSmoothingEnabled = true; if (texF.complete && texF.naturalWidth) c.drawImage(texF, 0, 0, WID, HF);
       for (var r = 0; r < NR; r++) RV[r] = (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1 || (rbx1[r] - rbx0[r] < px1 && rby1[r] - rby0[r] < px1)) ? 0 : 1;
       var lw = 1 / kk; c.lineJoin = "round"; c.lineCap = "round";
-      c.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && washIso[e.iso]) entPath(c, e); }); c.globalCompositeOperation = "multiply"; c.fillStyle = "rgba(118,154,174,.78)"; c.fill("evenodd"); c.globalCompositeOperation = "source-over";
-      c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionMarked(ents[i])) entPath(c, ents[i]); }); }); c.fillStyle = "rgba(196,98,45,.34)"; c.fill("evenodd");
+      c.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && washIso[e.iso]) entPath(c, e); }); c.globalCompositeOperation = "source-over"; c.fillStyle = "rgba(36,112,168,.46)"; c.fill("evenodd");
+      c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionMarked(ents[i])) entPath(c, ents[i]); }); }); c.fillStyle = "rgba(196,98,45,.52)"; c.fill("evenodd");
       if (k >= 2.6) {
         c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) entPath(c, ents[i]); }); });
         c.strokeStyle = "rgba(250,252,251,.55)"; c.lineWidth = 0.4 * lw; c.stroke();
@@ -262,6 +262,105 @@
       if (e.pointerType === "touch") return; var p = local(e), i = pickAt(p.x, p.y);
       if (i !== hoverEnt) { hoverEnt = i; schedule(); } showTip(tip, box, e, i);
     }
+    var netGraphs = {};
+    function km2(a, b) {
+      var R = 6371, p1 = a[0] * PI / 180, p2 = b[0] * PI / 180, dp = (b[0] - a[0]) * PI / 180, dl = (b[1] - a[1]) * PI / 180;
+      var s = Math.sin(dp / 2) * Math.sin(dp / 2) + Math.cos(p1) * Math.cos(p2) * Math.sin(dl / 2) * Math.sin(dl / 2);
+      return 2 * R * Math.asin(Math.min(1, Math.sqrt(s)));
+    }
+    function graphOf(key) {
+      if (netGraphs[key]) return netGraphs[key];
+      var L = null, i;
+      for (i = 0; i < LAYERS.length; i++) if (LAYERS[i].key === key && (LAYERS[i].rank || 0) === 0) L = LAYERS[i];
+      if (!L) return null;
+      if (!L.ready) load(L);
+      if (!L.ready || !L.n) return null;
+      var snap = 0.12, nodes = {}, edges = [], adj = {}, grid = {};
+      function nid(lat, lng) { return Math.round(lat / snap) + ":" + Math.round(lng / snap); }
+      function touch(id, lat, lng) {
+        if (!nodes[id]) {
+          nodes[id] = { lat: lat, lng: lng };
+          var cell = Math.floor(lat) + ":" + Math.floor(lng);
+          (grid[cell] = grid[cell] || []).push(id);
+        }
+      }
+      for (i = 0; i < L.n; i++) {
+        var s0 = L.ps[i], m = L.pl[i];
+        if (m < 2) continue;
+        var aLat = L.gy[s0], aLng = L.gx[s0], bLat = L.gy[s0 + m - 1], bLng = L.gx[s0 + m - 1];
+        var ia = nid(aLat, aLng), ib = nid(bLat, bLng);
+        if (ia === ib) continue;
+        touch(ia, aLat, aLng); touch(ib, bLat, bLng);
+        var pts = new Array(m), j;
+        for (j = 0; j < m; j++) pts[j] = [L.gy[s0 + j], L.gx[s0 + j]];
+        var idx = edges.length;
+        edges.push({ a: ia, b: ib, w: km2([aLat, aLng], [bLat, bLng]) || 0.1, pts: pts });
+        (adj[ia] = adj[ia] || []).push(idx);
+        (adj[ib] = adj[ib] || []).push(idx);
+      }
+      netGraphs[key] = { nodes: nodes, edges: edges, adj: adj, grid: grid };
+      return netGraphs[key];
+    }
+    function nearestNode(g, lat, lng) {
+      var best = null, bd = 80, cy, cx, arr, i, id, n, d;
+      for (cy = Math.floor(lat) - 1; cy <= Math.floor(lat) + 1; cy++) {
+        for (cx = Math.floor(lng) - 1; cx <= Math.floor(lng) + 1; cx++) {
+          arr = g.grid[cy + ":" + cx];
+          if (!arr) continue;
+          for (i = 0; i < arr.length; i++) {
+            id = arr[i]; n = g.nodes[id];
+            d = km2([lat, lng], [n.lat, n.lng]);
+            if (d < bd) { bd = d; best = id; }
+          }
+        }
+      }
+      return best;
+    }
+    function traceKey(key, lat1, lng1, lat2, lng2) {
+      var g = graphOf(key);
+      if (!g) return null;
+      var start = nearestNode(g, lat1, lng1), goal = nearestNode(g, lat2, lng2);
+      if (!start || !goal || start === goal) return null;
+      var open = [start], gscore = {}, prev = {}, seen = {}, guard = 0, i, bi, b, id, f, cur, list, e, nxt, ng;
+      gscore[start] = 0;
+      while (open.length && guard++ < 7000) {
+        bi = 0; b = 1e18;
+        for (i = 0; i < open.length; i++) {
+          id = open[i];
+          f = gscore[id] + km2([g.nodes[id].lat, g.nodes[id].lng], [g.nodes[goal].lat, g.nodes[goal].lng]);
+          if (f < b) { b = f; bi = i; }
+        }
+        cur = open.splice(bi, 1)[0];
+        if (cur === goal) break;
+        if (seen[cur]) continue;
+        seen[cur] = 1;
+        list = g.adj[cur] || [];
+        for (i = 0; i < list.length; i++) {
+          e = g.edges[list[i]];
+          nxt = e.a === cur ? e.b : e.a;
+          ng = gscore[cur] + e.w;
+          if (gscore[nxt] == null || ng < gscore[nxt]) {
+            gscore[nxt] = ng;
+            prev[nxt] = { from: cur, edge: list[i] };
+            open.push(nxt);
+          }
+        }
+      }
+      if (gscore[goal] == null) return null;
+      var straight = km2([lat1, lng1], [lat2, lng2]);
+      if (gscore[goal] > Math.max(90, straight * 2.6)) return null;
+      var parts = [], walk = goal;
+      while (prev[walk]) {
+        e = g.edges[prev[walk].edge];
+        parts.push(e.a === prev[walk].from ? e.pts : e.pts.slice().reverse());
+        walk = prev[walk].from;
+      }
+      parts.reverse();
+      var out = [[lat1, lng1]], q;
+      for (i = 0; i < parts.length; i++) for (q = 0; q < parts[i].length; q++) out.push(parts[i][q]);
+      out.push([lat2, lng2]);
+      return out;
+    }
     return {
       resize: resize, draw: schedule, drawNow: draw, zoomAt: zoomAt, kMin: kMin,
       getK: function () { return k; },
@@ -282,8 +381,14 @@
         if (!arr || !arr.length || this.hasKey(key)) return;
         if (key === "rd") addTiers("rd", arr, [1.05, 6, 16, 32], { c: "#c08a4b", w: 0.8, a: 0.9 });
         else if (key === "rl") addTiers("rl", arr, [1.05, 5, 14], { c: "#54606a", w: 1, a: 0.95, dash: [5, 3] });
-        bkey = ""; schedule();
-      }
+        bkey = "";
+      },
+      warm: function (key) {
+        var i, L = null;
+        for (i = 0; i < LAYERS.length; i++) if (LAYERS[i].key === key && (LAYERS[i].rank || 0) === 0) L = LAYERS[i];
+        if (L && !L.ready && L.b64) load(L);
+      },
+      trace: function (key, lat1, lng1, lat2, lng2) { return traceKey(key, lat1, lng1, lat2, lng2); }
     };
   })();
 
@@ -342,8 +447,8 @@
       if (!tex) { ctx.fillStyle = "#96b8d0"; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.fill(); return; }
       relief(q); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; ctx.drawImage(rbuf, 0, 0, cw, ch); ctx.restore();
       project(); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
-      ctx.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && washIso[e.iso]) fillRings(e); }); ctx.save(); ctx.globalCompositeOperation = "multiply"; ctx.fillStyle = "rgba(118,154,174,.78)"; ctx.fill("evenodd"); ctx.restore();
-      ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionMarked(ents[i])) fillRings(ents[i]); }); }); ctx.fillStyle = "rgba(196,98,45,.34)"; ctx.fill("evenodd");
+      ctx.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && washIso[e.iso]) fillRings(e); }); ctx.fillStyle = "rgba(36,112,168,.46)"; ctx.fill("evenodd");
+      ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionMarked(ents[i])) fillRings(ents[i]); }); }); ctx.fillStyle = "rgba(196,98,45,.52)"; ctx.fill("evenodd");
       [[hoverEnt, "rgba(60,110,85,.55)"], [selEnt, "rgba(196,98,45,.70)"]].forEach(function (h) { if (h[0] < 0) return; ctx.beginPath(); fillRings(ents[h[0]]); ctx.fillStyle = h[1]; ctx.fill("evenodd"); });
       if (!moving && zoom >= 2.2) {
         ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) strokeRings(ents[i]); }); });
@@ -477,11 +582,36 @@
       var s0 = rStart[e.r0], n = rLen[e.r0], step = Math.max(1, Math.floor(n / 6)), t;
       for (t = 0; t < n && !iso; t += step) probe(LY[s0 + t] / 100, LX[s0 + t] / 100);
     }
-    e.lat = lat; e.lng = lng; e.iso = iso; e.rid = rid; if (iso) e._tag = 1;
+    e.lat = lat; e.lng = lng; if (iso) e.iso = iso; if (rid) e.rid = rid; if (e.iso) e._tag = 1;
   }
   function regionMarked(e) {
     if (!e) return false;
     return !!(markR[e.name] || (e.rid && markR[e.rid]));
+  }
+  function stampIso() {
+    var list = (typeof COUNTRY_LIST !== "undefined") ? COUNTRY_LIST : null;
+    if (!list || !list.length) return 0;
+    var by = {
+      "россия": "RU", "российская федерация": "RU",
+      "китай": "CN", "китайская народная республика": "CN",
+      "соединенные штаты": "US", "соединенные штаты америки": "US", "сша": "US",
+      "великобритания": "GB", "соединенное королевство": "GB"
+    }, i, n, added = 0;
+    for (i = 0; i < list.length; i++) {
+      n = String(list[i].n || "").toLowerCase().replace(/ё/g, "е");
+      if (n && list[i].i) by[n] = list[i].i;
+    }
+    byLayer.W.forEach(function (idx) {
+      var e = ents[idx];
+      if (e.iso) return;
+      var name = String(e.name || "").toLowerCase().replace(/ё/g, "е");
+      if (by[name]) { e.iso = by[name]; added++; return; }
+      var k;
+      for (k in by) {
+        if (k.length > 4 && (name.indexOf(k) >= 0 || k.indexOf(name) >= 0)) { e.iso = by[k]; added++; break; }
+      }
+    });
+    return added;
   }
   function rebuildWash() {
     washIso = {};
@@ -499,7 +629,10 @@
   var visitSig = "";
   function setVisited(countries, regions) {
     var sig = (countries || []).join("\n") + "|" + (regions || []).join("\n");
-    if (sig === visitSig) return;
+    if (sig === visitSig) {
+      if (stampIso()) { rebuildWash(); markRev++; views.flat.draw(); if (mode === "globe") views.globe.draw(); }
+      return;
+    }
     visitSig = sig;
     markC = {}; markR = {}; markRev++;
     (countries || []).forEach(function (id) { if (id) markC[id] = 1; });
@@ -509,6 +642,7 @@
       var cut = String(id).indexOf(":");
       if (cut > 0) markR[String(id).slice(cut + 1)] = 1;
     });
+    stampIso();
     rebuildWash();
     views.flat.draw();
     if (typeof countryAt !== "function") { if (mode === "globe") views.globe.draw(); return; }
@@ -639,24 +773,28 @@
       opts = opts || {};
       function one(key, on) {
         netWant[key] = !!on;
-        if (!on) { views.flat.setShow(key, false); if (mode === "globe") views.globe.draw(); return; }
+        function ready(data) {
+          if (data) views.flat.addNet(key, data);
+          if (views.flat.warm) views.flat.warm(key);
+          views.flat.setShow(key, !!netWant[key]);
+        }
         var bag = key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS;
-        if (bag) { views.flat.addNet(key, bag); views.flat.setShow(key, true); if (mode === "globe") views.globe.draw(); return; }
-        if (netWait[key]) return;
+        if (bag) { ready(bag); return; }
+        if (netWait[key]) { views.flat.setShow(key, !!on); return; }
         netWait[key] = 1;
         var s = document.createElement("script");
         s.src = key === "rd" ? "geo/roads.js" : "geo/rails.js";
-        s.onload = function () {
-          var data = key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS;
-          views.flat.addNet(key, data);
-          views.flat.setShow(key, !!netWant[key]);
-          refreshMap();
-        };
+        s.onload = function () { ready(key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS); };
         s.onerror = function () { netWait[key] = 0; };
         document.head.appendChild(s);
       }
       if ("roads" in opts) one("rd", !!opts.roads);
       if ("rails" in opts) one("rl", !!opts.rails);
+    };
+    facade.prepareNetwork = function () { facade.setNetwork({ roads: false, rails: false }); };
+    facade.traceNetwork = function (modeName, lat1, lng1, lat2, lng2) {
+      if (!views.flat.trace) return null;
+      return views.flat.trace(modeName === "train" ? "rl" : "rd", lat1, lng1, lat2, lng2);
     };
     facade.networkOn = function () { return { roads: views.flat.netOn("rd"), rails: views.flat.netOn("rl") }; };
     facade.setMode = function (m) { setMode(m); };

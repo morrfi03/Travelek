@@ -6887,6 +6887,8 @@ function trainPlan(from, to){
     q={lat:pts[i][0], lng:pts[i][1]};
     d=hav(p,q);
     key=roadKey(p,q);
+    var traced=map && map.traceNetwork && map.traceNetwork("train", p.lat, p.lng, q.lat, q.lng);
+    if(traced && traced.length>=2){ append(traced); continue; }
     cached=roadCache[key];
     if(d>=55 && cached && cached!=="fail" && cached!=="pending"){
       append(cached);
@@ -7859,6 +7861,10 @@ function buildGeoSync(r){
     return {coords:coords, km:pathKm(coords), a:a, b:b, needRoad:false};
   }
   var key=roadKey(a,b);
+  if(map && map.traceNetwork){
+    var along=map.traceNetwork("car", a.lat, a.lng, b.lat, b.lng);
+    if(along && along.length>=2) return {coords:along, km:pathKm(along), a:a, b:b, needRoad:false};
+  }
   var cached=roadCache[key];
   if(cached==="fail" && hav(a,b)>100) return {coords:null, km:0, a:a, b:b, needRoad:false, roadMiss:true};
   if(cached && cached!=="fail" && cached!=="pending") coords=cached;
@@ -7866,7 +7872,7 @@ function buildGeoSync(r){
   return {coords:coords, km:pathKm(coords), a:a, b:b, needRoad:cached==null, hops:cached==null?[[a,b]]:[]};
 }
 
-var COLORS={plane:"#101820",train:"#101c16",car:"#241c12",walk:"#1a2418",bike:"#241816",ship:"#101c22",future:"#1c1830"};
+var COLORS={plane:"#1d4ed8",train:"#15803d",car:"#c2410c",walk:"#7c3aed",bike:"#0f766e",ship:"#0369a1",future:"#6d28d9"};
 var ICONS={plane:"✈️",train:"🚂",car:"🚗",walk:"🚶",bike:"🚴",ship:"🚢"};
 /* подписи на карте — крупные города, не все 150+ */
 var CITY_LABELS = [
@@ -7887,7 +7893,7 @@ var CITY_LABELS = [
 var map;
 if(window.TravelekAtlas){
   map=window.TravelekAtlas.createMap();
-  try{ if(map.setNetwork) map.setNetwork({roads:false, rails:false}); }catch(e){}
+  try{ if(map.prepareNetwork) map.prepareNetwork(); }catch(e){}
   map.setView([48, 37], 3.4);
 }else{
 map=L.map("map",{
@@ -11817,6 +11823,19 @@ bindTripWindow();
     paintAccounts();
     if(window.__ensureOwner) window.__ensureOwner();
     var me=window.__TRAVELEK_ME||{};
+    var loginNow=String(me.login||me.email||me.name||"").toLowerCase().replace(/@travelek\.app$/,"");
+    var adminOk=me.role==="admin" || loginNow==="admin";
+    if(!adminOk){
+      try{
+        var stored=JSON.parse(localStorage.getItem("travelek-users")||"[]");
+        for(var si=0;si<stored.length;si++){
+          if(!stored[si] || stored[si].id!==me.id) continue;
+          if(stored[si].role==="admin" || String(stored[si].login||"").toLowerCase()==="admin") adminOk=true;
+        }
+      }catch(e){}
+    }
+    var usersBox=document.getElementById("users-box");
+    if(usersBox) usersBox.style.display=adminOk?"block":"none";
     var who=document.getElementById("account-who");
     if(who) who.textContent=(me.role==="admin"?t("Администратор"):t("Пользователь"))+(me.email?(" · "+String(me.email).replace(/@travelek\.app$/,"")):"");
     paintAccounts();
