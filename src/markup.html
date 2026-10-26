@@ -125,6 +125,18 @@ input,select,textarea{font-size:16px!important}
   color:var(--text);font-size:18px;font-weight:500;
   box-shadow:0 2px 12px rgba(0,0,0,.2);
 }
+.net-toggle{
+  position:fixed;right:max(10px, env(safe-area-inset-right, 0px));top:calc(38% - 96px);
+  z-index:26;display:flex;flex-direction:column;gap:8px;align-items:flex-end;
+}
+.net-toggle button{
+  min-height:36px;padding:0 12px;border-radius:999px;
+  border:1px solid var(--line);background:var(--glass);color:var(--text);
+  font-size:12px;font-weight:750;
+  backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);
+  box-shadow:0 2px 12px rgba(0,0,0,.2);
+}
+.net-toggle button.on{background:#1f4f97;color:#fff;border-color:transparent}
 
 /* Bottom sheet — Flighty style */
 .sheet{
@@ -402,8 +414,8 @@ input,select,textarea{font-size:16px!important}
   position:fixed;left:0;top:0;width:100vw;height:100dvh;z-index:1;display:none;touch-action:none;
   background:#05070f;cursor:grab;
 }
-body.globe-on #globe{display:block;z-index:23}
-body.globe-on #map{visibility:hidden}
+body.globe-on #globe{display:none}
+body.globe-on #map{visibility:visible}
 body.globe-on #globe:active{cursor:grabbing}
 #globe-hint{
   display:none;position:fixed;z-index:8;left:50%;
@@ -552,19 +564,21 @@ body.globe-on #globe-hint{display:block}
 }
 .countries-pct b,.visit-stats b{font-size:28px;line-height:1;letter-spacing:-.04em;color:var(--accent);font-weight:800}
 .countries-pct span,.visit-stats span{font-size:13px;font-weight:650}
-.legal-accept{display:flex;gap:8px;align-items:flex-start;margin:4px 0 10px;font-size:12px;line-height:1.4;color:#c5cedd}
-.legal-accept input{margin-top:2px;flex:none}
-.legal-accept button,.legal-link{
+.legal-accept{display:block;margin:12px 0 14px;padding:12px;border-radius:14px;background:rgba(255,255,255,.06);color:#d5dced}
+.legal-check{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:flex-start;font-size:14px;line-height:1.4}
+.legal-check input{width:22px;height:22px;margin:1px 0 0;accent-color:#5b8def}
+.legal-links{display:flex;gap:14px;margin-top:8px;padding-left:38px}
+.legal-links button,.legal-link{
   display:inline;width:auto;margin:0;padding:0;border:0;background:none;color:#9eb6ff;
-  font:inherit;font-weight:700;text-decoration:underline;cursor:pointer;
+  font:inherit;font-size:13px;font-weight:700;text-decoration:underline;cursor:pointer;
 }
 #legal-panel{
-  position:fixed;inset:0;z-index:90;display:none;align-items:flex-end;justify-content:center;
-  background:rgba(4,8,16,.55);padding:12px;
+  position:fixed;inset:0;z-index:240;display:none;align-items:flex-end;justify-content:center;
+  background:rgba(4,8,16,.55);padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px));
 }
 #legal-panel.on{display:flex}
 #legal-panel .card{
-  width:min(560px,100%);max-height:min(78dvh,640px);overflow:auto;
+  width:min(480px,100%);max-height:min(86dvh,680px);overflow:auto;margin:0 auto;
   background:var(--panel-solid);color:var(--text);border:1px solid var(--line);
   border-radius:20px;padding:16px 16px 14px;
 }
@@ -572,14 +586,14 @@ body.globe-on #globe-hint{display:block}
 #legal-panel h3{font-size:14px;margin:14px 0 6px}
 #legal-panel p,#legal-panel li{font-size:13px;line-height:1.45;color:var(--muted)}
 #legal-panel ul{margin:0 0 8px 18px}
-#legal-panel .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+#legal-panel .row2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px;position:sticky;bottom:0;background:var(--panel-solid);padding-top:10px}
 #legal-panel .row2 button{
   min-height:42px;border-radius:12px;border:1px solid var(--line);background:var(--chip);color:var(--text);font-weight:700;
 }
 #legal-panel #legal-ok{background:linear-gradient(135deg,#5b8def,#4f7dff);color:#fff;border:0}
-#settings-panel button.legal-link,#file-login .legal-accept button{
-  display:inline;width:auto;min-height:0;margin:0;padding:0;border:0;background:none;
-  color:#9eb6ff;font-size:12px;font-weight:700;text-align:left;text-decoration:underline;box-shadow:none;
+#settings-panel button.legal-link,#file-login .legal-links button{
+  display:inline;width:auto!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;background:none!important;
+  color:#9eb6ff!important;font-size:13px!important;font-weight:700;text-align:left;text-decoration:underline;box-shadow:none!important;border-radius:0!important;
 }
 #settings-panel button.legal-link{display:block;margin-top:8px}
 @media (min-width:980px){
@@ -626,6 +640,7 @@ body.globe-on #globe-hint{display:block}
     box-shadow:0 8px 28px rgba(0,0,0,.25);
   }
   .zoom{left:auto;right:18px;top:auto;bottom:96px;transform:none;flex-direction:column}
+  .net-toggle{top:auto;bottom:214px;right:18px}
 }
 #settings-panel .theme-row{grid-template-columns:1fr}
 #settings-panel .lang-row{grid-template-columns:1fr 1fr 1fr}
@@ -667,11 +682,14 @@ body.globe-on #globe-hint{display:block}
 #account-btn{display:grid;place-items:center}
 body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!important}
 #file-login{
-  display:none;position:fixed;inset:0;z-index:80;place-items:center;padding:24px;
+  display:none;position:fixed;inset:0;z-index:80;overflow:auto;
+  padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px));
   background:radial-gradient(900px 420px at 50% -10%, rgba(79,125,255,.35), transparent 60%), #07090f;
+  align-items:center;justify-content:center;
 }
 #file-login form{
-  width:min(400px,100%);background:rgba(18,22,34,.92);border:1px solid rgba(255,255,255,.1);
+  width:min(400px,100%);box-sizing:border-box;margin:auto;
+  background:rgba(18,22,34,.92);border:1px solid rgba(255,255,255,.1);
   border-radius:22px;padding:28px 22px 22px;color:#eef0f5;
 }
 #file-login h1{margin:0 0 8px;font-size:28px}
@@ -745,10 +763,16 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
       <button type="button" class="eye" data-eye="file-login-pass" data-i18n="Показать">Показать</button>
     </div>
     <div id="file-login-err"></div>
-    <label class="legal-accept">
-      <input id="file-login-legal" type="checkbox" />
-      <span><span data-i18n="Принимаю">Принимаю</span> <button type="button" data-legal="terms" data-i18n="пользовательское соглашение">пользовательское соглашение</button> <span data-i18n="и">и</span> <button type="button" data-legal="privacy" data-i18n="политику обработки данных">политику обработки данных</button></span>
-    </label>
+    <div class="legal-accept">
+      <label class="legal-check" for="file-login-legal">
+        <input id="file-login-legal" type="checkbox" />
+        <span>Принимаю пользовательское соглашение и политику обработки данных</span>
+      </label>
+      <div class="legal-links">
+        <button type="button" data-legal="terms">Соглашение</button>
+        <button type="button" data-legal="privacy">Политика</button>
+      </div>
+    </div>
     <button type="submit" data-i18n="Войти">Войти</button>
   </form>
 </div>
@@ -790,6 +814,10 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   <button type="button" id="z-fit" title="Все маршруты" data-i18n-title="Все маршруты">⌂</button>
   <button type="button" id="z-in">+</button>
   <button type="button" id="z-out">−</button>
+</div>
+<div class="net-toggle" id="net-toggle">
+  <button type="button" id="net-roads" aria-pressed="false">Дороги</button>
+  <button type="button" id="net-rails" aria-pressed="false">ЖД</button>
 </div>
 <div id="live-trip" aria-live="polite"></div>
 <div id="offline-pill" data-i18n="Нет сети · карта из кэша">Нет сети · карта из кэша</div>
@@ -836,7 +864,6 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     <button type="button" data-view="map" class="on" aria-pressed="true" data-i18n="Карта">Карта</button>
     <button type="button" data-view="globe" aria-pressed="false" data-i18n="Глобус">Глобус</button>
   </div>
-  <p style="font-size:11px;color:var(--muted);margin-top:8px" data-i18n="Ночь на карте всегда включена. Глобус — шар: потяните, чтобы покрутить, двумя пальцами или +/− приблизьте. Железные дороги всегда по точной сети.">Ночь на карте всегда включена. Глобус — шар: потяните, чтобы покрутить, двумя пальцами или +/− приблизьте. Железные дороги всегда по точной сети.</p>
   <button type="button" id="set-reset" style="margin-top:14px;background:rgba(220,60,60,.2);color:#e88" data-i18n="Сбросить мои маршруты">Сбросить мои маршруты</button>
   <p style="font-size:11px;color:var(--muted);margin-top:4px" data-i18n="Сброс — двойным нажатием.">Сброс — двойным нажатием.</p>
   <button type="button" class="legal-link" data-legal="terms" style="margin-top:12px;text-align:left" data-i18n="Пользовательское соглашение">Пользовательское соглашение</button>
@@ -1032,7 +1059,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   try{ sid=localStorage.getItem(SESSION); }catch(e){}
   var list=users(), i, me=null;
   for(i=0;i<list.length;i++) if(list[i].id===sid) me=list[i];
-  if(!me) gate.style.display="grid";
+  if(!me) gate.style.display="flex";
   form.addEventListener("submit", function(e){
     e.preventDefault();
     var err=document.getElementById("file-login-err");

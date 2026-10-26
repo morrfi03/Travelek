@@ -118,22 +118,26 @@
     var cw = 800, ch = 350, dpr = 1, k = 1, tx = 0, ty = 0, KMAX = 170, raf = 0;
     function kMin(){ var need = HF / WID * cw; return Math.max(0.4, Math.min(1, ch / Math.max(1, need))); }
     var texF = new Image(); texF.onload = function () { schedule(); }; texF.src = G.tf;
-    var show = { rd: true, rl: true, rv: true };
-    // линии: уровни важности, видимые начиная с заданного масштаба
+    var show = { rd: false, rl: false, rv: true };
     var LAYERS = [];
-    function addTiers(key, arr, ths, style) { arr.forEach(function (b, i) { LAYERS.push({ key: key, b64: b, th: ths[i], style: style, ready: false }); }); }
+    function addTiers(key, arr, ths, style) {
+      if (!arr || !arr.length) return;
+      arr.forEach(function (b, i) { LAYERS.push({ key: key, b64: b, th: ths[i], style: style, ready: false, rank: i }); });
+    }
     addTiers("rv", G.rv, [2, 4, 8, 14], { c: "#7fa6bd", w: 0.7, a: 1 });
-    addTiers("rd", G.rd, [2.4, 8, 18, 36], { c: "#c08a4b", w: 0.7, a: 0.85 });
-    addTiers("rl", G.rl, [2.2, 7, 16], { c: "#54606a", w: 0.9, a: 0.9, dash: [4, 2] });
     function load(L) {
-      var rd = reader(L.b64), n = rd.next(), ps = new Int32Array(n), pl = new Int32Array(n), bx = new Float32Array(n * 4), px = [], py = [];
+      var rd = reader(L.b64), n = rd.next(), ps = new Int32Array(n), pl = new Int32Array(n), bx = new Float32Array(n * 4), px = [], py = [], gx = [], gy = [];
       for (var i = 0; i < n; i++) {
         var m = rd.next(), x = rd.next(), y = rd.next(); ps[i] = px.length; pl[i] = m;
         var a0 = 1e9, b0 = 1e9, a1 = -1e9, b1 = -1e9;
-        for (var j = 0; j < m; j++) { if (j) { x += rd.next(); y += rd.next(); } var f = flatXY(x * D2R, y * D2R); px.push(f[0]); py.push(f[1]); if (f[0] < a0) a0 = f[0]; if (f[0] > a1) a1 = f[0]; if (f[1] < b0) b0 = f[1]; if (f[1] > b1) b1 = f[1]; }
+        for (var j = 0; j < m; j++) {
+          if (j) { x += rd.next(); y += rd.next(); }
+          var f = flatXY(x * D2R, y * D2R); px.push(f[0]); py.push(f[1]); gx.push(x / 100); gy.push(y / 100);
+          if (f[0] < a0) a0 = f[0]; if (f[0] > a1) a1 = f[0]; if (f[1] < b0) b0 = f[1]; if (f[1] > b1) b1 = f[1];
+        }
         bx[i * 4] = a0; bx[i * 4 + 1] = b0; bx[i * 4 + 2] = a1; bx[i * 4 + 3] = b1;
       }
-      L.n = n; L.ps = ps; L.pl = pl; L.bx = bx; L.px = Float32Array.from(px); L.py = Float32Array.from(py); L.ready = true; L.b64 = null;
+      L.n = n; L.ps = ps; L.pl = pl; L.bx = bx; L.px = Float32Array.from(px); L.py = Float32Array.from(py); L.gx = Float32Array.from(gx); L.gy = Float32Array.from(gy); L.ready = true; L.b64 = null;
     }
     function resize() { var r = box.getBoundingClientRect(); cw = Math.max(200, r.width); ch = Math.max(100, r.height); dpr = Math.min(window.devicePixelRatio || 1, 2); cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); clamp(); }
     function clamp() {
@@ -159,9 +163,8 @@
       c.imageSmoothingEnabled = true; if (texF.complete && texF.naturalWidth) c.drawImage(texF, 0, 0, WID, HF);
       for (var r = 0; r < NR; r++) RV[r] = (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1 || (rbx1[r] - rbx0[r] < px1 && rby1[r] - rby0[r] < px1)) ? 0 : 1;
       var lw = 1 / kk; c.lineJoin = "round"; c.lineCap = "round";
-      c.beginPath(); byLayer.R.forEach(function (i) { entPath(c, ents[i]); }); c.fillStyle = "rgba(115,160,135,.62)"; c.fill("evenodd");
-      c.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && markC[e.iso]) entPath(c, e); }); c.fillStyle = "rgba(196,98,45,.45)"; c.fill("evenodd");
-      c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { var e = ents[i]; if (markR[e.name] || (e.rid && markR[e.rid])) entPath(c, e); }); }); c.fillStyle = "rgba(196,98,45,.72)"; c.fill("evenodd");
+      c.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && markC[e.iso]) entPath(c, e); }); c.fillStyle = "rgba(196,98,45,.42)"; c.fill("evenodd");
+      c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionMarked(ents[i])) entPath(c, ents[i]); }); }); c.fillStyle = "rgba(196,98,45,.62)"; c.fill("evenodd");
       c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { entPath(c, ents[i]); }); });
       c.strokeStyle = "rgba(250,252,251,.72)"; c.lineWidth = 0.45 * lw; c.stroke();
       LAYERS.forEach(function (L) {
@@ -232,7 +235,18 @@
       unproject: function (px, py) { var q = llAt(px, py); return q ? { lat: q[1] / 100, lng: q[0] / 100 } : null; },
       getCenter: function () { var q = llAt(cw / 2, ch / 2); return q ? { lon: q[0] / 100, lat: q[1] / 100, z: k } : { lon: 40, lat: 48, z: k }; },
       setCenter: function (lon, lat, z) { var f = flatXY(lon * PI / 180, lat * PI / 180); k = Math.max(kMin(), Math.min(KMAX, z)); var kk = cw / WID * k; tx = cw / 2 - f[0] * kk; ty = ch / 2 - f[1] * kk; clamp(); schedule(); },
-      setCenterFromFlat: function (fx, fy, nk) { k = Math.max(kMin(), Math.min(KMAX, nk)); var kk = cw / WID * k; tx = cw / 2 - fx * kk; ty = ch / 2 - fy * kk; clamp(); schedule(); }
+      setCenterFromFlat: function (fx, fy, nk) { k = Math.max(kMin(), Math.min(KMAX, nk)); var kk = cw / WID * k; tx = cw / 2 - fx * kk; ty = ch / 2 - fy * kk; clamp(); schedule(); },
+      netLayers: function () { return LAYERS; },
+      netOn: function (key) { return !!show[key]; },
+      ensure: function (L) { if (L && !L.ready && L.b64) load(L); },
+      setShow: function (key, on) { show[key] = !!on; bkey = ""; schedule(); },
+      hasKey: function (key) { for (var i = 0; i < LAYERS.length; i++) if (LAYERS[i].key === key) return true; return false; },
+      addNet: function (key, arr) {
+        if (!arr || !arr.length || this.hasKey(key)) return;
+        if (key === "rd") addTiers("rd", arr, [1.05, 6, 16, 32], { c: "#c08a4b", w: 0.8, a: 0.9 });
+        else if (key === "rl") addTiers("rl", arr, [1.05, 5, 14], { c: "#54606a", w: 1, a: 0.95, dash: [5, 3] });
+        bkey = ""; schedule();
+      }
     };
   })();
 
@@ -291,14 +305,41 @@
       if (!tex) { ctx.fillStyle = "#96b8d0"; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.fill(); return; }
       relief(q); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.drawImage(rbuf, 0, 0, cw, ch); ctx.restore();
       project(); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
-      ctx.beginPath(); byLayer.R.forEach(function (i) { fillRings(ents[i]); }); ctx.fillStyle = "rgba(115,160,135,.55)"; ctx.fill("evenodd");
-      ctx.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && markC[e.iso]) fillRings(e); }); ctx.fillStyle = "rgba(196,98,45,.45)"; ctx.fill("evenodd");
-      ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { var e = ents[i]; if (markR[e.name] || (e.rid && markR[e.rid])) fillRings(e); }); }); ctx.fillStyle = "rgba(196,98,45,.72)"; ctx.fill("evenodd");
+      ctx.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && markC[e.iso]) fillRings(e); }); ctx.fillStyle = "rgba(196,98,45,.42)"; ctx.fill("evenodd");
+      ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionMarked(ents[i])) fillRings(ents[i]); }); }); ctx.fillStyle = "rgba(196,98,45,.62)"; ctx.fill("evenodd");
       [[hoverEnt, "rgba(60,110,85,.55)"], [selEnt, "rgba(196,98,45,.70)"]].forEach(function (h) { if (h[0] < 0) return; ctx.beginPath(); fillRings(ents[h[0]]); ctx.fillStyle = h[1]; ctx.fill("evenodd"); });
       ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { strokeRings(ents[i]); }); });
       ctx.strokeStyle = "rgba(255,255,255,.8)"; ctx.lineWidth = 0.5 + zoom * 0.12; ctx.lineJoin = "round"; ctx.stroke();
       ctx.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb) strokeRings(ents[i]); }); byLayer.B.forEach(function (i) { strokeRings(ents[i]); });
       ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke();
+      (function strokeNets() {
+        var layers = views.flat.netLayers();
+        if (!layers) return;
+        layers.forEach(function (L) {
+          if (!views.flat.netOn(L.key)) return;
+          var need = (L.key === "rv" ? [1.2, 1.9, 2.8, 3.8] : [1.05, 1.7, 2.6, 3.8])[L.rank || 0] || 4;
+          if (zoom < need) return;
+          views.flat.ensure(L);
+          if (!L.gx) return;
+          ctx.beginPath();
+          var step = zoom < 1.5 ? 3 : (zoom < 2.3 ? 2 : 1);
+          for (var i = 0; i < L.n; i++) {
+            var s = L.ps[i], m = L.pl[i], prev = false;
+            for (var j = 0; j < m; j += step) {
+              var la = L.gy[s + j] * PI / 180, lo = L.gx[s + j] * PI / 180;
+              var X = Math.cos(la) * Math.sin(lo), Y = Math.sin(la), Z = Math.cos(la) * Math.cos(lo);
+              var x1 = X * cl - Z * sl, zz = X * sl + Z * cl, y2 = Y * cp - zz * sp, zc = Y * sp + zz * cp;
+              if (zc <= 0.04) { prev = false; continue; }
+              var sx = cx + R * x1, sy = cy - R * y2;
+              if (prev) ctx.lineTo(sx, sy); else ctx.moveTo(sx, sy);
+              prev = true;
+            }
+          }
+          ctx.strokeStyle = L.style.c; ctx.globalAlpha = L.style.a * 0.9; ctx.lineWidth = (L.style.w || 0.8) + zoom * 0.12;
+          ctx.setLineDash(L.style.dash || []); ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.stroke();
+          ctx.setLineDash([]); ctx.globalAlpha = 1;
+        });
+      })();
       var sh = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.15, cx, cy, R); sh.addColorStop(0, "rgba(255,255,255,.06)"); sh.addColorStop(0.65, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(0,0,0,.30)");
       ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.fill(); ctx.restore();
       ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = 1.5; ctx.stroke();
@@ -377,9 +418,11 @@
     $("globeBox").hidden = m !== "globe";
     root.style.background = m === "globe" ? "#0e1a24" : "#dde8ee";
     mode = m; hoverEnt = -1;
-    to.resize();
-    if (c) to.setCenter(c.lon, c.lat, z);
-    to.draw();
+    requestAnimationFrame(function () {
+      to.resize();
+      if (c) to.setCenter(c.lon, c.lat, z);
+      to.draw();
+    });
   }
   function tagOne(e) {
     if (e._tag || typeof countryAt !== "function") return;
@@ -396,12 +439,28 @@
     }
     e.lat = lat; e.lng = lng; e.iso = iso; e.rid = rid; if (iso) e._tag = 1;
   }
+  function regionMarked(e) {
+    if (!e) return false;
+    if (markR[e.name] || (e.rid && markR[e.rid])) return true;
+    var n = String(e.name || "").toLowerCase().replace(/ё/g, "е");
+    if (!n) return false;
+    for (var k in markR) {
+      var short = String(k);
+      var cut = short.indexOf(":");
+      if (cut >= 0) short = short.slice(cut + 1);
+      short = short.toLowerCase().replace(/ё/g, "е");
+      if (short.length >= 4 && (n.indexOf(short) >= 0 || short.indexOf(n) >= 0)) return true;
+    }
+    return false;
+  }
   function setVisited(countries, regions) {
     markC = {}; markR = {}; markRev++;
     (countries || []).forEach(function (id) { if (id) markC[id] = 1; });
     (regions || []).forEach(function (id) {
-      if (!id) return; markR[id] = 1;
-      var cut = String(id).indexOf(":"); if (cut > 0) markR[String(id).slice(cut + 1)] = 1;
+      if (!id) return;
+      markR[id] = 1;
+      var cut = String(id).indexOf(":");
+      if (cut > 0) markR[String(id).slice(cut + 1)] = 1;
     });
     if (typeof countryAt === "function") for (var i = 0; i < ents.length; i++) tagOne(ents[i]);
     views.flat.draw(); if (mode === "globe") views.globe.draw();
@@ -509,7 +568,41 @@
       views.flat.setCenterFromFlat((minX + maxX) / 2, (minY + maxY) / 2, nk);
       afterView();
     };
-    facade.setAirports = function (list) { facade._airports = list; views[mode].draw(); };
+    facade.setAirports = function () { facade._airports = null; };
+    facade.regionAt = function (lat, lng) {
+      if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) return null;
+      var i = pickLL(Math.round(lng * 100), Math.round(lat * 100));
+      if (i < 0) return null;
+      var e = ents[i];
+      return { layer: e.L, name: e.name || "", sub: e.sub || "", iso: e.iso || null };
+    };
+    var netWait = {};
+    var netWant = { rd: false, rl: false };
+    function refreshMap() { views.flat.draw(); if (mode === "globe") views.globe.draw(); }
+    facade.setNetwork = function (opts) {
+      opts = opts || {};
+      function one(key, on) {
+        netWant[key] = !!on;
+        if (!on) { views.flat.setShow(key, false); if (mode === "globe") views.globe.draw(); return; }
+        var bag = key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS;
+        if (bag) { views.flat.addNet(key, bag); views.flat.setShow(key, true); if (mode === "globe") views.globe.draw(); return; }
+        if (netWait[key]) return;
+        netWait[key] = 1;
+        var s = document.createElement("script");
+        s.src = key === "rd" ? "geo/roads.js" : "geo/rails.js";
+        s.onload = function () {
+          var data = key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS;
+          views.flat.addNet(key, data);
+          views.flat.setShow(key, !!netWant[key]);
+          refreshMap();
+        };
+        s.onerror = function () { netWait[key] = 0; };
+        document.head.appendChild(s);
+      }
+      if ("roads" in opts) one("rd", !!opts.roads);
+      if ("rails" in opts) one("rl", !!opts.rails);
+    };
+    facade.networkOn = function () { return { roads: views.flat.netOn("rd"), rails: views.flat.netOn("rl") }; };
     facade.setMode = function (m) { setMode(m); };
     facade.setVisited = setVisited;
     function redraw() { views[mode].draw(); }
@@ -541,7 +634,6 @@
     function paintAll(ctx) {
       ctx.save();
       eachFeat(function (f) { if (f && f.kind !== "marker") strokeFeat(ctx, f); });
-      drawAirports(ctx);
       ctx.restore();
       eachFeat(function (f) { if (f && f.kind === "marker") placeMarker(f); });
     }
@@ -590,33 +682,6 @@
         if (st.fillOpacity) { ctx.globalAlpha = st.fillOpacity; ctx.fillStyle = st.fillColor || st.color || "#ccc"; ctx.fill(); }
         if (st.weight) { ctx.globalAlpha = st.opacity == null ? 1 : st.opacity; ctx.lineWidth = st.weight; ctx.strokeStyle = st.color || "#333"; ctx.stroke(); }
         ctx.globalAlpha = 1;
-      }
-    }
-    function drawAirports(ctx) {
-      var list = facade._airports; if (!list || !list.length) return;
-      var k = mode === "globe" ? views.globe.getCenter().z : views.flat.getK();
-      if ((mode === "globe" && k < 1.35) || (mode !== "globe" && k < 2.8)) return;
-      var label = mode === "globe" ? k >= 2.6 : k >= 14;
-      var cap = label ? 240 : 160;
-      var s = size(), cx = s.x / 2, cy = s.y / 2, hits = [], i, a, p, dx, dy;
-      for (i = 0; i < list.length; i++) {
-        a = list[i]; p = project(a.lat, a.lng); if (!p) continue;
-        if (p.x < -12 || p.y < -12 || p.x > s.x + 12 || p.y > s.y + 12) continue;
-        dx = p.x - cx; dy = p.y - cy; hits.push({ a: a, p: p, d: dx * dx + dy * dy });
-      }
-      if (hits.length > cap) { hits.sort(function (u, v) { return u.d - v.d; }); hits.length = cap; }
-      for (i = 0; i < hits.length; i++) {
-        a = hits[i].a; p = hits[i].p;
-        ctx.save(); ctx.translate(p.x, p.y);
-        ctx.fillStyle = "#fff"; ctx.strokeStyle = "#1f2a26"; ctx.lineWidth = 1;
-        ctx.beginPath(); ctx.arc(0, 0, label ? 4.5 : 2.6, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(-5.5, 0.6); ctx.lineTo(5.5, 0.6); ctx.moveTo(0, -4.2); ctx.lineTo(0, 3.4);
-        ctx.strokeStyle = "#1f4f97"; ctx.lineWidth = 1.15; ctx.stroke();
-        if (label && a.code) {
-          ctx.font = "700 10px system-ui,sans-serif"; ctx.lineWidth = 3; ctx.strokeStyle = "rgba(255,255,255,.92)"; ctx.fillStyle = "#1f2a26";
-          ctx.strokeText(a.code, 7, 3); ctx.fillText(a.code, 7, 3);
-        }
-        ctx.restore();
       }
     }
     function placeMarker(f) {

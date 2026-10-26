@@ -6138,7 +6138,7 @@ wipeRoutesOnce();
 (function bindFileLogin(){
   var gate=document.getElementById("file-login");
   if(!gate) return;
-  if(window.__TRAVELEK_HOLD) gate.style.display="grid";
+  if(window.__TRAVELEK_HOLD) gate.style.display="flex";
   var form=document.getElementById("file-login-form");
   if(!form) return;
   form.onsubmit=function(e){
@@ -7181,47 +7181,116 @@ function paintVehicle(cv, mode, heading){
   var ctx=cv.getContext("2d");
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,w,h);
-  ctx.fillStyle="rgba(8,12,20,.28)";
+  ctx.save();
+  ctx.translate(w/2, h/2+8);
+  ctx.fillStyle="rgba(10,16,28,.18)";
   ctx.beginPath();
-  ctx.ellipse(w/2, h*0.8, 36, 10, 0, 0, Math.PI*2);
+  ctx.ellipse(0, 34, 36, 9, 0, 0, Math.PI*2);
   ctx.fill();
-  var faces=vehicleMesh(mode||"plane");
-  var rad=(heading||0)*Math.PI/180, co=Math.cos(rad), si=Math.sin(rad);
-  var items=[], i, f, j, x, y, z, xr, zr, depth, pts, col, R, G, B, shade;
-  var ux, uy, uz, vx, vy, vz, nx, ny, nz, nxr, nzr, nl, light;
-  for(i=0;i<faces.length;i++){
-    f=faces[i];
-    pts=[]; depth=0;
-    for(j=0;j<3;j++){
-      x=f[j*3]; y=f[j*3+1]; z=f[j*3+2];
-      xr=x*co+z*si; zr=-x*si+z*co;
-      depth+=zr;
-      pts.push([w/2+xr*8.1, h*0.66-zr*6.15-y*7.1]);
-    }
-    ux=f[3]-f[0]; uy=f[4]-f[1]; uz=f[5]-f[2];
-    vx=f[6]-f[0]; vy=f[7]-f[1]; vz=f[8]-f[2];
-    nx=uy*vz-uz*vy; ny=uz*vx-ux*vz; nz=ux*vy-uy*vx;
-    nl=Math.hypot(nx,ny,nz)||1;
-    nxr=nx*co+nz*si; nzr=-nx*si+nz*co;
-    light=(-0.4*nxr+0.82*ny+0.42*nzr)/nl;
-    shade=0.38+0.7*Math.max(0, light);
-    col=f[9];
-    R=Math.max(0, Math.min(255, ((col>>16)&255)*shade));
-    G=Math.max(0, Math.min(255, ((col>>8)&255)*shade));
-    B=Math.max(0, Math.min(255, (col&255)*shade));
-    items.push({pts:pts, depth:depth, col:"rgb("+Math.round(R)+","+Math.round(G)+","+Math.round(B)+")"});
-  }
-  items.sort(function(a,b){ return a.depth-b.depth; });
-  for(i=0;i<items.length;i++){
-    pts=items[i].pts;
-    ctx.beginPath();
-    ctx.moveTo(pts[0][0], pts[0][1]);
-    ctx.lineTo(pts[1][0], pts[1][1]);
-    ctx.lineTo(pts[2][0], pts[2][1]);
-    ctx.closePath();
-    ctx.fillStyle=items[i].col;
-    ctx.fill();
-  }
+  ctx.rotate((((heading||0)-90)*Math.PI)/180);
+  if(mode==="train") drawTrainIcon(ctx);
+  else if(mode==="car") drawCarIcon(ctx);
+  else if(mode==="ship") drawShipIcon(ctx);
+  else drawPlaneIcon(ctx);
+  ctx.restore();
+}
+function drawPlaneIcon(ctx){
+  ctx.save();
+  ctx.fillStyle="#f4f7fb";
+  ctx.strokeStyle="#243044";
+  ctx.lineWidth=1.4;
+  ctx.beginPath();
+  ctx.moveTo(46,0);
+  ctx.quadraticCurveTo(18,-7,-28,-6.5);
+  ctx.lineTo(-40,-5);
+  ctx.lineTo(-34,0);
+  ctx.lineTo(-40,5);
+  ctx.lineTo(-28,6.5);
+  ctx.quadraticCurveTo(18,7,46,0);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle="#1f4f97";
+  ctx.beginPath();
+  ctx.moveTo(8,0); ctx.lineTo(-6,-34); ctx.lineTo(-16,-30); ctx.lineTo(-4,0); ctx.lineTo(-16,30); ctx.lineTo(-6,34); ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle="#c8102e";
+  ctx.beginPath();
+  ctx.moveTo(-30,0); ctx.lineTo(-42,-16); ctx.lineTo(-24,-5); ctx.lineTo(-24,5); ctx.lineTo(-42,16); ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle="#d7e4f2";
+  ctx.beginPath();
+  ctx.ellipse(16,0,8,3.2,0,0,Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+}
+function drawTrainIcon(ctx){
+  ctx.save();
+  ctx.fillStyle="#e10600";
+  roundRect(ctx,-46,-16,92,32,12);
+  ctx.fill();
+  ctx.fillStyle="#f4f7fb";
+  roundRect(ctx,-40,-10,34,14,5);
+  ctx.fill();
+  ctx.fillStyle="#9ec9ee";
+  roundRect(ctx,2,-9,28,12,4);
+  ctx.fill();
+  ctx.fillStyle="#1c2430";
+  ctx.beginPath(); ctx.arc(-24,16,6,0,Math.PI*2); ctx.arc(22,16,6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle="#f6e27a";
+  ctx.beginPath(); ctx.arc(40,0,4,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle="rgba(255,255,255,.85)";
+  ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(-46,-4); ctx.lineTo(36,-4); ctx.stroke();
+  ctx.restore();
+}
+function drawCarIcon(ctx){
+  ctx.save();
+  ctx.fillStyle="#f7f4ee";
+  ctx.strokeStyle="#2a3038";
+  ctx.lineWidth=1.3;
+  ctx.beginPath();
+  ctx.moveTo(-34,8);
+  ctx.lineTo(-28,-2);
+  ctx.quadraticCurveTo(-10,-4, -6,-14);
+  ctx.lineTo(16,-14);
+  ctx.quadraticCurveTo(28,-12, 34,-2);
+  ctx.lineTo(40,8);
+  ctx.quadraticCurveTo(40,16, 30,16);
+  ctx.lineTo(-24,16);
+  ctx.quadraticCurveTo(-40,16, -34,8);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle="#9ecff0";
+  ctx.beginPath();
+  ctx.moveTo(-4,-4); ctx.lineTo(2,-11); ctx.lineTo(18,-11); ctx.lineTo(26,-4); ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle="#c8102e";
+  ctx.fillRect(-30,6,58,3);
+  ctx.fillStyle="#1c2430";
+  ctx.beginPath(); ctx.arc(-18,16,6.5,0,Math.PI*2); ctx.arc(20,16,6.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle="#d9dee6";
+  ctx.beginPath(); ctx.arc(-18,16,2.4,0,Math.PI*2); ctx.arc(20,16,2.4,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+function drawShipIcon(ctx){
+  ctx.save();
+  ctx.fillStyle="#f4f7fb";
+  ctx.beginPath();
+  ctx.moveTo(-40,6); ctx.quadraticCurveTo(0,22, 42,4); ctx.lineTo(30,-2); ctx.lineTo(-28,-2); ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle="#1a6ea8";
+  roundRect(ctx,-16,-18,22,18,3); ctx.fill();
+  ctx.restore();
+}
+function roundRect(ctx, x, y, w, h, r){
+  var rr=Math.min(r, w/2, h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+rr, y);
+  ctx.arcTo(x+w, y, x+w, y+h, rr);
+  ctx.arcTo(x+w, y+h, x, y+h, rr);
+  ctx.arcTo(x, y+h, x, y, rr);
+  ctx.arcTo(x, y, x+w, y, rr);
+  ctx.closePath();
 }
 function tripIconSvg(mode){
   if(mode==="train") return '<svg viewBox="0 0 48 48"><path fill="currentColor" d="M16 5h16c4 0 8 3 8 8v18c0 4-3 7-7 8l2 6h-5l-2-6H20l-2 6h-5l2-6c-4-1-7-4-7-8V13c0-5 4-8 8-8z"/><rect x="18" y="12" width="12" height="8" rx="2" fill="#fff"/><circle cx="19" cy="29" r="2" fill="#fff"/><circle cx="29" cy="29" r="2" fill="#fff"/></svg>';
@@ -7673,7 +7742,7 @@ var CITY_LABELS = [
 var map;
 if(window.TravelekAtlas){
   map=window.TravelekAtlas.createMap();
-  try{ map.setAirports(AIRPORTS); }catch(e){}
+  try{ if(map.setNetwork) map.setNetwork({roads:false, rails:false}); }catch(e){}
   map.setView([48, 37], 3.4);
 }else{
 map=L.map("map",{
@@ -8006,11 +8075,12 @@ function buildNightLatLngs(date){
 
 function applyGlobeEffect(){
   if(typeof map!=="undefined" && map && map._isAtlas){
-    document.body.classList.toggle("globe-on", !!globeOn);
+    document.body.classList.remove("globe-on");
     var el=document.getElementById("map");
-    if(el){ el.style.visibility=""; el.classList.remove("globe-mode"); }
+    if(el){ el.style.visibility="visible"; el.classList.remove("globe-mode"); }
     if(globeCv) globeCv.style.display="none";
     map.setMode(globeOn ? "globe" : "flat");
+    if(typeof render==="function") render();
     return;
   }
   var el=document.getElementById("map");
@@ -9323,6 +9393,8 @@ function updateLabels(){
   document.getElementById("pick-to").style.display=showPick?"":"none";
   document.getElementById("pick-hint").style.display=showPick?"":"none";
   document.getElementById("car-mode-wrap").style.display=(m==="car")?"":"none";
+  if(m==="train" && typeof setRouteNetwork==="function") setRouteNetwork({rails:true});
+  else if(m==="car" && typeof setRouteNetwork==="function") setRouteNetwork({roads:true});
   var ph=document.getElementById("pick-hint");
   if(ph){
     if(m==="ship") ph.textContent="Корабль: порты из списка или 📍 на воде; маршрут по фарватеру";
@@ -9928,9 +10000,9 @@ setInterval(render,60000);
     if(typeof applyTheme==="function") applyTheme(cur==="dark"?"light":"dark");
   };
   var tr=$("track-btn"); if(tr) tr.onclick=function(e){ e.stopPropagation(); var p=$("track-panel"); if(p) p.classList.toggle("on"); };
-  var zf=$("z-fit"); if(zf) zf.onclick=function(){ if(globeOn && typeof globeFit==="function"){ globeFit(); return; } if(typeof fitAll==="function") fitAll(); };
-  var zi=$("z-in"); if(zi) zi.onclick=function(){ if(globeOn && typeof globeZoom==="function"){ globeZoom(1.18); return; } map.zoomIn(); };
-  var zo=$("z-out"); if(zo) zo.onclick=function(){ if(globeOn && typeof globeZoom==="function"){ globeZoom(1/1.18); return; } map.zoomOut(); };
+  var zf=$("z-fit"); if(zf) zf.onclick=function(){ if(map && map._isAtlas){ if(typeof fitAll==="function") fitAll(); return; } if(globeOn && typeof globeFit==="function"){ globeFit(); return; } if(typeof fitAll==="function") fitAll(); };
+  var zi=$("z-in"); if(zi) zi.onclick=function(){ if(map && map._isAtlas){ map.zoomIn(); return; } if(globeOn && typeof globeZoom==="function"){ globeZoom(1.18); return; } map.zoomIn(); };
+  var zo=$("z-out"); if(zo) zo.onclick=function(){ if(map && map._isAtlas){ map.zoomOut(); return; } if(globeOn && typeof globeZoom==="function"){ globeZoom(1/1.18); return; } map.zoomOut(); };
   var tabs=document.querySelectorAll(".tab");
   for(var i=0;i<tabs.length;i++){
     tabs[i].onclick=(function(t){return function(e){
@@ -10226,12 +10298,41 @@ function confirmVisitedPlace(){
 function syncVisited(){
   if(!COUNTRY_LIST) return;
   var autoC={}, autoR={};
+  function regionIdByName(code, name){
+    if(!code || !name) return null;
+    var list=regionsFor(code)||[];
+    var n=String(name).toLowerCase().replace(/ё/g,"е");
+    var i, rn, id;
+    for(i=0;i<list.length;i++){
+      rn=String(list[i].n||"").toLowerCase().replace(/ё/g,"е");
+      id=String(list[i].id||"");
+      if(rn===n || id.toLowerCase().replace(/ё/g,"е")===n || id.toLowerCase().replace(/ё/g,"е")===(String(code).toLowerCase()+":"+n)) return list[i].id;
+    }
+    for(i=0;i<list.length;i++){
+      rn=String(list[i].n||"").toLowerCase().replace(/ё/g,"е");
+      if(rn.length>=4 && (n.indexOf(rn)>=0 || rn.indexOf(n)>=0)) return list[i].id;
+    }
+    return null;
+  }
   function hit(lat, lng){
     if(lat==null || lng==null || isNaN(lat) || isNaN(lng)) return;
     var id=countryAt(lat, lng);
-    if(!id) return;
-    autoC[id]=1;
-    var rid=regionIn(id, lat, lng);
+    var rid=id?regionIn(id, lat, lng):null;
+    if((!id || !rid) && map && map.regionAt){
+      var h=map.regionAt(lat, lng);
+      if(h && h.layer && h.layer!=="W" && h.name){
+        if(!id){
+          if(h.sub==="Россия" || h.layer==="R") id="RU";
+          else if(h.sub==="Китай" || h.layer==="C") id="CN";
+          else if(h.iso) id=h.iso;
+          else if(h.sub && COUNTRY_LIST){
+            for(var ci=0; ci<COUNTRY_LIST.length; ci++) if(COUNTRY_LIST[ci].n===h.sub){ id=COUNTRY_LIST[ci].i; break; }
+          }
+        }
+        if(!rid && id) rid=regionIdByName(id, h.name);
+      }
+    }
+    if(id) autoC[id]=1;
     if(rid) autoR[rid]=1;
   }
   (typeof ROUTES!=="undefined"?ROUTES:[]).forEach(function(r){
@@ -10642,6 +10743,27 @@ function setMapView(globe){
   if(typeof applyGlobeEffect==="function") applyGlobeEffect();
   if(typeof updateNightLayer==="function") updateNightLayer();
 }
+function setRouteNetwork(opts){
+  if(!map || !map.setNetwork) return;
+  map.setNetwork(opts||{});
+  var roads=document.getElementById("net-roads");
+  var rails=document.getElementById("net-rails");
+  if(roads && opts && "roads" in opts) roads.classList.toggle("on", !!opts.roads);
+  if(rails && opts && "rails" in opts) rails.classList.toggle("on", !!opts.rails);
+}
+function bindNetToggles(){
+  var roads=document.getElementById("net-roads");
+  var rails=document.getElementById("net-rails");
+  if(roads) roads.onclick=function(e){
+    e.stopPropagation();
+    setRouteNetwork({roads:!roads.classList.contains("on")});
+  };
+  if(rails) rails.onclick=function(e){
+    e.stopPropagation();
+    setRouteNetwork({rails:!rails.classList.contains("on")});
+  };
+}
+bindNetToggles();
 var mapSwitch=document.getElementById("map-switch");
 if(mapSwitch) mapSwitch.onclick=function(e){
   var b=e.target.closest("button");
