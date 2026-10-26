@@ -297,7 +297,7 @@
     var lon0 = 60, lat0 = 25, zoom = 1, cw = 600, ch = 600, dpr = 1, spinning = false, moving = 0, raf = 0, idle = 0, cl, sl, cp, sp, R, cx, cy;
     function setCam() { var a = lon0 * PI / 180, b = lat0 * PI / 180; cl = Math.cos(a); sl = Math.sin(a); cp = Math.cos(b); sp = Math.sin(b); R = Math.min(cw, ch) / 2 * 0.9 * zoom; cx = cw / 2; cy = ch / 2; }
     function resize() { var r = box.getBoundingClientRect(); cw = Math.max(200, r.width); ch = Math.max(200, r.height); dpr = Math.min(window.devicePixelRatio || 1, 2); cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); }
-    function hq() { return Math.min(1, 640 / Math.max(cw, ch)); }
+    function hq() { return Math.min(1, 960 / Math.max(cw, ch)); }
     function relief(q) {
       var rw = Math.max(2, Math.round(cw * q)), rh = Math.max(2, Math.round(ch * q)), kq = 1 / q;
       if (rbuf.width !== rw || rbuf.height !== rh) { rbuf.width = rw; rbuf.height = rh; rimg = rctx.createImageData(rw, rh); }
@@ -340,8 +340,8 @@
       var g = ctx.createRadialGradient(cx, cy, R * 0.98, cx, cy, R * 1.08); g.addColorStop(0, "rgba(130,180,230,.40)"); g.addColorStop(1, "rgba(130,180,230,0)");
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R * 1.08, 0, 2 * PI); ctx.fill();
       if (!tex) { ctx.fillStyle = "#96b8d0"; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.fill(); return; }
-      relief(moving ? 0.22 : q); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.drawImage(rbuf, 0, 0, cw, ch); ctx.restore();
-      if (moving) { ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 1; ctx.stroke(); return; }
+      relief(q); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.drawImage(rbuf, 0, 0, cw, ch); ctx.restore();
+      if (moving) { ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = 1.5; ctx.stroke(); return; }
       project(); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
       ctx.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && markC[e.iso]) fillRings(e); }); ctx.fillStyle = "rgba(196,98,45,.42)"; ctx.fill("evenodd");
       ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionMarked(ents[i])) fillRings(ents[i]); }); }); ctx.fillStyle = "rgba(196,98,45,.62)"; ctx.fill("evenodd");
@@ -410,7 +410,7 @@
       if (moved > 4) { cv.classList.add("drag"); tip.style.opacity = 0; }
       var kq = 57.3 / R; lon0 -= dx * kq; lat0 = Math.max(-85, Math.min(85, lat0 + dy * kq)); last = { x: e.clientX, y: e.clientY }; moving = 1; schedule(); settle(); if (hooks.move) hooks.move();
     });
-    function end(e) { delete ptrs[e.pointerId]; pinch = 0; cv.classList.remove("drag"); var ids = Object.keys(ptrs); if (ids.length === 1) last = { x: ptrs[ids[0]].clientX, y: ptrs[ids[0]].clientY }; }
+    function end(e) { delete ptrs[e.pointerId]; pinch = 0; cv.classList.remove("drag"); var ids = Object.keys(ptrs); if (ids.length === 1) last = { x: ptrs[ids[0]].clientX, y: ptrs[ids[0]].clientY }; if (!ids.length) { moving = 0; redraw(); } }
     cv.addEventListener("pointerup", function (e) {
       var click = moved <= 4, p = local(e); end(e);
       if (click) { var q = llFromPx(p.x, p.y); if (q && hooks.click) hooks.click({ lat: q.lat, lng: q.lng, x: p.x, y: p.y }); redraw(); }
