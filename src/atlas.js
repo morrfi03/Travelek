@@ -154,7 +154,7 @@
       c.closePath();
     }
     function entPath(c, e) { for (var r = e.r0; r < e.r1; r++) if (RV[r]) ringPath(c, r); }
-    var bc = document.createElement("canvas"), bctx = bc.getContext("2d"), bkey = "";
+    var bc = document.createElement("canvas"), bctx = bc.getContext("2d"), bkey = "", snapTx = 0, snapTy = 0;
     function base() {
       var c = bctx, kk = cw / WID * k; thr2 = Math.pow(1.3 / kk, 2);
       c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, bc.width, bc.height); c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -165,8 +165,10 @@
       var lw = 1 / kk; c.lineJoin = "round"; c.lineCap = "round";
       c.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && markC[e.iso]) entPath(c, e); }); c.fillStyle = "rgba(196,98,45,.42)"; c.fill("evenodd");
       c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionMarked(ents[i])) entPath(c, ents[i]); }); }); c.fillStyle = "rgba(196,98,45,.62)"; c.fill("evenodd");
-      c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { entPath(c, ents[i]); }); });
-      c.strokeStyle = "rgba(250,252,251,.72)"; c.lineWidth = 0.45 * lw; c.stroke();
+      if (k >= 3) {
+        c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { entPath(c, ents[i]); }); });
+        c.strokeStyle = "rgba(250,252,251,.72)"; c.lineWidth = 0.45 * lw; c.stroke();
+      }
       LAYERS.forEach(function (L) {
         if (!show[L.key] || k < L.th) return; if (!L.ready) load(L);
         c.beginPath();
@@ -183,10 +185,12 @@
       c.restore();
     }
     function draw() {
-      var key = [cw, ch, dpr, k, tx, ty, show.rd, show.rl, show.rv, texF.complete, markRev].join("|");
+      var dragging = cv.classList.contains("drag");
+      var key = [cw, ch, dpr, Math.round(k * 1000), dragging ? "d" : Math.round(tx), dragging ? "d" : Math.round(ty), show.rd ? 1 : 0, show.rl ? 1 : 0, show.rv ? 1 : 0, texF.complete ? 1 : 0, markRev].join("|");
       if (bc.width !== cv.width || bc.height !== cv.height) { bc.width = cv.width; bc.height = cv.height; bkey = ""; }
-      if (key !== bkey) { base(); bkey = key; }
-      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.drawImage(bc, 0, 0);
+      if (!dragging && key !== bkey) { base(); bkey = key; snapTx = tx; snapTy = ty; }
+      ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx.drawImage(bc, dragging ? tx - snapTx : 0, dragging ? ty - snapTy : 0);
       // наведение и выбор рисуются поверх готового слоя, поэтому реагируют мгновенно
       var kk = cw / WID * k; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.save(); ctx.translate(tx, ty); ctx.scale(kk, kk); ctx.lineJoin = "round";
       [[hoverEnt, "rgba(60,100,80,.38)"], [selEnt, "rgba(196,98,45,.65)"]].forEach(function (h) {
@@ -308,8 +312,10 @@
       ctx.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && markC[e.iso]) fillRings(e); }); ctx.fillStyle = "rgba(196,98,45,.42)"; ctx.fill("evenodd");
       ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionMarked(ents[i])) fillRings(ents[i]); }); }); ctx.fillStyle = "rgba(196,98,45,.62)"; ctx.fill("evenodd");
       [[hoverEnt, "rgba(60,110,85,.55)"], [selEnt, "rgba(196,98,45,.70)"]].forEach(function (h) { if (h[0] < 0) return; ctx.beginPath(); fillRings(ents[h[0]]); ctx.fillStyle = h[1]; ctx.fill("evenodd"); });
-      ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { strokeRings(ents[i]); }); });
-      ctx.strokeStyle = "rgba(255,255,255,.8)"; ctx.lineWidth = 0.5 + zoom * 0.12; ctx.lineJoin = "round"; ctx.stroke();
+      if (zoom >= 1.6) {
+        ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { strokeRings(ents[i]); }); });
+        ctx.strokeStyle = "rgba(255,255,255,.8)"; ctx.lineWidth = 0.5 + zoom * 0.12; ctx.lineJoin = "round"; ctx.stroke();
+      }
       ctx.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb) strokeRings(ents[i]); }); byLayer.B.forEach(function (i) { strokeRings(ents[i]); });
       ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke();
       (function strokeNets() {
@@ -453,7 +459,11 @@
     }
     return false;
   }
+  var visitSig = "";
   function setVisited(countries, regions) {
+    var sig = (countries || []).join("\n") + "|" + (regions || []).join("\n");
+    if (sig === visitSig) return;
+    visitSig = sig;
     markC = {}; markR = {}; markRev++;
     (countries || []).forEach(function (id) { if (id) markC[id] = 1; });
     (regions || []).forEach(function (id) {

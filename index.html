@@ -1389,21 +1389,25 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 #legal-panel .card{width:min(480px,100%);max-height:min(86dvh,680px);margin:0 auto}
 #legal-panel .row2{position:sticky;bottom:0;background:var(--panel-solid);padding-top:10px}
 
-.trip-panel{position:fixed;inset:0;z-index:85;display:none;align-items:flex-end;justify-content:center;background:rgba(4,8,16,.55);padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px))}
-.trip-panel.on{display:flex}
-.trip-card-panel{width:min(520px,100%);max-height:min(86dvh,720px);overflow:auto;background:var(--panel-solid);color:var(--text);border:1px solid var(--line);border-radius:20px;padding:14px 14px 12px}
-.trip-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
-.trip-head b{font-size:18px}
-.trip-head button{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--chip);color:var(--text);font-size:18px}
-#trip-title,#trip-country-q{width:100%;box-sizing:border-box;margin:0 0 8px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--chip);color:var(--text)}
-.trip-label{font-size:11px;color:var(--muted);margin:6px 0;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
-.trip-picks{display:flex;flex-direction:column;gap:6px;max-height:168px;overflow:auto;margin:0 0 8px}
-.trip-picks button{text-align:left;min-height:40px;padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:var(--chip);color:var(--text);font-size:14px}
-.trip-picks button.on{background:rgba(79,125,255,.22);border-color:#5b8def}
-.trip-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;position:sticky;bottom:0;background:var(--panel-solid);padding-top:8px}
-.trip-actions button{min-height:44px;border-radius:12px;border:1px solid var(--line);background:var(--chip);color:var(--text);font-weight:700}
-#trip-save{background:linear-gradient(135deg,#5b8def,#4f7dff);color:#fff;border:0}
-#trip-delete{grid-column:1 / -1;background:rgba(220,60,60,.16);color:#e88}
+.trip-window{position:fixed;inset:0;z-index:90;display:none;flex-direction:column;background:var(--panel-solid);color:var(--text)}
+.trip-window.on{display:flex}
+.trip-window header{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;border-bottom:1px solid var(--line);flex-shrink:0}
+.trip-window header b{font-size:18px}
+.trip-window header button{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--chip);color:var(--text);font-size:18px}
+.trip-window .tw-body{flex:1;overflow:auto;padding:8px 14px calc(18px + env(safe-area-inset-bottom,0px))}
+.trip-window h3{font-size:15px;margin:16px 0 8px}
+.trip-window input,.trip-window select{width:100%;box-sizing:border-box;margin:0 0 8px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--chip);color:var(--text)}
+.tw-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tw-list{display:flex;flex-direction:column;gap:6px;margin:4px 0 8px}
+.tw-list button,.region-row button,.tw-picked button{text-align:left;min-height:40px;padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:var(--chip);color:var(--text);font-size:14px}
+.tw-list button.on,.region-row button.on,.tw-picked button.on{background:rgba(79,125,255,.22);border-color:#5b8def}
+.region-row{display:flex;gap:6px;overflow-x:auto;padding:2px 0 8px;-webkit-overflow-scrolling:touch}
+.region-row button{flex:0 0 auto;white-space:nowrap}
+.tw-picked{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.tw-add{width:100%;min-height:42px;border-radius:12px;border:1px solid var(--line);background:var(--chip);color:var(--text);font-weight:700;margin:0 0 8px}
+#tw-save{width:100%;min-height:46px;border:0;border-radius:14px;background:linear-gradient(135deg,#5b8def,#4f7dff);color:#fff;font-weight:700;margin-top:8px}
+#tw-delete{width:100%;min-height:42px;margin-top:8px;border-radius:12px;border:1px solid var(--line);background:rgba(220,60,60,.16);color:#e88;font-weight:700}
+.more-link{display:block;width:100%;margin:8px 0 4px;padding:12px;border:0;border-radius:12px;background:transparent;color:var(--accent);font-weight:750;font-size:14px}
 </style>
 <div id="file-login">
   <form id="file-login-form">
@@ -1478,31 +1482,37 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   <p class="visit-line" id="visit-line">Считаем страны по маршрутам…</p>
   <div class="year-filter" id="year-filter"></div>
   <div class="sheet-actions">
-    <button type="button" id="add-btn-2" data-i18n="＋ Добавить маршрут">＋ Добавить маршрут</button>
+    <button type="button" id="add-btn-2" data-i18n="Добавить поездку">Добавить поездку</button>
   </div>
   <div class="list" id="list"></div>
 </div>
-<div id="trip-panel" class="trip-panel" role="dialog" aria-modal="true" aria-labelledby="trip-panel-title">
-  <div class="trip-card-panel">
-    <div class="trip-head">
-      <b id="trip-panel-title" data-i18n="Поездка">Поездка</b>
-      <button type="button" id="trip-close" aria-label="Закрыть">×</button>
+<div id="trip-window" class="trip-window" role="dialog" aria-modal="true" aria-labelledby="tw-title">
+  <header>
+    <button type="button" id="tw-close" aria-label="Закрыть">←</button>
+    <b id="tw-title">Добавить поездку</b>
+  </header>
+  <div class="tw-body">
+    <input id="tw-name" type="text" placeholder="Название поездки" data-i18n-ph="Название поездки" />
+    <h3 data-i18n="Укажите маршрут">Укажите маршрут</h3>
+    <select id="tw-mode">
+      <option value="plane" data-i18n="Самолёт">Самолёт</option>
+      <option value="train" data-i18n="Поезд">Поезд</option>
+      <option value="car" data-i18n="Авто">Авто</option>
+    </select>
+    <div class="field"><input id="tw-from" type="text" autocomplete="off" placeholder="Откуда" data-i18n-ph="Откуда" /><div class="suggest" id="tw-sug-from"></div></div>
+    <div class="field"><input id="tw-to" type="text" autocomplete="off" placeholder="Куда" data-i18n-ph="Куда" /><div class="suggest" id="tw-sug-to"></div></div>
+    <div class="tw-row">
+      <input id="tw-date" type="date" />
+      <input id="tw-time" type="time" />
     </div>
-    <input id="trip-title" type="text" placeholder="Название поездки" data-i18n-ph="Название поездки" />
-    <div class="trip-label" data-i18n="Страны">Страны</div>
-    <input id="trip-country-q" type="search" placeholder="Найти страну…" data-i18n-ph="Найти страну…" />
-    <div id="trip-countries" class="trip-picks"></div>
-    <div id="trip-regions-wrap" hidden>
-      <div class="trip-label" data-i18n="Регионы">Регионы</div>
-      <div id="trip-regions" class="trip-picks"></div>
-    </div>
-    <div class="trip-label" data-i18n="Маршруты">Маршруты</div>
-    <div id="trip-routes" class="trip-picks"></div>
-    <div class="trip-actions">
-      <button type="button" id="trip-cancel" data-i18n="Отмена">Отмена</button>
-      <button type="button" id="trip-save" data-i18n="Сохранить">Сохранить</button>
-      <button type="button" id="trip-delete" data-i18n="Удалить поездку" hidden>Удалить поездку</button>
-    </div>
+    <button type="button" class="tw-add" id="tw-add-route" data-i18n="Добавить маршрут">Добавить маршрут</button>
+    <div id="tw-routes" class="tw-list"></div>
+    <h3 data-i18n="Укажите страну">Укажите страну</h3>
+    <div class="field"><input id="tw-country" type="text" autocomplete="off" placeholder="Найти страну…" data-i18n-ph="Найти страну…" /><div class="suggest" id="tw-sug-country"></div></div>
+    <div id="tw-regions" class="region-row" hidden></div>
+    <div id="tw-picked" class="tw-picked"></div>
+    <button type="button" id="tw-save" data-i18n="Сохранить">Сохранить</button>
+    <button type="button" id="tw-delete" data-i18n="Удалить поездку" hidden>Удалить поездку</button>
   </div>
 </div>
 <div id="view-banner" hidden></div>
