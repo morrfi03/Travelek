@@ -7,8 +7,10 @@
 <style>
   :root { --sea:#dde8ee; --space:#0e1a24; --ink:#1f2a26; --panel:#ffffff; --accent:#5f8a72; }
   * { box-sizing: border-box; }
+  html,body { width:100%;height:100%;overflow:hidden; }
   body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; color: var(--ink); background: transparent; }
-  .app { width: 100%; max-width: 1200px; margin: 0 auto; }
+  .app { position:fixed;inset:0;width:100%;height:100%;max-width:none;margin:0; }
+  .tabs,.ctl { display:none!important; }
   .tabs { display: flex; justify-content: center; margin: 0 0 10px; }
   .tabs .seg { display: inline-flex; background: #e6ebe7; border-radius: 999px; padding: 3px; }
   .tabs button { border: 0; background: transparent; color: var(--ink); font: 500 14px/1 system-ui, sans-serif; padding: 9px 22px; border-radius: 999px; cursor: pointer; }
@@ -16,9 +18,10 @@
   .tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .box { position: relative; width: 100%; border-radius: 10px; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; margin: 0 auto; }
   .box[hidden] { display: none; }
-  #flatBox { background: var(--sea); aspect-ratio: 4000 / 1751; }
-  #globeBox { background: var(--space); aspect-ratio: 1 / 1; max-width: 780px; }
+  #flatBox { position:absolute;inset:0;background:var(--sea);aspect-ratio:auto;border-radius:0;margin:0; }
+  #globeBox { position:absolute;inset:0;background:var(--space);aspect-ratio:auto;max-width:none;border-radius:0;margin:0; }
   .box canvas { display: block; width: 100%; height: 100%; cursor: grab; }
+  .box canvas.route-overlay { position:absolute;inset:0;z-index:1;pointer-events:none;cursor:default; }
   .box canvas.drag { cursor: grabbing; }
   .tip { position: absolute; pointer-events: none; background: var(--ink); color: #fff; padding: 5px 9px; border-radius: 5px; font-size: 13px; line-height: 1.3; opacity: 0; transform: translate(12px, 12px); white-space: nowrap; z-index: 2; }
   .tip small { display: block; opacity: .7; font-size: 11px; }
@@ -41,6 +44,7 @@
 
   <div class="box" id="flatBox">
     <canvas id="cvF" role="img" aria-label="Интерактивная карта мира с регионами"></canvas>
+    <canvas id="ovF" class="route-overlay" aria-hidden="true"></canvas>
     <div class="tip" id="tipF"></div>
     <div class="ctl">
       <button id="fin" aria-label="Приблизить">+</button>
@@ -56,6 +60,7 @@
 
   <div class="box" id="globeBox" hidden>
     <canvas id="cvG" role="img" aria-label="Интерактивный глобус с регионами"></canvas>
+    <canvas id="ovG" class="route-overlay" aria-hidden="true"></canvas>
     <div class="tip" id="tipG"></div>
     <div class="ctl">
       <button id="gin" aria-label="Приблизить">+</button>
@@ -133,6 +138,7 @@ var G = {"n":{"W":[["Индонезия",0],["Малайзия",0],["Чили",0
 
   // ---------- общее состояние ----------
   var hoverEnt = -1, selEnt = -1, mode = "flat", views = {};
+  var overlayData={routes:[],airports:[]};
   function inside(e, lo, la) {
     var bb = e.bb; if (lo < bb[0] || lo > bb[2] || la < bb[1] || la > bb[3]) return false;
     var c = false;
@@ -157,13 +163,14 @@ var G = {"n":{"W":[["Индонезия",0],["Малайзия",0],["Чили",0
     if (en.sub) { var s = document.createElement("small"); s.textContent = en.sub; tip.appendChild(s); }
     tip.style.left = (e.clientX - r.left) + "px"; tip.style.top = (e.clientY - r.top) + "px"; tip.style.opacity = 1;
   }
-  function setSelected(i) {
+  function setSelected(i, ll) {
     selEnt = (i === selEnt) ? -1 : i;
     var t = "";
     if (selEnt >= 0) {
       var en = ents[selEnt]; t = en.sub ? en.name + " — " + en.sub : en.name;
       // Хук для вашего кода: window.addEventListener("mapselect", function (ev) { ev.detail.name })
-      window.dispatchEvent(new CustomEvent("mapselect", { detail: { name: en.name, country: en.sub || en.name } }));
+      var detail={name:en.name,country:en.sub||en.name};if(ll&&isFinite(ll.lat)&&isFinite(ll.lng)){detail.lat=ll.lat;detail.lng=ll.lng;}
+      window.dispatchEvent(new CustomEvent("mapselect", { detail: detail }));
     }
     $("stF").textContent = t; $("stG").textContent = t;
   }
@@ -172,7 +179,7 @@ var G = {"n":{"W":[["Индонезия",0],["Малайзия",0],["Чили",0
   // ===================== ПЛОСКАЯ КАРТА =====================
   views.flat = (function () {
     var box = $("flatBox"), cv = $("cvF"), ctx = cv.getContext("2d"), tip = $("tipF");
-    var cw = 800, ch = 350, dpr = 1, k = 1, tx = 0, ty = 0, KMAX = 100, raf = 0;
+    var cw = 800, ch = 350, dpr = 1, k = 1, tx = 0, ty = 0, KMAX = 100, raf = 0, overlay=$("ovF");
     var texF = new Image(); texF.onload = function () { schedule(); }; texF.src = G.tf;
     var show = { rd: true, rl: true, rv: true };
     // линии: уровни важности, видимые начиная с заданного масштаба
@@ -191,7 +198,7 @@ var G = {"n":{"W":[["Индонезия",0],["Малайзия",0],["Чили",0
       }
       L.n = n; L.ps = ps; L.pl = pl; L.bx = bx; L.px = Float32Array.from(px); L.py = Float32Array.from(py); L.ready = true; L.b64 = null;
     }
-    function resize() { var r = box.getBoundingClientRect(); cw = Math.max(200, r.width); ch = Math.max(100, r.height); dpr = Math.min(window.devicePixelRatio || 1, 2); cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); clamp(); }
+    function resize() { var r = box.getBoundingClientRect(); cw = Math.max(200, r.width); ch = Math.max(100, r.height); dpr = Math.min(window.devicePixelRatio || 1, 2); cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); overlay.width=cv.width;overlay.height=cv.height;clamp(); }
     function clamp() { k = Math.max(1, Math.min(KMAX, k)); tx = Math.min(0, Math.max(cw - cw * k, tx)); ty = Math.min(0, Math.max(ch - ch * k, ty)); }
     var RV = new Uint8Array(NR);
     var thr2 = 0;     // вершины ближе порога (в долях пикселя) пропускаются: на мелком масштабе их не видно
@@ -240,6 +247,7 @@ var G = {"n":{"W":[["Индонезия",0],["Малайзия",0],["Чили",0
         ctx.strokeStyle = h[0] === selEnt ? "rgba(120,50,15,.9)" : "rgba(30,60,45,.7)"; ctx.lineWidth = 1.2 / kk; ctx.stroke();
       });
       ctx.restore();
+      drawExternalOverlay();
     }
     function schedule() { if (!raf) raf = requestAnimationFrame(function () { raf = 0; if (mode === "flat") draw(); }); }
     function zoomAt(px, py, f) { var nk = Math.max(1, Math.min(KMAX, k * f)); f = nk / k; tx = px - (px - tx) * f; ty = py - (py - ty) * f; k = nk; clamp(); schedule(); }
@@ -258,7 +266,7 @@ var G = {"n":{"W":[["Индонезия",0],["Малайзия",0],["Чили",0
       tx += dx; ty += dy; last = { x: e.clientX, y: e.clientY }; clamp(); schedule();
     });
     function end(e) { delete ptrs[e.pointerId]; pinch = 0; cv.classList.remove("drag"); var ids = Object.keys(ptrs); if (ids.length === 1) last = { x: ptrs[ids[0]].clientX, y: ptrs[ids[0]].clientY }; }
-    cv.addEventListener("pointerup", function (e) { var click = moved <= 5; end(e); if (click) { var p = local(e); setSelected(pickAt(p.x, p.y)); schedule(); } });
+    cv.addEventListener("pointerup", function (e) { var click = moved <= 5; end(e); if (click) { var p = local(e), q=llAt(p.x,p.y); setSelected(pickAt(p.x,p.y),q?{lat:q[1]/100,lng:q[0]/100}:null); schedule(); } });
     cv.addEventListener("pointercancel", end);
     cv.addEventListener("pointerleave", function () { tip.style.opacity = 0; if (hoverEnt >= 0) { hoverEnt = -1; schedule(); } });
     cv.addEventListener("wheel", function (e) { e.preventDefault(); var p = local(e); zoomAt(p.x, p.y, e.deltaY < 0 ? 1.25 : 0.8); }, { passive: false });
@@ -277,6 +285,7 @@ var G = {"n":{"W":[["Индонезия",0],["Малайзия",0],["Чили",0
     [["trd", "rd"], ["trl", "rl"], ["trv", "rv"]].forEach(function (p) { $(p[0]).onclick = function () { show[p[1]] = !show[p[1]]; this.setAttribute("aria-pressed", show[p[1]] ? "true" : "false"); schedule(); }; });
     return {
       resize: resize, draw: schedule, drawNow: draw,
+      projectLL: function(lon,lat){var f=flatXY(lon*PI/180,lat*PI/180),kk=cw/WID*k;return {x:tx+f[0]*kk,y:ty+f[1]*kk,visible:true,zoom:k};},
       getCenter: function () { var q = llAt(cw / 2, ch / 2); return q ? { lon: q[0] / 100, lat: q[1] / 100, z: k } : { lon: 60, lat: 25, z: k }; },
       setCenter: function (lon, lat, z) { var f = flatXY(lon * PI / 180, lat * PI / 180); k = Math.max(1, z); var kk = cw / WID * k; tx = cw / 2 - f[0] * kk; ty = ch / 2 - f[1] * kk; clamp(); schedule(); }
     };
@@ -285,13 +294,13 @@ var G = {"n":{"W":[["Индонезия",0],["Малайзия",0],["Чили",0
   // ===================== ГЛОБУС =====================
   views.globe = (function () {
     var box = $("globeBox"), cv = $("cvG"), ctx = cv.getContext("2d"), tip = $("tipG");
-    var tex = null, TW = 0, TH = 0, rbuf = document.createElement("canvas"), rctx = rbuf.getContext("2d"), rimg = null, gimg = new Image(), gready = false;
+    var tex = null, TW = 0, TH = 0, rbuf = document.createElement("canvas"), rctx = rbuf.getContext("2d"), rimg = null, gimg = new Image(), gready = false, overlay=$("ovG");
     gimg.onload = function () { gready = true; if (mode === "globe") initTex(); }; gimg.src = G.tg;
     function initTex() { if (tex || !gready) return; var c = document.createElement("canvas"); c.width = TW = gimg.width; c.height = TH = gimg.height; var x = c.getContext("2d"); x.drawImage(gimg, 0, 0); tex = x.getImageData(0, 0, TW, TH).data; schedule(); }
     var SX = new Float32Array(NV), SY = new Float32Array(NV), ZV = new Uint8Array(NV), RVg = new Uint8Array(NR);
     var lon0 = 60, lat0 = 25, zoom = 1, cw = 600, ch = 600, dpr = 1, spinning = false, moving = 0, raf = 0, idle = 0, cl, sl, cp, sp, R, cx, cy;
     function setCam() { var a = lon0 * PI / 180, b = lat0 * PI / 180; cl = Math.cos(a); sl = Math.sin(a); cp = Math.cos(b); sp = Math.sin(b); R = Math.min(cw, ch) / 2 * 0.9 * zoom; cx = cw / 2; cy = ch / 2; }
-    function resize() { var r = box.getBoundingClientRect(); cw = Math.max(200, r.width); ch = Math.max(200, r.height); dpr = Math.min(window.devicePixelRatio || 1, 2); cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); }
+    function resize() { var r = box.getBoundingClientRect(); cw = Math.max(200, r.width); ch = Math.max(200, r.height); dpr = Math.min(window.devicePixelRatio || 1, 2); cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); overlay.width=cv.width;overlay.height=cv.height; }
     function hq() { return Math.min(1, 640 / Math.max(cw, ch)); }
     function relief(q) {
       var rw = Math.max(2, Math.round(cw * q)), rh = Math.max(2, Math.round(ch * q)), kq = 1 / q;
@@ -346,10 +355,12 @@ var G = {"n":{"W":[["Индонезия",0],["Малайзия",0],["Чили",0
       var sh = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.15, cx, cy, R); sh.addColorStop(0, "rgba(255,255,255,.06)"); sh.addColorStop(0.65, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(0,0,0,.30)");
       ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.fill(); ctx.restore();
       ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = 1.5; ctx.stroke();
+      drawExternalOverlay();
     }
     function redraw() { if (mode === "globe") { initTex(); draw(hq()); } }
     function schedule() { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; if (mode !== "globe") return; initTex(); draw(moving || spinning ? hq() * 0.5 : hq()); if (spinning) { lon0 += 0.25; schedule(); } }); }
     function settle() { clearTimeout(idle); idle = setTimeout(function () { moving = 0; if (!spinning) redraw(); }, 160); }
+    function llAt(px,py){setCam();var nx=(px-cx)/R,ny=(cy-py)/R,r2=nx*nx+ny*ny;if(r2>=1)return null;var nz=Math.sqrt(1-r2),Y=ny*cp+nz*sp,z1=-ny*sp+nz*cp,X=nx*cl+z1*sl,Z=-nx*sl+z1*cl;return {lat:Math.asin(Y)*180/PI,lng:Math.atan2(X,Z)*180/PI};}
     function pick(px, py) {
       setCam(); var nx = (px - cx) / R, ny = (cy - py) / R, r2 = nx * nx + ny * ny; if (r2 >= 1) return -1;
       var nz = Math.sqrt(1 - r2), Y = ny * cp + nz * sp, z1 = -ny * sp + nz * cp, X = nx * cl + z1 * sl, Z = -nx * sl + z1 * cl;
@@ -368,7 +379,7 @@ var G = {"n":{"W":[["Индонезия",0],["Малайзия",0],["Чили",0
       var kq = 57.3 / R; lon0 -= dx * kq; lat0 = Math.max(-85, Math.min(85, lat0 + dy * kq)); last = { x: e.clientX, y: e.clientY }; moving = 1; schedule(); settle();
     });
     function end(e) { delete ptrs[e.pointerId]; pinch = 0; cv.classList.remove("drag"); var ids = Object.keys(ptrs); if (ids.length === 1) last = { x: ptrs[ids[0]].clientX, y: ptrs[ids[0]].clientY }; }
-    cv.addEventListener("pointerup", function (e) { var click = moved <= 4; end(e); if (click) { var p = local(e); setSelected(pick(p.x, p.y)); redraw(); } });
+    cv.addEventListener("pointerup", function (e) { var click = moved <= 4; end(e); if (click) { var p = local(e); setSelected(pick(p.x, p.y),llAt(p.x,p.y)); redraw(); } });
     cv.addEventListener("pointercancel", end);
     cv.addEventListener("pointerleave", function () { tip.style.opacity = 0; if (hoverEnt >= 0) { hoverEnt = -1; redraw(); } });
     cv.addEventListener("wheel", function (e) { e.preventDefault(); zoom = Math.max(1, Math.min(6, zoom * Math.exp(-e.deltaY * 0.0015))); moving = 1; schedule(); settle(); }, { passive: false });
@@ -392,6 +403,7 @@ var G = {"n":{"W":[["Индонезия",0],["Малайзия",0],["Чили",0
     $("gspin").onclick = function () { spinning = !spinning; this.setAttribute("aria-pressed", spinning ? "true" : "false"); if (spinning) schedule(); else redraw(); };
     return {
       resize: resize, draw: redraw,
+      projectLL: function(lon,lat){setCam();var lo=lon*PI/180,la=lat*PI/180,c=Math.cos(la),X=c*Math.sin(lo),Y=Math.sin(la),Z=c*Math.cos(la),x1=X*cl-Z*sl,zz=X*sl+Z*cl,y2=Y*cp-zz*sp,z=Y*sp+zz*cp;return {x:cx+R*x1,y:cy-R*y2,visible:z>0,zoom:zoom};},
       getCenter: function () { return { lon: lon0, lat: lat0, z: zoom }; },
       setCenter: function (lon, lat, z) { lon0 = lon; lat0 = Math.max(-85, Math.min(85, lat)); zoom = Math.max(1, Math.min(6, z)); }
     };
@@ -412,7 +424,10 @@ var G = {"n":{"W":[["Индонезия",0],["Малайзия",0],["Чили",0
   if (window.ResizeObserver) new ResizeObserver(function () { views[mode].resize(); views[mode].draw(); }).observe($("flatBox").parentNode);
   window.addEventListener("resize", function () { views[mode].resize(); views[mode].draw(); });
   views.flat.resize(); views.flat.draw();
-  window.__app = { views: views, ents: ents, setMode: setMode, stats: function () { return { vertices: NV, rings: NR }; } };
+  function drawExternalOverlay(){var cv=mode==="globe"?$("ovG"):$("ovF"),box=mode==="globe"?$("globeBox"):$("flatBox"),ctx=cv.getContext("2d"),dpr=Math.min(window.devicePixelRatio||1,2),w=box.clientWidth,h=box.clientHeight;if(cv.width!==Math.round(w*dpr)||cv.height!==Math.round(h*dpr)){cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);}ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,w,h);var view=views[mode],p;(overlayData.routes||[]).forEach(function(r){var pts=r.coords||[];if(pts.length<2)return;function path(){ctx.beginPath();var started=false,last=null;pts.forEach(function(q){p=view.projectLL(+q[1],+q[0]);if(!p||!p.visible||!isFinite(p.x)||!isFinite(p.y)){started=false;last=null;return;}if(mode==="flat"&&last&&Math.abs(p.x-last.x)>w*.55)started=false;if(!started){ctx.moveTo(p.x,p.y);started=true;}else ctx.lineTo(p.x,p.y);last=p;});}ctx.save();ctx.lineJoin="round";ctx.lineCap="round";ctx.strokeStyle=r.casing||"#f4f8fc";ctx.lineWidth=(r.width||2.2)+(r.casingExtra||2.6);ctx.globalAlpha=.94;path();ctx.stroke();ctx.strokeStyle=r.color||"#60a5fa";ctx.lineWidth=r.width||2.2;ctx.globalAlpha=1;ctx.setLineDash(r.future?[7,6]:[]);path();ctx.stroke();ctx.setLineDash([]);[pts[0],pts[pts.length-1]].forEach(function(q){p=view.projectLL(+q[1],+q[0]);if(!p||!p.visible)return;ctx.beginPath();ctx.arc(p.x,p.y,4,0,Math.PI*2);ctx.fillStyle=r.color||"#60a5fa";ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle=r.casing||"#fff";ctx.stroke();});ctx.restore();});var airports=overlayData.airports||[],z=view.getCenter().z||1,threshold=mode==="globe"?2:5.5;if(z>=threshold){var step=z>=10?1:z>=7?2:z>=5.5?5:12;ctx.save();ctx.fillStyle="#e8f2ff";ctx.strokeStyle="#17324d";ctx.lineWidth=1;for(var i=0;i<airports.length;i+=step){var a=airports[i];p=view.projectLL(+a.lng,+a.lat);if(!p||!p.visible||p.x<0||p.y<0||p.x>w||p.y>h)continue;ctx.beginPath();ctx.arc(p.x,p.y,z>=8?2.2:1.5,0,Math.PI*2);ctx.fill();ctx.stroke();}ctx.restore();}}
+  window.addEventListener("message",function(e){var d=e.data||{};if(d.type==="travelek-routes"){overlayData.routes=Array.isArray(d.routes)?d.routes:[];if(Array.isArray(d.airports))overlayData.airports=d.airports;drawExternalOverlay();}else if(d.type==="travelek-airports"){overlayData.airports=Array.isArray(d.airports)?d.airports:[];drawExternalOverlay();}else if(d.type==="travelek-mode"&&(d.mode==="flat"||d.mode==="globe"))setMode(d.mode);else if(d.type==="travelek-fit"){var pts=d.coords||[];if(pts.length){var minLa=90,maxLa=-90,minLo=180,maxLo=-180,laSum=0,loSum=0,n=0;pts.forEach(function(q){var la=Number(q[0]),lo=Number(q[1]);if(!isFinite(la)||!isFinite(lo))return;minLa=Math.min(minLa,la);maxLa=Math.max(maxLa,la);minLo=Math.min(minLo,lo);maxLo=Math.max(maxLo,lo);laSum+=la;loSum+=lo;n++;});if(n){var spanLo=Math.max(.5,maxLo-minLo),spanLa=Math.max(.5,maxLa-minLa),z=Math.max(1,Math.min(18,Math.min(window.innerWidth/(spanLo*1.25),window.innerHeight/(spanLa*1.25))));if(mode==="globe")z=Math.min(6,Math.max(1,Math.min(360/spanLo,180/spanLa)));views[mode].setCenter(loSum/n,laSum/n,z);views[mode].draw();}}}else if(d.type==="travelek-zoom"){var b=d.action==="in"?"fin":d.action==="out"?"fout":d.action==="ru"?"fru":d.action==="gr"?"gru":d.action==="reset"?(mode==="globe"?"gworld":"fworld"):null;if(b)$(b).click();}});
+  window.addEventListener("mapselect",function(e){try{parent.postMessage({type:"travelek-mapselect",detail:e.detail},"*");}catch(err){}});
+  window.__app = { views: views, ents: ents, setMode: setMode, drawOverlay:drawExternalOverlay, stats: function () { return { vertices: NV, rings: NR }; } };
 })();
 </script>
 </body>
