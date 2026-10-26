@@ -89,9 +89,28 @@
     return c;
   }
   function pickLL(lo, la) {
-    var order = ["R", "C", "G", "W"];
-    for (var k = 0; k < order.length; k++) { var L = byLayer[order[k]]; for (var i = 0; i < L.length; i++) if (inside(ents[L[i]], lo, la)) return L[i]; }
-    return -1;
+    var country = -1, i, L = byLayer.W;
+    for (i = 0; i < L.length; i++) if (inside(ents[L[i]], lo, la)) { country = L[i]; break; }
+    var host = country >= 0 ? ents[country] : null;
+    if (host && host.iso && markC[host.iso]) {
+      var order = ["R", "C", "G"], k, r;
+      for (k = 0; k < order.length; k++) {
+        L = byLayer[order[k]];
+        for (i = 0; i < L.length; i++) {
+          r = ents[L[i]];
+          if (!regionLayerOpen(r)) continue;
+          if (inside(r, lo, la)) return L[i];
+        }
+      }
+    }
+    return country;
+  }
+  function regionLayerOpen(e) {
+    if (!e) return false;
+    if (e.L === "R" || e.sub === "Россия") return !!markC.RU;
+    if (e.L === "C" || e.sub === "Китай") return !!markC.CN;
+    if (e.iso && markC[e.iso]) return true;
+    return false;
   }
   function showTip(tip, box, e, i) {
     if (i < 0) { tip.style.opacity = 0; return; }
@@ -118,7 +137,7 @@
     var cw = 800, ch = 350, dpr = 1, k = 1, tx = 0, ty = 0, KMAX = 170, raf = 0;
     function kMin(){ var need = HF / WID * cw; return Math.max(0.4, Math.min(1, ch / Math.max(1, need))); }
     var texF = new Image(); texF.onload = function () { schedule(); }; texF.src = G.tf;
-    var show = { rd: false, rl: false, rv: true };
+    var show = { rd: false, rl: false, rv: false };
     var LAYERS = [];
     function addTiers(key, arr, ths, style) {
       if (!arr || !arr.length) return;
@@ -154,7 +173,7 @@
       c.closePath();
     }
     function entPath(c, e) { for (var r = e.r0; r < e.r1; r++) if (RV[r]) ringPath(c, r); }
-    var bc = document.createElement("canvas"), bctx = bc.getContext("2d"), bkey = "", snapTx = 0, snapTy = 0;
+    var bc = document.createElement("canvas"), bctx = bc.getContext("2d"), bkey = "", snapTx = 0, snapTy = 0, snapK = 1, hold = 0, zoomIdle = 0;
     function base() {
       var c = bctx, kk = cw / WID * k; thr2 = Math.pow(1.3 / kk, 2);
       c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, bc.width, bc.height); c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -165,9 +184,9 @@
       var lw = 1 / kk; c.lineJoin = "round"; c.lineCap = "round";
       c.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && markC[e.iso]) entPath(c, e); }); c.fillStyle = "rgba(196,98,45,.42)"; c.fill("evenodd");
       c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionMarked(ents[i])) entPath(c, ents[i]); }); }); c.fillStyle = "rgba(196,98,45,.62)"; c.fill("evenodd");
-      if (k >= 3) {
-        c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { entPath(c, ents[i]); }); });
-        c.strokeStyle = "rgba(250,252,251,.72)"; c.lineWidth = 0.45 * lw; c.stroke();
+      if (k >= 2.6) {
+        c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) entPath(c, ents[i]); }); });
+        c.strokeStyle = "rgba(250,252,251,.55)"; c.lineWidth = 0.4 * lw; c.stroke();
       }
       LAYERS.forEach(function (L) {
         if (!show[L.key] || k < L.th) return; if (!L.ready) load(L);
@@ -188,9 +207,14 @@
       var dragging = cv.classList.contains("drag");
       var key = [cw, ch, dpr, Math.round(k * 1000), dragging ? "d" : Math.round(tx), dragging ? "d" : Math.round(ty), show.rd ? 1 : 0, show.rl ? 1 : 0, show.rv ? 1 : 0, texF.complete ? 1 : 0, markRev].join("|");
       if (bc.width !== cv.width || bc.height !== cv.height) { bc.width = cv.width; bc.height = cv.height; bkey = ""; }
-      if (!dragging && key !== bkey) { base(); bkey = key; snapTx = tx; snapTy = ty; }
+      if (!dragging && !hold && key !== bkey) { base(); bkey = key; snapTx = tx; snapTy = ty; snapK = k; }
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
-      ctx.drawImage(bc, dragging ? tx - snapTx : 0, dragging ? ty - snapTy : 0);
+      if ((dragging || hold) && snapK) {
+        var s = k / snapK;
+        ctx.setTransform(s, 0, 0, s, tx - snapTx * s, ty - snapTy * s);
+        ctx.drawImage(bc, 0, 0);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+      } else ctx.drawImage(bc, 0, 0);
       // наведение и выбор рисуются поверх готового слоя, поэтому реагируют мгновенно
       var kk = cw / WID * k; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.save(); ctx.translate(tx, ty); ctx.scale(kk, kk); ctx.lineJoin = "round";
       [[hoverEnt, "rgba(60,100,80,.38)"], [selEnt, "rgba(196,98,45,.65)"]].forEach(function (h) {
@@ -201,7 +225,7 @@
       if (hooks.paint) { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); hooks.paint(ctx); }
     }
     function schedule() { if (!raf) raf = requestAnimationFrame(function () { raf = 0; if (mode === "flat") draw(); }); }
-    function zoomAt(px, py, f) { var nk = Math.max(kMin(), Math.min(KMAX, k * f)); f = nk / k; tx = px - (px - tx) * f; ty = py - (py - ty) * f; k = nk; clamp(); schedule(); if (hooks.afterView) hooks.afterView(); }
+    function zoomAt(px, py, f) { var nk = Math.max(kMin(), Math.min(KMAX, k * f)); f = nk / k; tx = px - (px - tx) * f; ty = py - (py - ty) * f; k = nk; clamp(); hold = 1; schedule(); if (zoomIdle) clearTimeout(zoomIdle); zoomIdle = setTimeout(function () { zoomIdle = 0; hold = 0; bkey = ""; schedule(); if (hooks.afterView) hooks.afterView(); }, 140); }
     function local(e) { var r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
     function llAt(px, py) { var kk = cw / WID * k; return unflat((px - tx) / kk, (py - ty) / kk); }
     function pickAt(px, py) { var q = llAt(px, py); return q ? pickLL(q[0], q[1]) : -1; }

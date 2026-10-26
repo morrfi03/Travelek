@@ -8537,7 +8537,7 @@ function nearAnyRoute(lat,lng,maxKm){
 var layer=L.layerGroup().addTo(map);
 try{window.__travelekMapRoutesLayer=layer;}catch(e){}
 var labelsLayer=L.layerGroup().addTo(map);
-var selectedId=null, activeTab="future", sheetState="mid", selectedTripId=null, sheetMore={on:false};
+var selectedId=null, activeTab="future", sheetState="mid", selectedTripId=null, sheetMore={on:false}, cardMore={};
 var lastBounds=null;
 
 function fitAll(){
@@ -8582,7 +8582,7 @@ function buildWorldLabels(){
   worldLabelCache=out;
   return out;
 }
-var UI={"en": {"Настройки": "Settings", "Тема": "Theme", "Тёмная": "Dark", "Светлая": "Light", "Как на устройстве": "System", "Язык": "Language", "Карта": "Map", "Глобус": "Globe", "Ночь на карте всегда включена. Глобус — шар: потяните, чтобы покрутить, двумя пальцами или +/− приблизьте. Железные дороги всегда по точной сети.": "Night on the map is always on. The globe is a sphere: drag to spin it, pinch or use +/− to zoom. Railways follow the real network.", "Сбросить мои маршруты": "Reset my routes", "Сброс — двойным нажатием.": "Reset needs a second tap.", "Нажмите ещё раз": "Tap again", "Пользовательское соглашение": "Terms of use", "Обработка персональных данных": "Privacy", "Сохранить настройки": "Save settings", "Закрыть": "Close", "Аккаунт": "Account", "Будущие": "Upcoming", "История": "History", "Ваши маршруты": "Your routes", "небо, км": "air, km", "поезд, км": "rail, km", "авто, км": "road, km", "Посещённые страны": "Countries visited", "Вы были тут?": "Were you here?", "Нет": "No", "Да, был(а)": "Yes, I was", "Ткните точку на карте": "Tap a point on the map", "Нет сети · карта из кэша": "Offline · cached map", "Войти": "Log in", "Выйти": "Log out", "Новый маршрут": "New route", "Самолёт": "Plane", "Поезд": "Train", "Авто": "Car", "Отмена": "Cancel", "Сохранить": "Save", "Дневник путешествий": "Travel diary", "самолёт, поезд и дорога": "plane, train and road", "Обновить по маршрутам": "Update from routes", "Найти страну…": "Find a country…", "Регион или город…": "Region or city…", "Считаются по маршрутам. Можно отметить и вручную.": "Counted from routes. You can also mark them yourself.", "Можно найти по городу.": "You can search by city.", "Ничего не найдено": "Nothing found", "Показать": "Show", "Скрыть": "Hide", "Имя": "Name", "Сохранить имя": "Save name", "Сменить пароль": "Change password", "Все аккаунты": "All accounts", "Новый аккаунт": "New account", "Создать аккаунт": "Create account", "Принимаю": "I accept", "пользовательское соглашение": "the terms of use", "и": "and", "политику обработки данных": "the privacy policy", "Каждый видит только свой дневник. Новый аккаунт создаёт только администратор.": "Each person sees only their own diary. Only the admin can create an account.", "Логин": "Username", "Пароль": "Password", "Тип": "Type", "Дата": "Date", "Время": "Time", "Откуда (аэропорт)": "From (airport)", "Куда (аэропорт)": "To (airport)", "Откуда (вокзал)": "From (station)", "Куда (вокзал)": "To (station)", "Откуда (порт / город)": "From (port / city)", "Куда (порт / город)": "To (port / city)", "Откуда (город / точка)": "From (city / point)", "Куда (город / точка)": "To (city / point)", "Только аэропорт: SVO, LED…": "Airport only: SVO, LED…", "Только вокзал…": "Station only…", "Город или 📍 на карте": "City or 📍 on the map", "Рейс": "Flight", "Поезд / номер": "Train / number", "Название (необязательно)": "Name (optional)", "Рейс / паром": "Sailing / ferry", "Комментарий (необязательно)": "Note (optional)", "Как ехали": "How you drove", "По дорогам": "By road", "Бездорожье (через точки)": "Off-road (via points)", "＋ Добавить маршрут": "＋ Add a route", "Тяните шар · +/− ближе": "Drag the globe · +/− to zoom", "Регионы России": "Regions of Russia", "Регионы Китая": "Regions of China", "стран": "countries", "регионов РФ": "Russian regions", "регионов Китая": "Chinese regions", "из": "of", "скоро": "soon", "км": "km", "Изменить": "Edit", "Удалить": "Delete", "Нет предстоящих маршрутов. Откройте «История» или добавьте новый.": "No upcoming routes. Open History or add one.", "В истории пока пусто": "Nothing in history yet", "Нет маршрутов": "No routes", "Администратор": "Admin", "Пользователь": "User", "админ · ": "admin · ", "маршрутов": "routes", "стран · ": "countries · ", "Пока только вы.": "Just you so far.", "Маршрутов пока нет": "No routes yet", "Список аккаунтов не загрузился.": "Could not load accounts.", "Нужно принять соглашение и политику": "Please accept the terms and the privacy policy", "Неверный логин или пароль": "Wrong username or password", "Пароль изменён": "Password changed", "Не удалось сменить пароль. Проверьте текущий.": "Could not change the password. Check the current one.", "Аккаунт создан. Теперь по этому логину можно войти с любого телефона.": "Account created. You can now log in from any phone.", "Не удалось создать": "Could not create the account", "Назад": "Back", "Дневник: ": "Diary: ", "Обработка данных": "Privacy", "Текущий пароль": "Current password", "Новый пароль, от 8 символов": "New password, 8+ characters", "Новый пароль ещё раз": "New password again", "Нажмите человека, чтобы открыть его дневник. Новый аккаунт сохраняется сразу на сайте, файл на GitHub для этого менять не нужно.": "Tap a person to open their diary. A new account is saved on the site at once — the GitHub file does not need to change.", "＋ Точка на карте": "＋ Point on the map", "Очистить точки": "Clear points", "Промежуточные точки (обойти лес/реку)": "Waypoints (around a forest or river)", "Для авто: 📍 — ткните точку на карте (Россия)": "For a car: 📍 — tap a point on the map", "Редактировать": "Edit", "Только администратор": "Admin only", "Только администратор может создавать аккаунты": "Only the admin can create accounts", "Карта или глобус": "Map or globe", "Все маршруты": "All routes", "Добавить": "Add", "день": "day", "дня": "days", "дней": "days", "час": "hour", "часа": "hours", "часов": "hours", "предстоящий": "upcoming", "предстоящих": "upcoming", "рейс": "flight", "рейса": "flights", "рейсов": "flights", "маршрут": "route", "маршрута": "routes", "мин": "min"}, "zh": {"Настройки": "设置", "Тема": "主题", "Тёмная": "深色", "Светлая": "浅色", "Как на устройстве": "跟随系统", "Язык": "语言", "Карта": "地图", "Глобус": "地球", "Ночь на карте всегда включена. Глобус — шар: потяните, чтобы покрутить, двумя пальцами или +/− приблизьте. Железные дороги всегда по точной сети.": "地图上的夜景始终开启。地球是个球体：拖动旋转，双指或 +/− 缩放。铁路按真实线路绘制。", "Сбросить мои маршруты": "清除我的路线", "Сброс — двойным нажатием.": "再点一次才会清除。", "Нажмите ещё раз": "再点一次", "Пользовательское соглашение": "用户协议", "Обработка персональных данных": "个人信息处理", "Сохранить настройки": "保存设置", "Закрыть": "关闭", "Аккаунт": "账户", "Будущие": "即将出发", "История": "历史", "Ваши маршруты": "您的路线", "небо, км": "飞行，公里", "поезд, км": "火车，公里", "авто, км": "驾车，公里", "Посещённые страны": "到过的国家", "Вы были тут?": "您来过这里吗？", "Нет": "否", "Да, был(а)": "是的，来过", "Ткните точку на карте": "点地图上的位置", "Нет сети · карта из кэша": "无网络 · 使用缓存地图", "Войти": "登录", "Выйти": "退出", "Новый маршрут": "新路线", "Самолёт": "飞机", "Поезд": "火车", "Авто": "汽车", "Отмена": "取消", "Сохранить": "保存", "Дневник путешествий": "旅行日记", "самолёт, поезд и дорога": "飞机、火车和公路", "Обновить по маршрутам": "按路线更新", "Найти страну…": "搜索国家…", "Регион или город…": "搜索地区或城市…", "Считаются по маршрутам. Можно отметить и вручную.": "按路线统计，也可以手动标记。", "Можно найти по городу.": "可以按城市查找。", "Ничего не найдено": "没有找到", "Показать": "显示", "Скрыть": "隐藏", "Имя": "名字", "Сохранить имя": "保存名字", "Сменить пароль": "修改密码", "Все аккаунты": "全部账户", "Новый аккаунт": "新账户", "Создать аккаунт": "创建账户", "Принимаю": "我接受", "пользовательское соглашение": "用户协议", "и": "和", "политику обработки данных": "个人信息政策", "Каждый видит только свой дневник. Новый аккаунт создаёт только администратор.": "每个人只能看到自己的日记。新账户只能由管理员创建。", "Логин": "登录名", "Пароль": "密码", "Тип": "类型", "Дата": "日期", "Время": "时间", "Откуда (аэропорт)": "出发（机场）", "Куда (аэропорт)": "到达（机场）", "Откуда (вокзал)": "出发（车站）", "Куда (вокзал)": "到达（车站）", "Откуда (порт / город)": "出发（港口 / 城市）", "Куда (порт / город)": "到达（港口 / 城市）", "Откуда (город / точка)": "出发（城市 / 地点）", "Куда (город / точка)": "到达（城市 / 地点）", "Только аэропорт: SVO, LED…": "仅限机场：SVO、LED…", "Только вокзал…": "仅限车站…", "Город или 📍 на карте": "城市或点地图 📍", "Рейс": "航班", "Поезд / номер": "车次", "Название (необязательно)": "名称（可选）", "Рейс / паром": "班次 / 渡轮", "Комментарий (необязательно)": "备注（可选）", "Как ехали": "怎么走的", "По дорогам": "沿公路", "Бездорожье (через точки)": "越野（经过地点）", "＋ Добавить маршрут": "＋ 添加路线", "Тяните шар · +/− ближе": "拖动地球 · +/− 缩放", "Регионы России": "俄罗斯地区", "Регионы Китая": "中国地区", "стран": "个国家", "регионов РФ": "个俄罗斯地区", "регионов Китая": "个中国地区", "из": "/", "скоро": "即将", "км": "公里", "Изменить": "编辑", "Удалить": "删除", "Нет предстоящих маршрутов. Откройте «История» или добавьте новый.": "没有即将出发的路线。打开「历史」或添加一条。", "В истории пока пусто": "历史里还是空的", "Нет маршрутов": "没有路线", "Администратор": "管理员", "Пользователь": "用户", "админ · ": "管理员 · ", "маршрутов": "条", "стран · ": "个国家 · ", "Пока только вы.": "目前只有您。", "Маршрутов пока нет": "还没有路线", "Список аккаунтов не загрузился.": "账户列表没有加载出来。", "Нужно принять соглашение и политику": "需要接受协议和隐私政策", "Неверный логин или пароль": "登录名或密码不正确", "Пароль изменён": "密码已修改", "Не удалось сменить пароль. Проверьте текущий.": "没能修改密码。请检查当前密码。", "Аккаунт создан. Теперь по этому логину можно войти с любого телефона.": "账户已创建。现在用这个登录名可以在任何手机上进入。", "Не удалось создать": "没能创建", "Назад": "返回", "Дневник: ": "日记：", "Обработка данных": "个人信息", "Текущий пароль": "当前密码", "Новый пароль, от 8 символов": "新密码，至少 8 位", "Новый пароль ещё раз": "再输入一次新密码", "Нажмите человека, чтобы открыть его дневник. Новый аккаунт сохраняется сразу на сайте, файл на GitHub для этого менять не нужно.": "点一个人即可打开他的日记。新账户会立刻保存在网站上，不必为此改 GitHub 上的文件。", "＋ Точка на карте": "＋ 地图上的点", "Очистить точки": "清除地点", "Промежуточные точки (обойти лес/реку)": "途经点（绕开森林或河流）", "Для авто: 📍 — ткните точку на карте (Россия)": "驾车：📍 — 在地图上点一个位置", "Редактировать": "编辑", "Только администратор": "仅管理员", "Только администратор может создавать аккаунты": "只有管理员能创建账户", "Карта или глобус": "地图或地球", "Все маршруты": "全部路线", "Добавить": "添加", "день": "天", "дня": "天", "дней": "天", "час": "小时", "часа": "小时", "часов": "小时", "предстоящий": "即将", "предстоящих": "即将", "рейс": "次", "рейса": "次", "рейсов": "次", "маршрут": "条", "маршрута": "条", "мин": "分钟"}};
+var UI={"en": {"Настройки": "Settings", "Тема": "Theme", "Тёмная": "Dark", "Светлая": "Light", "Как на устройстве": "System", "Язык": "Language", "Карта": "Map", "Глобус": "Globe", "Ночь на карте всегда включена. Глобус — шар: потяните, чтобы покрутить, двумя пальцами или +/− приблизьте. Железные дороги всегда по точной сети.": "Night on the map is always on. The globe is a sphere: drag to spin it, pinch or use +/− to zoom. Railways follow the real network.", "Сбросить мои маршруты": "Reset my routes", "Сброс — двойным нажатием.": "Reset needs a second tap.", "Нажмите ещё раз": "Tap again", "Пользовательское соглашение": "Terms of use", "Обработка персональных данных": "Privacy", "Сохранить настройки": "Save settings", "Закрыть": "Close", "Аккаунт": "Account", "Будущие": "Upcoming", "История": "History", "Ваши маршруты": "Your routes", "небо, км": "plane, km", "самолет, км": "plane, km", "поезд, км": "rail, km", "авто, км": "road, km", "Посещённые страны": "Countries visited", "Вы были тут?": "Were you here?", "Нет": "No", "Да, был(а)": "Yes, I was", "Ткните точку на карте": "Tap a point on the map", "Нет сети · карта из кэша": "Offline · cached map", "Войти": "Log in", "Выйти": "Log out", "Новый маршрут": "New route", "Самолёт": "Plane", "Поезд": "Train", "Авто": "Car", "Отмена": "Cancel", "Сохранить": "Save", "Дневник путешествий": "Travel diary", "самолёт, поезд и дорога": "plane, train and road", "Обновить по маршрутам": "Update from routes", "Найти страну…": "Find a country…", "Регион или город…": "Region or city…", "Считаются по маршрутам. Можно отметить и вручную.": "Counted from routes. You can also mark them yourself.", "Можно найти по городу.": "You can search by city.", "Ничего не найдено": "Nothing found", "Показать": "Show", "Скрыть": "Hide", "Имя": "Name", "Сохранить имя": "Save name", "Сменить пароль": "Change password", "Все аккаунты": "All accounts", "Новый аккаунт": "New account", "Создать аккаунт": "Create account", "Принимаю": "I accept", "пользовательское соглашение": "the terms of use", "и": "and", "политику обработки данных": "the privacy policy", "Каждый видит только свой дневник. Новый аккаунт создаёт только администратор.": "Each person sees only their own diary. Only the admin can create an account.", "Логин": "Username", "Пароль": "Password", "Тип": "Type", "Дата": "Date", "Время": "Time", "Откуда (аэропорт)": "From (airport)", "Куда (аэропорт)": "To (airport)", "Откуда (вокзал)": "From (station)", "Куда (вокзал)": "To (station)", "Откуда (порт / город)": "From (port / city)", "Куда (порт / город)": "To (port / city)", "Откуда (город / точка)": "From (city / point)", "Куда (город / точка)": "To (city / point)", "Только аэропорт: SVO, LED…": "Airport only: SVO, LED…", "Только вокзал…": "Station only…", "Город или 📍 на карте": "City or 📍 on the map", "Рейс": "Flight", "Поезд / номер": "Train / number", "Название (необязательно)": "Name (optional)", "Рейс / паром": "Sailing / ferry", "Комментарий (необязательно)": "Note (optional)", "Как ехали": "How you drove", "По дорогам": "By road", "Бездорожье (через точки)": "Off-road (via points)", "＋ Добавить маршрут": "＋ Add a route", "Тяните шар · +/− ближе": "Drag the globe · +/− to zoom", "Регионы России": "Regions of Russia", "Регионы Китая": "Regions of China", "стран": "countries", "регионов РФ": "Russian regions", "регионов Китая": "Chinese regions", "из": "of", "скоро": "soon", "км": "km", "Изменить": "Edit", "Удалить": "Delete", "Нет предстоящих маршрутов. Откройте «История» или добавьте новый.": "No upcoming routes. Open History or add one.", "В истории пока пусто": "Nothing in history yet", "Нет маршрутов": "No routes", "Администратор": "Admin", "Пользователь": "User", "админ · ": "admin · ", "маршрутов": "routes", "стран · ": "countries · ", "Пока только вы.": "Just you so far.", "Маршрутов пока нет": "No routes yet", "Список аккаунтов не загрузился.": "Could not load accounts.", "Нужно принять соглашение и политику": "Please accept the terms and the privacy policy", "Неверный логин или пароль": "Wrong username or password", "Пароль изменён": "Password changed", "Не удалось сменить пароль. Проверьте текущий.": "Could not change the password. Check the current one.", "Аккаунт создан. Теперь по этому логину можно войти с любого телефона.": "Account created. You can now log in from any phone.", "Не удалось создать": "Could not create the account", "Назад": "Back", "Дневник: ": "Diary: ", "Обработка данных": "Privacy", "Текущий пароль": "Current password", "Новый пароль, от 8 символов": "New password, 8+ characters", "Новый пароль ещё раз": "New password again", "Нажмите человека, чтобы открыть его дневник. Новый аккаунт сохраняется сразу на сайте, файл на GitHub для этого менять не нужно.": "Tap a person to open their diary. A new account is saved on the site at once — the GitHub file does not need to change.", "＋ Точка на карте": "＋ Point on the map", "Очистить точки": "Clear points", "Промежуточные точки (обойти лес/реку)": "Waypoints (around a forest or river)", "Для авто: 📍 — ткните точку на карте (Россия)": "For a car: 📍 — tap a point on the map", "Редактировать": "Edit", "Только администратор": "Admin only", "Только администратор может создавать аккаунты": "Only the admin can create accounts", "Карта или глобус": "Map or globe", "Все маршруты": "All routes", "Добавить": "Add", "день": "day", "дня": "days", "дней": "days", "час": "hour", "часа": "hours", "часов": "hours", "предстоящий": "upcoming", "предстоящих": "upcoming", "рейс": "flight", "рейса": "flights", "рейсов": "flights", "маршрут": "route", "маршрута": "routes", "мин": "min"}, "zh": {"Настройки": "设置", "Тема": "主题", "Тёмная": "深色", "Светлая": "浅色", "Как на устройстве": "跟随系统", "Язык": "语言", "Карта": "地图", "Глобус": "地球", "Ночь на карте всегда включена. Глобус — шар: потяните, чтобы покрутить, двумя пальцами или +/− приблизьте. Железные дороги всегда по точной сети.": "地图上的夜景始终开启。地球是个球体：拖动旋转，双指或 +/− 缩放。铁路按真实线路绘制。", "Сбросить мои маршруты": "清除我的路线", "Сброс — двойным нажатием.": "再点一次才会清除。", "Нажмите ещё раз": "再点一次", "Пользовательское соглашение": "用户协议", "Обработка персональных данных": "个人信息处理", "Сохранить настройки": "保存设置", "Закрыть": "关闭", "Аккаунт": "账户", "Будущие": "即将出发", "История": "历史", "Ваши маршруты": "您的路线", "небо, км": "飞行，公里", "поезд, км": "火车，公里", "авто, км": "驾车，公里", "Посещённые страны": "到过的国家", "Вы были тут?": "您来过这里吗？", "Нет": "否", "Да, был(а)": "是的，来过", "Ткните точку на карте": "点地图上的位置", "Нет сети · карта из кэша": "无网络 · 使用缓存地图", "Войти": "登录", "Выйти": "退出", "Новый маршрут": "新路线", "Самолёт": "飞机", "Поезд": "火车", "Авто": "汽车", "Отмена": "取消", "Сохранить": "保存", "Дневник путешествий": "旅行日记", "самолёт, поезд и дорога": "飞机、火车和公路", "Обновить по маршрутам": "按路线更新", "Найти страну…": "搜索国家…", "Регион или город…": "搜索地区或城市…", "Считаются по маршрутам. Можно отметить и вручную.": "按路线统计，也可以手动标记。", "Можно найти по городу.": "可以按城市查找。", "Ничего не найдено": "没有找到", "Показать": "显示", "Скрыть": "隐藏", "Имя": "名字", "Сохранить имя": "保存名字", "Сменить пароль": "修改密码", "Все аккаунты": "全部账户", "Новый аккаунт": "新账户", "Создать аккаунт": "创建账户", "Принимаю": "我接受", "пользовательское соглашение": "用户协议", "и": "和", "политику обработки данных": "个人信息政策", "Каждый видит только свой дневник. Новый аккаунт создаёт только администратор.": "每个人只能看到自己的日记。新账户只能由管理员创建。", "Логин": "登录名", "Пароль": "密码", "Тип": "类型", "Дата": "日期", "Время": "时间", "Откуда (аэропорт)": "出发（机场）", "Куда (аэропорт)": "到达（机场）", "Откуда (вокзал)": "出发（车站）", "Куда (вокзал)": "到达（车站）", "Откуда (порт / город)": "出发（港口 / 城市）", "Куда (порт / город)": "到达（港口 / 城市）", "Откуда (город / точка)": "出发（城市 / 地点）", "Куда (город / точка)": "到达（城市 / 地点）", "Только аэропорт: SVO, LED…": "仅限机场：SVO、LED…", "Только вокзал…": "仅限车站…", "Город или 📍 на карте": "城市或点地图 📍", "Рейс": "航班", "Поезд / номер": "车次", "Название (необязательно)": "名称（可选）", "Рейс / паром": "班次 / 渡轮", "Комментарий (необязательно)": "备注（可选）", "Как ехали": "怎么走的", "По дорогам": "沿公路", "Бездорожье (через точки)": "越野（经过地点）", "＋ Добавить маршрут": "＋ 添加路线", "Тяните шар · +/− ближе": "拖动地球 · +/− 缩放", "Регионы России": "俄罗斯地区", "Регионы Китая": "中国地区", "стран": "个国家", "регионов РФ": "个俄罗斯地区", "регионов Китая": "个中国地区", "из": "/", "скоро": "即将", "км": "公里", "Изменить": "编辑", "Удалить": "删除", "Нет предстоящих маршрутов. Откройте «История» или добавьте новый.": "没有即将出发的路线。打开「历史」或添加一条。", "В истории пока пусто": "历史里还是空的", "Нет маршрутов": "没有路线", "Администратор": "管理员", "Пользователь": "用户", "админ · ": "管理员 · ", "маршрутов": "条", "стран · ": "个国家 · ", "Пока только вы.": "目前只有您。", "Маршрутов пока нет": "还没有路线", "Список аккаунтов не загрузился.": "账户列表没有加载出来。", "Нужно принять соглашение и политику": "需要接受协议和隐私政策", "Неверный логин или пароль": "登录名或密码不正确", "Пароль изменён": "密码已修改", "Не удалось сменить пароль. Проверьте текущий.": "没能修改密码。请检查当前密码。", "Аккаунт создан. Теперь по этому логину можно войти с любого телефона.": "账户已创建。现在用这个登录名可以在任何手机上进入。", "Не удалось создать": "没能创建", "Назад": "返回", "Дневник: ": "日记：", "Обработка данных": "个人信息", "Текущий пароль": "当前密码", "Новый пароль, от 8 символов": "新密码，至少 8 位", "Новый пароль ещё раз": "再输入一次新密码", "Нажмите человека, чтобы открыть его дневник. Новый аккаунт сохраняется сразу на сайте, файл на GitHub для этого менять не нужно.": "点一个人即可打开他的日记。新账户会立刻保存在网站上，不必为此改 GitHub 上的文件。", "＋ Точка на карте": "＋ 地图上的点", "Очистить точки": "清除地点", "Промежуточные точки (обойти лес/реку)": "途经点（绕开森林或河流）", "Для авто: 📍 — ткните точку на карте (Россия)": "驾车：📍 — 在地图上点一个位置", "Редактировать": "编辑", "Только администратор": "仅管理员", "Только администратор может создавать аккаунты": "只有管理员能创建账户", "Карта или глобус": "地图或地球", "Все маршруты": "全部路线", "Добавить": "添加", "день": "天", "дня": "天", "дней": "天", "час": "小时", "часа": "小时", "часов": "小时", "предстоящий": "即将", "предстоящих": "即将", "рейс": "次", "рейса": "次", "рейсов": "次", "маршрут": "条", "маршрута": "条", "мин": "分钟"}};
 var REGIONS={"en": {"Адыгея": "Adygea", "Алтайский край": "Altai Krai", "Амурская область": "Amur Oblast", "Архангельская область": "Arkhangelsk Oblast", "Астраханская область": "Astrakhan Oblast", "Белгородская область": "Belgorod Oblast", "Брянская область": "Bryansk Oblast", "Бурятия": "Buryatia", "Владимирская область": "Vladimir Oblast", "Волгоградская область": "Volgograd Oblast", "Вологодская область": "Vologda Oblast", "Воронежская область": "Voronezh Oblast", "Дагестан": "Dagestan", "Донецкая Народная Республика": "Donetsk People's Republic", "Еврейская автономная область": "Jewish Autonomous Oblast", "Забайкальский край": "Zabaykalsky Krai", "Запорожская область": "Zaporizhzhia Oblast", "Ивановская область": "Ivanovo Oblast", "Ингушетия": "Ingushetia", "Иркутская область": "Irkutsk Oblast", "Кабардино-Балкария": "Kabardino-Balkaria", "Калининградская область": "Kaliningrad Oblast", "Калмыкия": "Kalmykia", "Калужская область": "Kaluga Oblast", "Камчатский край": "Kamchatka Krai", "Карачаево-Черкесия": "Karachay-Cherkessia", "Карелия": "Karelia", "Кемеровская область": "Kemerovo Oblast", "Кировская область": "Kirov Oblast", "Костромская область": "Kostroma Oblast", "Краснодарский край": "Krasnodar Krai", "Красноярский край": "Krasnoyarsk Krai", "Курганская область": "Kurgan Oblast", "Курская область": "Kursk Oblast", "Ленинградская область": "Leningrad Oblast", "Липецкая область": "Lipetsk Oblast", "Луганская Народная Республика": "Lugansk People's Republic", "Магаданская область": "Magadan Oblast", "Марий Эл": "Mari El", "Мордовия": "Mordovia", "Москва": "Moscow", "Московская область": "Moscow Oblast", "Мурманская область": "Murmansk Oblast", "Ненецкий автономный округ": "Nenets Autonomous Okrug", "Нижегородская область": "Nizhny Novgorod Oblast", "Новгородская область": "Novgorod Oblast", "Новосибирская область": "Novosibirsk Oblast", "Омская область": "Omsk Oblast", "Оренбургская область": "Orenburg Oblast", "Орловская область": "Oryol Oblast", "Пензенская область": "Penza Oblast", "Пермский край": "Perm Krai", "Приморский край": "Primorsky Krai", "Псковская область": "Pskov Oblast", "Республика Алтай": "Altai Republic", "Республика Башкортостан": "Bashkortostan", "Республика Коми": "Komi Republic", "Республика Крым": "Republic of Crimea", "Республика Северная Осетия-Алания": "North Ossetia–Alania", "Ростовская область": "Rostov Oblast", "Рязанская область": "Ryazan Oblast", "Самарская область": "Samara Oblast", "Санкт-Петербург": "Saint Petersburg", "Саратовская область": "Saratov Oblast", "Сахалинская область": "Sakhalin Oblast", "Свердловская область": "Sverdlovsk Oblast", "Севастополь": "Sevastopol", "Смоленская область": "Smolensk Oblast", "Ставропольский край": "Stavropol Krai", "Тамбовская область": "Tambov Oblast", "Татарстан": "Tatarstan", "Тверская область": "Tver Oblast", "Томская область": "Tomsk Oblast", "Тульская область": "Tula Oblast", "Тыва": "Tuva", "Тюменская область": "Tyumen Oblast", "Удмуртия": "Udmurtia", "Ульяновская область": "Ulyanovsk Oblast", "Хабаровский край": "Khabarovsk Krai", "Хакасия": "Khakassia", "Ханты-Мансийский автономный округ — Югра": "Khanty-Mansi Autonomous Okrug — Yugra", "Херсонская область": "Kherson Oblast", "Челябинская область": "Chelyabinsk Oblast", "Чечня": "Chechnya", "Чувашия": "Chuvashia", "Чукотский автономный округ": "Chukotka Autonomous Okrug", "Якутия": "Yakutia", "Ямало-Ненецкий автономный округ": "Yamalo-Nenets Autonomous Okrug", "Ярославская область": "Yaroslavl Oblast", "Аньхой": "Anhui", "Внутренняя Монголия": "Inner Mongolia", "Ганьсу": "Gansu", "Гирин": "Jilin", "Гуандун": "Guangdong", "Гуанси-Чжуанский автономный район": "Guangxi", "Гуйчжоу": "Guizhou", "Ляонин": "Liaoning", "Нинся-Хуэйский автономный район": "Ningxia", "Пекин": "Beijing", "Синьцзян-Уйгурский автономный район": "Xinjiang", "Сычуань": "Sichuan", "Тайвань": "Taiwan", "Тибетский автономный район": "Tibet", "Тяньцзинь": "Tianjin", "Фуцзянь": "Fujian", "Хайнань": "Hainan", "Хубэй": "Hubei", "Хунань": "Hunan", "Хэбэй": "Hebei", "Хэйлунцзян": "Heilongjiang", "Хэнань": "Henan", "Цзянси": "Jiangxi", "Цзянсу": "Jiangsu", "Цинхай": "Qinghai", "Чжэцзян": "Zhejiang", "Чунцин": "Chongqing", "Шанхай": "Shanghai", "Шаньдун": "Shandong", "Шаньси": "Shanxi", "Шэньси": "Shaanxi", "Юньнань": "Yunnan"}, "zh": {"Адыгея": "阿迪格", "Алтайский край": "阿尔泰边疆区", "Амурская область": "阿穆尔州", "Архангельская область": "阿尔汉格尔斯克州", "Астраханская область": "阿斯特拉罕州", "Белгородская область": "别尔哥罗德州", "Брянская область": "布良斯克州", "Бурятия": "布里亚特", "Владимирская область": "弗拉基米尔州", "Волгоградская область": "伏尔加格勒州", "Вологодская область": "沃洛格达州", "Воронежская область": "沃罗涅日州", "Дагестан": "达吉斯坦", "Донецкая Народная Республика": "顿涅茨克人民共和国", "Еврейская автономная область": "犹太自治州", "Забайкальский край": "外贝加尔边疆区", "Запорожская область": "扎波罗热州", "Ивановская область": "伊万诺沃州", "Ингушетия": "印古什", "Иркутская область": "伊尔库茨克州", "Кабардино-Балкария": "卡巴尔达-巴尔卡尔", "Калининградская область": "加里宁格勒州", "Калмыкия": "卡尔梅克", "Калужская область": "卡卢加州", "Камчатский край": "堪察加边疆区", "Карачаево-Черкесия": "卡拉恰伊-切尔克斯", "Карелия": "卡累利阿", "Кемеровская область": "克麦罗沃州", "Кировская область": "基洛夫州", "Костромская область": "科斯特罗马州", "Краснодарский край": "克拉斯诺达尔边疆区", "Красноярский край": "克拉斯诺亚尔斯克边疆区", "Курганская область": "库尔干州", "Курская область": "库尔斯克州", "Ленинградская область": "列宁格勒州", "Липецкая область": "利佩茨克州", "Луганская Народная Республика": "卢甘斯克人民共和国", "Магаданская область": "马加丹州", "Марий Эл": "马里埃尔", "Мордовия": "莫尔多瓦", "Москва": "莫斯科", "Московская область": "莫斯科州", "Мурманская область": "摩尔曼斯克州", "Ненецкий автономный округ": "涅涅茨自治区", "Нижегородская область": "下诺夫哥罗德州", "Новгородская область": "诺夫哥罗德州", "Новосибирская область": "新西伯利亚州", "Омская область": "鄂木斯克州", "Оренбургская область": "奥伦堡州", "Орловская область": "奥廖尔州", "Пензенская область": "奔萨州", "Пермский край": "彼尔姆边疆区", "Приморский край": "滨海边疆区", "Псковская область": "普斯科夫州", "Республика Алтай": "阿尔泰共和国", "Республика Башкортостан": "巴什科尔托斯坦", "Республика Коми": "科米共和国", "Республика Крым": "克里米亚共和国", "Республика Северная Осетия-Алания": "北奥塞梯-阿兰", "Ростовская область": "罗斯托夫州", "Рязанская область": "梁赞州", "Самарская область": "萨马拉州", "Санкт-Петербург": "圣彼得堡", "Саратовская область": "萨拉托夫州", "Сахалинская область": "萨哈林州", "Свердловская область": "斯维尔德洛夫斯克州", "Севастополь": "塞瓦斯托波尔", "Смоленская область": "斯摩棱斯克州", "Ставропольский край": "斯塔夫罗波尔边疆区", "Тамбовская область": "坦波夫州", "Татарстан": "鞑靼斯坦", "Тверская область": "特维尔州", "Томская область": "托木斯克州", "Тульская область": "图拉州", "Тыва": "图瓦", "Тюменская область": "秋明州", "Удмуртия": "乌德穆尔特", "Ульяновская область": "乌里扬诺夫斯克州", "Хабаровский край": "哈巴罗夫斯克边疆区", "Хакасия": "哈卡斯", "Ханты-Мансийский автономный округ — Югра": "汉特-曼西自治区—尤格拉", "Херсонская область": "赫尔松州", "Челябинская область": "车里雅宾斯克州", "Чечня": "车臣", "Чувашия": "楚瓦什", "Чукотский автономный округ": "楚科奇自治区", "Якутия": "雅库特", "Ямало-Ненецкий автономный округ": "亚马尔-涅涅茨自治区", "Ярославская область": "雅罗斯拉夫尔州", "Аньхой": "安徽", "Внутренняя Монголия": "内蒙古", "Ганьсу": "甘肃", "Гирин": "吉林", "Гуандун": "广东", "Гуанси-Чжуанский автономный район": "广西", "Гуйчжоу": "贵州", "Ляонин": "辽宁", "Нинся-Хуэйский автономный район": "宁夏", "Пекин": "北京", "Синьцзян-Уйгурский автономный район": "新疆", "Сычуань": "四川", "Тайвань": "台湾", "Тибетский автономный район": "西藏", "Тяньцзинь": "天津", "Фуцзянь": "福建", "Хайнань": "海南", "Хубэй": "湖北", "Хунань": "湖南", "Хэбэй": "河北", "Хэйлунцзян": "黑龙江", "Хэнань": "河南", "Цзянси": "江西", "Цзянсу": "江苏", "Цинхай": "青海", "Чжэцзян": "浙江", "Чунцин": "重庆", "Шанхай": "上海", "Шаньдун": "山东", "Шаньси": "山西", "Шэньси": "陕西", "Юньнань": "云南"}};
 var LEGAL_I18N={"ru": {"terms": "<p>Сервис «ТравелЕк» — личный дневник маршрутов: самолёт, поезд и автомобиль. Это не магазин и не платная услуга. Платы за вход нет.</p>\n      <h3>Аккаунт</h3>\n      <ul>\n        <li>Новый аккаунт создаёт только администратор и передаёт логин с паролем.</li>\n        <li>Нельзя входить в чужой дневник и передавать свой пароль другим людям.</li>\n        <li>Администратор может сменить пароль, ограничить доступ и удалить аккаунт.</li>\n      </ul>\n      <h3>Что вы добавляете</h3>\n      <ul>\n        <li>Маршруты, даты и отметки стран и регионов вы вносите сами. За их точность отвечаете вы.</li>\n        <li>Карта показывает границы в том виде, в каком они собраны для этого дневника. Это справочная схема, а не официальный документ.</li>\n        <li>Свои маршруты можно стереть двойным нажатием «Сбросить мои маршруты» в настройках.</li>\n      </ul>\n      <h3>Как есть</h3>\n      <p>Дневник даётся как есть. Администратор не обещает, что сервис будет работать без перерывов. Соглашение можно обновить: действующий текст открывается по ссылке в настройках и на экране входа. Вход с отмеченным согласием означает, что текст вам понятен и вы его принимаете.</p>", "privacy": "<p>Дневник обрабатывает только то, что нужно, чтобы пускать вас в свой аккаунт и показывать ваши маршруты. Рекламным сетям эти сведения не передаются.</p>\n      <h3>Какие данные</h3>\n      <ul>\n        <li>Логин, имя и хэш пароля.</li>\n        <li>Маршруты, отметки стран и регионов, статистика километров.</li>\n        <li>Технические записи в браузере: сессия входа и настройки карты.</li>\n      </ul>\n      <h3>Зачем и где лежат</h3>\n      <ul>\n        <li>Чтобы открыть ваш дневник и не смешивать его с чужим.</li>\n        <li>Копия хранится в браузере этого устройства и в общем хранилище дневников, чтобы тот же аккаунт открывался с другого устройства.</li>\n        <li>Администратор видит маршруты и сводную статистику аккаунтов, чтобы вести дневники и менять пароль, если вы попросите.</li>\n        <li>Пароль в открытом виде другим пользователям не показывается.</li>\n      </ul>\n      <h3>Срок и ваши права</h3>\n      <p>Данные хранятся, пока аккаунт нужен. Можно попросить администратора исправить имя, сменить пароль или удалить аккаунт вместе с маршрутами. Согласие даётся отметкой на экране входа. Если отозвать согласие, вход в дневник прекращается: без этих данных аккаунт не работает.</p>"}, "en": {"terms": "<p>Travelek is a personal diary of routes: plane, train and car. It is not a shop and not a paid service. Signing in is free.</p>\n<h3>Account</h3><ul>\n<li>Only the administrator creates a new account and gives out the username and password.</li>\n<li>Do not sign in to someone else's diary or give your password to other people.</li>\n<li>The administrator can change a password, limit access and delete an account.</li>\n</ul>\n<h3>What you add</h3><ul>\n<li>You enter routes, dates and country or region marks yourself. You are responsible for their accuracy.</li>\n<li>The map shows borders as they are drawn for this diary. It is a reference sketch, not an official document.</li>\n<li>You can erase your routes by double-tapping “Reset my routes” in settings.</li>\n</ul>\n<h3>As is</h3>\n<p>The diary is provided as is. The administrator does not promise uninterrupted service. The terms can be updated: the current text opens from settings and from the sign-in screen. Signing in with the box checked means you understand and accept the text.</p>", "privacy": "<p>The diary processes only what it needs to let you into your account and show your routes. This information is not sent to advertising networks.</p>\n<h3>Which data</h3><ul>\n<li>Username, name and a hash of the password.</li>\n<li>Routes, country and region marks, kilometre statistics.</li>\n<li>Technical notes in the browser: the sign-in session and map settings.</li>\n</ul>\n<h3>Why and where</h3><ul>\n<li>So your diary opens and is not mixed with someone else's.</li>\n<li>A copy is kept in this device's browser and in the shared diary storage, so the same account opens on another device.</li>\n<li>The administrator sees routes and summary statistics in order to run the diaries and change a password if you ask.</li>\n<li>The password is not shown in clear text to other users.</li>\n</ul>\n<h3>How long, and your rights</h3>\n<p>Data is kept while the account is needed. You can ask the administrator to correct the name, change the password or delete the account together with the routes. Consent is the tick on the sign-in screen. If you withdraw consent, you can no longer sign in: the account does not work without this data.</p>"}, "zh": {"terms": "<p>「旅行日记」是个人路线日记：飞机、火车和汽车。不是商店，也不是付费服务。登录不收费。</p>\n<h3>账户</h3><ul>\n<li>新账户只能由管理员创建，并由管理员把登录名和密码交给您。</li>\n<li>不能进入别人的日记，也不能把自己的密码交给别人。</li>\n<li>管理员可以修改密码、限制访问和删除账户。</li>\n</ul>\n<h3>您添加的内容</h3><ul>\n<li>路线、日期以及国家和地标记由您自己填写。内容是否准确由您负责。</li>\n<li>地图上的边界是为本日记整理的示意图，不是官方文件。</li>\n<li>可以在设置里对「清除我的路线」连点两次，删掉自己的路线。</li>\n</ul>\n<h3>按现状提供</h3>\n<p>日记按现状提供。管理员不保证服务从不中断。协议可以更新：现行文本在设置和登录页打开。勾选同意后登录，即表示您理解并接受该文本。</p>", "privacy": "<p>日记只处理让您进入自己的账户并显示路线所需要的信息。这些信息不会交给广告网络。</p>\n<h3>哪些数据</h3><ul>\n<li>登录名、名字和密码的哈希。</li>\n<li>路线、国家和地标记、公里统计。</li>\n<li>浏览器里的技术记录：登录会话和地图设置。</li>\n</ul>\n<h3>为什么、放在哪里</h3><ul>\n<li>为了打开您的日记，并且不和别人的混在一起。</li>\n<li>一份保存在这台设备的浏览器里，一份保存在日记的共享存储里，这样同一账户可以在另一台设备上打开。</li>\n<li>管理员能看到路线和汇总统计，以便管理日记，并在您要求时修改密码。</li>\n<li>密码不会以明文显示给其他用户。</li>\n</ul>\n<h3>保存多久，以及您的权利</h3>\n<p>在账户还需要时保存数据。您可以请管理员更正名字、修改密码，或连同路线一起删除账户。同意是登录页上的勾选。如果撤回同意，就不能再登录：没有这些数据，账户无法工作。</p>"}};
 function t(s){
@@ -8614,6 +8614,12 @@ UI.zh["регионов"]="个地区";
 
 UI.en["Смотреть далее"]="See more";
 UI.zh["Смотреть далее"]="查看更多";
+UI.en["Смотреть все"]="See all";
+UI.zh["Смотреть все"]="查看全部";
+UI.en["Смотреть еще"]="See more";
+UI.zh["Смотреть еще"]="查看更多";
+UI.en["Вне поездок"]="Outside trips";
+UI.zh["Вне поездок"]="行程之外";
 UI.en["Укажите маршрут"]="Add a route";
 UI.zh["Укажите маршрут"]="填写路线";
 UI.en["Укажите страну"]="Add a country";
@@ -10268,15 +10274,21 @@ function openVisitPrompt(lat,lng){
   if(pickTarget || !COUNTRY_LIST || !COUNTRY_LIST.length) return;
   var cid=countryAt(lat,lng);
   if(!cid) return;
+  var been=visited && visited.indexOf(cid)>=0;
+  if(!been){
+    if(manualCountries.indexOf(cid)<0) manualCountries.push(cid);
+    offCountries=offCountries.filter(function(id){return id!==cid;});
+    saveSets(); syncVisited();
+    if(typeof drawCountries==="function") drawCountries();
+    return;
+  }
+  if(!regionsFor(cid)) return;
   var rid=regionIn(cid, lat, lng);
-  var c=countryRecord(cid), reg=rid?regionRecord(rid):null;
-  pendingVisit={countryId:cid,regionId:rid,name:reg?(regionLabel(reg.n)+" · "+(c?countryLabel(c):cid)):(c?countryLabel(c):cid)};
-  var modal=document.getElementById("visit-confirm");
-  var title=document.getElementById("visit-confirm-title");
-  var desc=document.getElementById("visit-confirm-desc");
-  if(title) title.textContent=t("Вы были тут?");
-  if(desc) desc.textContent=pendingVisit.name;
-  if(modal) modal.classList.add("on");
+  if(!rid || (visitedRegions && visitedRegions.indexOf(rid)>=0)) return;
+  offRegions=offRegions.filter(function(id){return id!==rid;});
+  if(manualRegions.indexOf(rid)<0) manualRegions.push(rid);
+  saveSets(); syncVisited();
+  if(typeof drawCountries==="function") drawCountries();
 }
 function closeVisitPrompt(){
   var modal=document.getElementById("visit-confirm");
@@ -11006,67 +11018,127 @@ function routeCardHtml(r){
 }
 function paintSheetList(el, list){
   if(!el) return;
-  if(activeTab==="trips"){
-    var tripsNow=loadTrips();
-    if(!tripsNow.length){
-      el.innerHTML='<div class="empty"><p>'+t("Поездок пока нет")+'</p></div>';
-      return;
-    }
-    el.innerHTML=tripsNow.map(function(tp){
-      var bits=[];
-      if((tp.countries||[]).length) bits.push((tp.countries||[]).length+" "+t("стран"));
-      if((tp.regions||[]).length) bits.push((tp.regions||[]).length+" "+t("регионов"));
-      if((tp.routes||[]).length) bits.push((tp.routes||[]).length+" "+t("маршрутов"));
-      return '<button type="button" class="row'+(selectedTripId===tp.id?" on":"")+'" data-trip="'+tp.id+'"><div class="title">'+escLabel(tp.title||t("Поездка"))+'</div><div class="meta">'+escLabel(bits.join(" · ")||t("Поездка"))+'</div></button>';
-    }).join("");
-    el.querySelectorAll("[data-trip]").forEach(function(btn){
-      btn.onclick=function(){ openTripWindow({tripId:btn.getAttribute("data-trip")}); };
-    });
+  var tab=activeTab;
+  var trips=loadTrips().filter(function(tp){ return tab==="trips" || tripInTab(tp, tab); });
+  var html="", i, tp;
+  for(i=0;i<trips.length;i++){ tp=trips[i]; html+=tripCard(tp, tab==="trips"?null:tab); }
+  var loose=tab==="trips"?"":looseBlock(tab, list);
+  if(!html && !loose){
+    el.innerHTML='<div class="empty"><p>'+(tab==="future"?t("Нет предстоящих маршрутов. Откройте «Прошлые» или добавьте новый."):(tab==="trips"?t("Поездок пока нет"):t("В прошлых пока пусто")))+'</p></div>';
     return;
   }
-  var places=placeRows(activeTab);
-  var showR=sheetMore.on?list:list.slice(0,5);
-  var showP=sheetMore.on?places:places.slice(0,5);
-  var html='<div class="year">'+t("Маршруты")+'</div>';
-  if(!list.length) html+='<p class="hint">'+(activeTab==="future"?t("Нет предстоящих маршрутов. Откройте «Прошлые» или добавьте новый."):t("В прошлых пока пусто"))+'</p>';
-  else showR.forEach(function(r){ html+=routeCardHtml(r); });
-  html+='<div class="year">'+t("Страны")+'</div>';
-  if(!places.length) html+='<p class="hint">'+t("Ничего не найдено")+'</p>';
-  else showP.forEach(function(p){
-    html+='<div class="row"><div class="title">'+escLabel(p.title)+'</div><div class="meta">'+escLabel(p.sub)+'</div></div>';
-  });
-  if(!sheetMore.on && (list.length>5 || places.length>5)){
-    html+='<button type="button" class="more-link" data-more="1">'+t("Смотреть далее")+'</button>';
-  }
-  el.innerHTML=html;
-  el.querySelectorAll(".row[data-id]").forEach(function(row){
-    row.onclick=function(ev){
-      if(ev.target.classList.contains("del")||ev.target.classList.contains("edit")) return;
-      selectedId=row.getAttribute("data-id");
-      render();
-      var r=null, j;
-      for(j=0;j<ROUTES.length;j++) if(ROUTES[j].id===selectedId) r=ROUTES[j];
-      var g=r&&buildGeoSync(r);
-      if(g&&g.coords) map.fitBounds(g.coords,{padding:[50,50],maxZoom:8});
-    };
-  });
-  el.querySelectorAll(".del").forEach(function(btn){
+  el.innerHTML=html+loose;
+  el.querySelectorAll("[data-all]").forEach(function(btn){
     btn.onclick=function(ev){
       ev.stopPropagation();
-      var id=btn.getAttribute("data-del");
-      if(!confirm("Удалить маршрут?")) return;
-      deleted.push(id); saveDeleted(deleted);
-      saveExtra(loadExtra().filter(function(x){ return x.id!==id; }));
-      ROUTES=assembleRoutes();
-      if(selectedId===id) selectedId=null;
+      var card=btn.closest("[data-card]");
+      cardMore[card?card.getAttribute("data-card"):""]=true;
       render();
     };
   });
-  el.querySelectorAll(".edit").forEach(function(btn){
-    btn.onclick=function(ev){ ev.stopPropagation(); openEdit(btn.getAttribute("data-edit")); };
+  if(tab==="trips"){
+    el.querySelectorAll("[data-card]").forEach(function(card){
+      card.onclick=function(ev){
+        if(ev.target.closest("[data-all]")) return;
+        openTripWindow({tripId:card.getAttribute("data-card")});
+      };
+    });
+  }
+}
+function routeById(id){
+  var i;
+  for(i=0;i<(ROUTES||[]).length;i++) if(ROUTES[i].id===id) return ROUTES[i];
+  return null;
+}
+function routeKm(r){
+  var g=r&&typeof buildGeoSync==="function"?buildGeoSync(r):null;
+  return g?g.km:0;
+}
+function usedRouteIds(){
+  var set={}, trips=loadTrips(), i, j, ids;
+  for(i=0;i<trips.length;i++){
+    ids=trips[i].routes||[];
+    for(j=0;j<ids.length;j++) set[ids[j]]=1;
+  }
+  return set;
+}
+function kmOf(routes){
+  var p=0,t=0,c=0,i,r,km;
+  for(i=0;i<routes.length;i++){
+    r=routes[i]; km=routeKm(r);
+    if(r.mode==="plane") p+=km;
+    else if(r.mode==="car"||r.mode==="walk"||r.mode==="bike") c+=km;
+    else t+=km;
+  }
+  return {plane:Math.round(p),train:Math.round(t),car:Math.round(c)};
+}
+function tripRoutesFor(tp, tab){
+  var ids=tp.routes||[], out=[], i, r;
+  for(i=0;i<ids.length;i++){
+    r=routeById(ids[i]);
+    if(!r) continue;
+    if(tab==="future" && !isFuture(r)) continue;
+    if(tab==="past" && isFuture(r)) continue;
+    out.push(r);
+  }
+  return out;
+}
+function tripInTab(tp, tab){
+  if(tripRoutesFor(tp, tab).length) return true;
+  if((tp.routes||[]).length) return false;
+  return tab==="past" && ((tp.countries||[]).length||(tp.regions||[]).length);
+}
+function tripPlaces(tp, routes){
+  var countries=(tp.countries||[]).slice(), regions=(tp.regions||[]).slice(), i, bag;
+  for(i=0;i<routes.length;i++){
+    bag=endpointBag(routes[i]);
+    bag.countries.forEach(function(id){ if(countries.indexOf(id)<0) countries.push(id); });
+    bag.regions.forEach(function(id){ if(regions.indexOf(id)<0) regions.push(id); });
+  }
+  return {countries:countries, regions:regions};
+}
+function fmtKm(n){ return n.toLocaleString(currentLang()==="en"?"en":"ru-RU"); }
+function statRow(km){
+  function cell(n, label){ return '<div><b>'+fmtKm(n)+'</b><span>'+label+'</span></div>'; }
+  return '<div class="f-kms">'+cell(km.plane,t("самолет, км"))+cell(km.train,t("поезд, км"))+cell(km.car,t("авто, км"))+'</div>';
+}
+function countriesBlock(countries, regions, expanded){
+  var html="", i, id, rec, regs, shown=0;
+  for(i=0;i<countries.length;i++){
+    if(!expanded && shown>=3){
+      html+='<button type="button" class="more-link" data-all="1">'+t("Смотреть все")+'</button>';
+      break;
+    }
+    id=countries[i]; rec=countryRecord(id);
+    regs=(regions||[]).filter(function(rid){ return countryOfRid(rid)===id; });
+    html+='<div class="f-country">'+escLabel(rec?countryLabel(rec):id)+'</div>';
+    if(regs.length) html+='<div class="f-regs">'+regs.map(function(rid){ var rr=regionRecord(rid); return escLabel(rr?regionLabel(rr.n):rid); }).join("<br>")+'</div>';
+    shown++;
+  }
+  return {html:html, n:countries.length};
+}
+function tripCard(tp, tab){
+  var routes=tripRoutesFor(tp, tab);
+  var places=tripPlaces(tp, routes);
+  var block=countriesBlock(places.countries, places.regions, !!cardMore[tp.id]);
+  return '<article class="f-card" data-card="'+tp.id+'"><h4>'+escLabel(tp.title||t("Поездка"))+'</h4>'+statRow(kmOf(routes))+'<div class="f-count">'+block.n+" "+t("стран")+'</div>'+block.html+'</article>';
+}
+function looseBlock(tab, list){
+  var used=usedRouteIds(), routes=[], i, tripCountries={}, countries=[], regions=[], seen={};
+  loadTrips().forEach(function(tp){ (tp.countries||[]).forEach(function(id){ tripCountries[id]=1; }); (tp.regions||[]).forEach(function(id){ tripCountries[id]=1; }); });
+  for(i=0;i<list.length;i++) if(!used[list[i].id]) routes.push(list[i]);
+  if(tab==="past"){
+    (visited||[]).forEach(function(id){ if(!tripCountries[id]) countries.push(id); });
+    (visitedRegions||[]).forEach(function(id){ if(!tripCountries[id] && !tripCountries[countryOfRid(id)]) regions.push(id); });
+  }
+  routes.forEach(function(r){
+    var bag=endpointBag(r);
+    bag.countries.forEach(function(id){ if(!tripCountries[id] && countries.indexOf(id)<0 && !seen[id]){ seen[id]=1; countries.push(id); } });
+    bag.regions.forEach(function(id){ if(!tripCountries[id] && regions.indexOf(id)<0) regions.push(id); });
   });
-  var more=el.querySelector("[data-more]");
-  if(more) more.onclick=function(){ sheetMore.on=true; render(); };
+  if(!routes.length && !countries.length) return "";
+  var block=countriesBlock(countries, regions, !!cardMore.loose);
+  return '<article class="f-card" data-card="loose"><h4>'+t("Вне поездок")+'</h4>'+statRow(kmOf(routes))+'<div class="f-count">'+block.n+" "+t("стран")+'</div>'+block.html+'</article>';
 }
 var tw={id:null, title:"", routes:[], countries:[], regions:[], focus:""};
 function closeTripWindow(){
@@ -11077,7 +11149,7 @@ function openTripWindow(seed){
   seed=seed||{};
   var existing=null, all=loadTrips(), i;
   if(seed.tripId){ for(i=0;i<all.length;i++) if(all[i].id===seed.tripId) existing=all[i]; }
-  tw={id:existing?existing.id:null, title:existing?(existing.title||""):"", routes:[], countries:(existing&&existing.countries||[]).slice(), regions:(existing&&existing.regions||[]).slice(), focus:""};
+  tw={id:existing?existing.id:null, title:existing?(existing.title||""):"", routes:[], countries:(existing&&existing.countries||[]).slice(), regions:(existing&&existing.regions||[]).slice(), focus:"", freeAll:false};
   if(existing){
     (existing.routes||[]).forEach(function(id){
       var r=null, k;
@@ -11101,6 +11173,16 @@ function openTripWindow(seed){
   if(typeof applyI18n==="function") applyI18n();
 }
 function paintTripWindow(){
+  var free=(ROUTES||[]).filter(function(r){ return !tw.routes.some(function(x){ return x.id===r.id; }); });
+  var show=tw.freeAll?free:free.slice(0,2);
+  var freeBox=document.getElementById("tw-free");
+  if(freeBox){
+    freeBox.innerHTML=show.map(function(r){
+      return '<button type="button" data-take="'+r.id+'">'+escLabel((r.from||"")+" → "+(r.to||""))+'<div class="meta">'+(r.date||"")+"</div></button>";
+    }).join("");
+  }
+  var more=document.getElementById("tw-free-more");
+  if(more) more.hidden=!!tw.freeAll || free.length<=2;
   var box=document.getElementById("tw-routes");
   if(box){
     box.innerHTML=tw.routes.map(function(r, i){
@@ -11197,11 +11279,19 @@ function bindTripWindow(){
     paintTripWindow();
   };
   w.addEventListener("click", function(e){
+    var take=e.target.closest&&e.target.closest("[data-take]");
     var rr=e.target.closest&&e.target.closest("[data-drop-route]");
     var cc=e.target.closest&&e.target.closest("[data-drop-c]");
     var rg=e.target.closest&&e.target.closest("[data-drop-r]");
     var reg=e.target.closest&&e.target.closest("[data-reg]");
-    if(rr){ tw.routes.splice(+rr.getAttribute("data-drop-route"),1); paintTripWindow(); }
+    if(take){
+      var got=routeById(take.getAttribute("data-take"));
+      if(got){
+        tw.routes.push({saved:true, id:got.id, mode:got.mode, from:got.from, to:got.to, date:got.date, time:got.time||""});
+        absorbRoute(got);
+        paintTripWindow();
+      }
+    } else if(rr){ tw.routes.splice(+rr.getAttribute("data-drop-route"),1); paintTripWindow(); }
     else if(cc){
       var id=cc.getAttribute("data-drop-c");
       tw.countries=tw.countries.filter(function(x){ return x!==id; });
@@ -11220,6 +11310,8 @@ function bindTripWindow(){
     }
   });
   document.getElementById("tw-close").onclick=closeTripWindow;
+  var freeMore=document.getElementById("tw-free-more");
+  if(freeMore) freeMore.onclick=function(){ tw.freeAll=true; paintTripWindow(); };
   document.getElementById("tw-save").onclick=function(){
     if(!tw.routes.length && !tw.countries.length && !tw.regions.length){
       alert(t("Отметьте страну, регион или маршрут"));
@@ -11298,7 +11390,7 @@ bindTripWindow();
     if(name && !name.value) name.value=me.name||"";
     var tot=diaryTotals();
     var box=document.getElementById("account-stats");
-    if(box) box.innerHTML=statBox(tot.countries,t("стран"))+statBox(ofCount(tot.regions.got||0, tot.regions.total||0, "").replace(/\s+$/,""),t("регионов РФ"))+statBox((tot.plane||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("небо, км"))+statBox((tot.train||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("поезд, км"))+statBox((tot.car||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("авто, км"))+statBox(String(tot.routes),t("маршрутов"));
+    if(box) box.innerHTML=statBox(tot.countries,t("стран"))+statBox(ofCount(tot.regions.got||0, tot.regions.total||0, "").replace(/\s+$/,""),t("регионов РФ"))+statBox((tot.plane||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("самолет, км"))+statBox((tot.train||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("поезд, км"))+statBox((tot.car||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("авто, км"))+statBox(String(tot.routes),t("маршрутов"));
     var admin=document.getElementById("account-admin");
     if(admin) admin.hidden=me.role!=="admin";
     if(me.role==="admin" && typeof window.__cloudAdmin==="function"){
