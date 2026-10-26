@@ -670,7 +670,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   --line:rgba(244,236,224,.12);
   --text:#f4efe6;
   --muted:#a89c90;
-  --train:#d9cbb8;--plane:#f4efe6;--car:#d9cbb8;--walk:#cbbba6;--bike:#d9cbb8;--ship:#cbbba6;
+  --train:#15803d;--plane:#1d4ed8;--car:#c2410c;--walk:#7c3aed;--bike:#0f766e;--ship:#0369a1;
   --accent:#e6d3b4;--future:#d9cbb8;
   --top-grad:linear-gradient(180deg,#141210 0%,rgba(20,18,16,.72) 62%,transparent 100%);
   --chip:rgba(244,236,224,.06);
@@ -691,7 +691,7 @@ svg.leaflet-image-layer.leaflet-interactive path {
   --line:rgba(36,28,20,.1);
   --text:#1c1814;
   --muted:#6f655c;
-  --train:#3e4a40;--plane:#1c1814;--car:#5c4632;--walk:#3e4a40;--bike:#5c4632;--ship:#2c3e48;
+  --train:#15803d;--plane:#1d4ed8;--car:#c2410c;--walk:#7c3aed;--bike:#0f766e;--ship:#0369a1;
   --accent:#8c3d22;--future:#6b5344;
   --top-grad:linear-gradient(180deg,#f4f0e8 0%,rgba(244,240,232,.78) 64%,transparent 100%);
   --chip:rgba(36,28,20,.04);
@@ -1460,7 +1460,13 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 .row.future{border-color:transparent;border-bottom:1px solid var(--line)}
 .row .title{font-weight:550}
 .badge{border-radius:0;background:transparent;padding:0;font-weight:500;letter-spacing:0}
-.badge.pl,.badge.tr,.badge.car,.badge.wk,.badge.bk,.badge.sh,.badge.fut{background:transparent;color:var(--muted)}
+.badge.pl{color:var(--plane)}
+.badge.tr{color:var(--train)}
+.badge.car{color:var(--car)}
+.badge.wk{color:var(--walk)}
+.badge.bk{color:var(--bike)}
+.badge.sh{color:var(--ship)}
+.badge.fut{color:var(--future)}
 .row .edit,.row .del{border:0;background:transparent;border-radius:0;width:28px}
 .trip-window header b,.trip-window h3{font-family:Palatino,"Iowan Old Style",Georgia,serif;font-weight:500;letter-spacing:-.02em}
 .trip-window input,.trip-window select{border-radius:10px}
