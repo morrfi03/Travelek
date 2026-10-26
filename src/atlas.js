@@ -339,7 +339,8 @@
       var g = ctx.createRadialGradient(cx, cy, R * 0.98, cx, cy, R * 1.08); g.addColorStop(0, "rgba(130,180,230,.40)"); g.addColorStop(1, "rgba(130,180,230,0)");
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R * 1.08, 0, 2 * PI); ctx.fill();
       if (!tex) { ctx.fillStyle = "#96b8d0"; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.fill(); return; }
-      relief(q); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.drawImage(rbuf, 0, 0, cw, ch); ctx.restore();
+      relief(moving ? 0.22 : q); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.drawImage(rbuf, 0, 0, cw, ch); ctx.restore();
+      if (moving) { ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.strokeStyle = "rgba(0,0,0,.35)"; ctx.lineWidth = 1; ctx.stroke(); return; }
       project(); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
       ctx.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && markC[e.iso]) fillRings(e); }); ctx.fillStyle = "rgba(196,98,45,.42)"; ctx.fill("evenodd");
       ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionMarked(ents[i])) fillRings(ents[i]); }); }); ctx.fillStyle = "rgba(196,98,45,.62)"; ctx.fill("evenodd");
@@ -494,8 +495,15 @@
       var cut = String(id).indexOf(":");
       if (cut > 0) markR[String(id).slice(cut + 1)] = 1;
     });
-    if (typeof countryAt === "function") for (var i = 0; i < ents.length; i++) tagOne(ents[i]);
-    views.flat.draw(); if (mode === "globe") views.globe.draw();
+    views.flat.draw();
+    if (typeof countryAt !== "function") { if (mode === "globe") views.globe.draw(); return; }
+    var i = 0;
+    (function chunk() {
+      var end = Math.min(ents.length, i + 60);
+      for (; i < end; i++) tagOne(ents[i]);
+      if (i < ents.length) setTimeout(chunk, 16);
+      else { markRev++; views.flat.draw(); if (mode === "globe") views.globe.draw(); }
+    })();
   }
   function buildFacade() {
     var pane = document.getElementById("atlas-html");

@@ -8118,7 +8118,6 @@ function applyGlobeEffect(){
     if(el){ el.style.visibility="visible"; el.classList.remove("globe-mode"); }
     if(globeCv) globeCv.style.display="none";
     map.setMode(globeOn ? "globe" : "flat");
-    if(typeof render==="function") render();
     return;
   }
   var el=document.getElementById("map");
@@ -8834,8 +8833,7 @@ function drawCityLabels(){
   for(i=0;i<list.length;i++){
     c=list[i];
     if(!c || c.lat==null || c.lng==null || !b.contains([+c.lat,+c.lng])) continue;
-    if((c.k||0)>=2 && !showOther) continue;
-    if((c.k||0)===1 && !showRegion) continue;
+    if((c.k||0)!==0) continue;
     dist=(c.lat-center.lat)*(c.lat-center.lat)+(c.lng-center.lng)*(c.lng-center.lng);
     ranked.push({c:c, tier:c.k||0, dist:dist});
   }
