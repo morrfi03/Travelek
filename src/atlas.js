@@ -249,15 +249,28 @@
       tx += dx; ty += dy; last = { x: e.clientX, y: e.clientY }; clamp(); schedule(); if (hooks.move) hooks.move();
     });
     function end(e) { delete ptrs[e.pointerId]; pinch = 0; cv.classList.remove("drag"); var ids = Object.keys(ptrs); if (ids.length === 1) last = { x: ptrs[ids[0]].clientX, y: ptrs[ids[0]].clientY }; }
+    var lastTap = 0, lastTapPt = null, tapTimer = 0;
     cv.addEventListener("pointerup", function (e) {
       var click = moved <= 5, p = local(e); end(e);
-      if (click) { var q = llAt(p.x, p.y); if (q && hooks.click) hooks.click({ lat: q[1] / 100, lng: q[0] / 100, x: p.x, y: p.y }); }
+      if (click) {
+        var now = Date.now();
+        var near = lastTapPt && Math.abs(p.x - lastTapPt.x) < 32 && Math.abs(p.y - lastTapPt.y) < 32;
+        if (near && now - lastTap < 320) {
+          clearTimeout(tapTimer); lastTap = 0; lastTapPt = null;
+          zoomAt(p.x, p.y, 2);
+          return;
+        }
+        lastTap = now; lastTapPt = p;
+        clearTimeout(tapTimer);
+        tapTimer = setTimeout(function () {
+          var q = llAt(p.x, p.y); if (q && hooks.click) hooks.click({ lat: q[1] / 100, lng: q[0] / 100, x: p.x, y: p.y });
+        }, 280);
+      }
       schedule(); if (hooks.afterView) hooks.afterView();
     });
     cv.addEventListener("pointercancel", end);
     cv.addEventListener("pointerleave", function () { tip.style.opacity = 0; if (hoverEnt >= 0) { hoverEnt = -1; schedule(); } });
     cv.addEventListener("wheel", function (e) { e.preventDefault(); var p = local(e); zoomAt(p.x, p.y, e.deltaY < 0 ? 1.25 : 0.8); }, { passive: false });
-    cv.addEventListener("dblclick", function (e) { var p = local(e); zoomAt(p.x, p.y, 2); });
     function hover(e) {
       if (e.pointerType === "touch") return; var p = local(e), i = pickAt(p.x, p.y);
       if (i !== hoverEnt) { hoverEnt = i; schedule(); } showTip(tip, box, e, i);
@@ -515,9 +528,24 @@
       var kq = 57.3 / R; lon0 -= dx * kq; lat0 = Math.max(-85, Math.min(85, lat0 + dy * kq)); last = { x: e.clientX, y: e.clientY }; moving = 1; schedule(); settle(); if (hooks.move) hooks.move();
     });
     function end(e) { delete ptrs[e.pointerId]; pinch = 0; cv.classList.remove("drag"); var ids = Object.keys(ptrs); if (ids.length === 1) last = { x: ptrs[ids[0]].clientX, y: ptrs[ids[0]].clientY }; if (!ids.length) { moving = 0; redraw(); } }
+    var gLastTap = 0, gLastPt = null, gTapTimer = 0;
     cv.addEventListener("pointerup", function (e) {
       var click = moved <= 4, p = local(e); end(e);
-      if (click) { var q = llFromPx(p.x, p.y); if (q && hooks.click) hooks.click({ lat: q.lat, lng: q.lng, x: p.x, y: p.y }); redraw(); }
+      if (click) {
+        var now = Date.now();
+        var near = gLastPt && Math.abs(p.x - gLastPt.x) < 32 && Math.abs(p.y - gLastPt.y) < 32;
+        if (near && now - gLastTap < 320) {
+          clearTimeout(gTapTimer); gLastTap = 0; gLastPt = null;
+          zoom = Math.max(1, Math.min(6, zoom * 1.7));
+          moving = 1; schedule(); settle();
+          return;
+        }
+        gLastTap = now; gLastPt = p;
+        clearTimeout(gTapTimer);
+        gTapTimer = setTimeout(function () {
+          var q = llFromPx(p.x, p.y); if (q && hooks.click) hooks.click({ lat: q.lat, lng: q.lng, x: p.x, y: p.y }); redraw();
+        }, 280);
+      }
       if (hooks.afterView) hooks.afterView();
     });
     cv.addEventListener("pointercancel", end);
