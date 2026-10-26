@@ -271,6 +271,7 @@
       unproject: function (px, py) { var q = llAt(px, py); return q ? { lat: q[1] / 100, lng: q[0] / 100 } : null; },
       getCenter: function () { var q = llAt(cw / 2, ch / 2); return q ? { lon: q[0] / 100, lat: q[1] / 100, z: k } : { lon: 40, lat: 48, z: k }; },
       setCenter: function (lon, lat, z) { var f = flatXY(lon * PI / 180, lat * PI / 180); k = Math.max(kMin(), Math.min(KMAX, z)); var kk = cw / WID * k; tx = cw / 2 - f[0] * kk; ty = ch / 2 - f[1] * kk; clamp(); schedule(); },
+      glance: function (lon, lat) { var f = flatXY(lon * PI / 180, lat * PI / 180), kk = cw / WID * k; tx = cw / 2 - f[0] * kk; ty = ch / 2 - f[1] * kk; clamp(); hold = 1; schedule(); if (zoomIdle) clearTimeout(zoomIdle); zoomIdle = setTimeout(function () { zoomIdle = 0; hold = 0; bkey = ""; schedule(); }, 240); },
       setCenterFromFlat: function (fx, fy, nk) { k = Math.max(kMin(), Math.min(KMAX, nk)); var kk = cw / WID * k; tx = cw / 2 - fx * kk; ty = ch / 2 - fy * kk; clamp(); schedule(); },
       netLayers: function () { return LAYERS; },
       netOn: function (key) { return !!show[key]; },
@@ -441,7 +442,8 @@
       },
       getSize: function () { return { x: cw, y: ch }; },
       getCenter: function () { return { lon: lon0, lat: lat0, z: zoom }; },
-      setCenter: function (lon, lat, z) { lon0 = lon; lat0 = Math.max(-85, Math.min(85, lat)); zoom = Math.max(1, Math.min(6, z || 1)); }
+      setCenter: function (lon, lat, z) { lon0 = lon; lat0 = Math.max(-85, Math.min(85, lat)); zoom = Math.max(1, Math.min(6, z || 1)); },
+      glance: function (lon, lat) { lon0 = lon; lat0 = Math.max(-70, Math.min(70, lat)); moving = 1; schedule(); settle(); }
     };
   })();
 
@@ -571,6 +573,7 @@
       };
     }
     facade.getBounds = boundsOf;
+    facade.glance = function (lat, lng) { if (mode === "globe") views.globe.glance(lng, lat); else views.flat.glance(lng, lat); };
     facade.setView = function (ll, zoom) {
       var lat = Array.isArray(ll) ? +ll[0] : +ll.lat, lng = Array.isArray(ll) ? +ll[1] : +ll.lng;
       if (mode === "globe") { views.globe.setCenter(lng, lat, Math.max(1, Math.min(6, (zoom - 2) / 1.3 + 1))); views.globe.draw(); }

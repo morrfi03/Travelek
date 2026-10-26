@@ -6243,6 +6243,12 @@ function place(name, code){
     for(i=0;i<AIRPORTS.length;i++) if(norm(AIRPORTS[i].code)===k)
       return {lat:AIRPORTS[i].lat,lng:AIRPORTS[i].lng,label:AIRPORTS[i].n+" ("+AIRPORTS[i].code+")"};
   }
+  var im=String(name||"").match(/\(([A-Za-z]{3})\)\s*$/);
+  if(im){
+    k=norm(im[1]);
+    for(i=0;i<AIRPORTS.length;i++) if(norm(AIRPORTS[i].code)===k)
+      return {lat:AIRPORTS[i].lat,lng:AIRPORTS[i].lng,label:AIRPORTS[i].n+" ("+AIRPORTS[i].code+")"};
+  }
   k = norm(name);
   if(!k) return null;
   /* exact airport code */
@@ -7106,8 +7112,16 @@ function buildYearFilter(){
   var el=document.getElementById("year-filter");
   if(!el) return;
   var years={}, i;
-  ROUTES.forEach(function(r){ var y=routeYear(r); if(y) years[y]=1; });
-  var list=Object.keys(years).sort().reverse();
+  var nowY=String(new Date().getFullYear());
+  ROUTES.forEach(function(r){
+    var y=routeYear(r);
+    if(!y) return;
+    if(activeTab==="future" && (y<nowY || !isFuture(r))) return;
+    if(activeTab==="past" && isFuture(r)) return;
+    years[y]=1;
+  });
+  var list=Object.keys(years).sort();
+  if(activeTab!=="future") list.reverse();
   var h='<button type="button" id="play-trips" class="play-trips'+(tripPlay.on?" on":"")+'" data-i18n="'+(tripPlay.on?"Стоп":"Показать поездку")+'">'+t(tripPlay.on?"Стоп":"Показать поездку")+"</button>";
   h+='<button type="button" data-y="all" class="'+(yearFilter==="all"?"on":"")+'">'+t("Все годы")+"</button>";
   list.forEach(function(y){
@@ -7129,8 +7143,15 @@ function buildYearFilter(){
 
 var tripPlay={on:false, raf:0, marker:null, timer:0, gen:0};
 function tripPlayRoutes(){
-  return ROUTES.filter(function(r){
-    if(typeof yearFilter!=="undefined" && yearFilter!=="all" && (r.date||"").slice(0,4)!==yearFilter) return false;
+  var pool=ROUTES, ids=null, trips, i;
+  if(selectedTripId){
+    trips=loadTrips(); ids={};
+    for(i=0;i<trips.length;i++) if(trips[i].id===selectedTripId) (trips[i].routes||[]).forEach(function(id){ ids[id]=1; });
+    pool=ROUTES.filter(function(r){ return ids[r.id]; });
+  } else if(activeTab==="future") pool=ROUTES.filter(isFuture);
+  else if(activeTab==="past") pool=ROUTES.filter(function(r){ return !isFuture(r); });
+  return pool.filter(function(r){
+    if(!selectedTripId && typeof yearFilter!=="undefined" && yearFilter!=="all" && (r.date||"").slice(0,4)!==yearFilter) return false;
     return true;
   }).slice().sort(function(a,b){
     return ((a.date||"")+" "+(a.time||"")).localeCompare((b.date||"")+" "+(b.time||""));
@@ -7571,6 +7592,10 @@ function startTripPlay(){
           tripPlay.lng=pt[1];
           tripPlay.mode=r.mode;
           placeFlyer(pt[0], pt[1], r.mode, tripPlay.country);
+          if(map && map.glance && (!tripPlay.lookAt || now-tripPlay.lookAt>350)){
+            tripPlay.lookAt=now;
+            map.glance(pt[0], pt[1]);
+          }
         }
         if(t<1) tripPlay.raf=requestAnimationFrame(frame);
         else tripPlay.timer=setTimeout(playOne, 460);
@@ -8974,6 +8999,11 @@ function filtered(){
   }
   return ROUTES.filter(function(r){
     if(tripIds){ if(!tripIds[r.id]) return false; }
+    else if(selectedTripId){
+      var only=null, trips=loadTrips(), ti;
+      for(ti=0;ti<trips.length;ti++) if(trips[ti].id===selectedTripId) only=trips[ti];
+      if(only && (only.routes||[]).indexOf(r.id)<0) return false;
+    }
     else {
       var fut=isFuture(r);
       if(activeTab==="future") { if(!fut) return false; }
@@ -9191,9 +9221,9 @@ var dragY0=null, dragH0=0, dragging=false, didDrag=false;
 function sheetHeights(){
   var vh=window.innerHeight||600;
   var topEl=document.querySelector(".top");
-  var topBottom=topEl?Math.ceil(topEl.getBoundingClientRect().bottom):180;
-  if(topBottom<96) topBottom=180;
-  var full=Math.max(200, vh-topBottom-28);
+  var topBottom=topEl?Math.ceil(topEl.getBoundingClientRect().bottom):52;
+  if(topBottom<36) topBottom=52;
+  var full=Math.max(200, vh-topBottom-8);
   var mid=Math.round(Math.min(vh*0.46, full-48));
   if(mid<160) mid=Math.min(160, full);
   return {
@@ -10513,7 +10543,7 @@ function renderCountryUi(){
   var count=document.getElementById("countries-count");
   var st=regionStats();
   var cst=chinaStats();
-  if(count) count.textContent=String(visited.length);
+  if(count) count.textContent=String(activeTab==="future"?futurePlaces().countries.length:visited.length);
   var countryTotal=COUNTRY_LIST?COUNTRY_LIST.length:0;
   var countryPct=pctOf(visited.length, countryTotal);
   var pctSub=ofCount(visited.length, countryTotal, t("стран"));
@@ -10562,8 +10592,23 @@ function renderCountryUi(){
   if(regions) regions.style.display=regionScope?"block":"none";
   if(fromBtn) fromBtn.style.display=regionScope?"none":"";
   if(!COUNTRY_LIST) return;
+  var openLabel=document.querySelector("#countries-open span");
+  if(openLabel) openLabel.textContent=activeTab==="future"?t("Страны, ожидающие вас"):t("Посещённые страны");
   var countriesPanel=document.getElementById("countries-panel");
   if(!countriesPanel || !countriesPanel.classList.contains("on")) return;
+  if(activeTab==="future"){
+    if(title) title.textContent=t("Страны, ожидающие вас");
+    if(hint) hint.textContent=t("Страны и регионы из будущих маршрутов.");
+    if(picked) picked.style.display="none";
+    if(regions) regions.style.display="none";
+    if(list){
+      var fp=futurePlaces();
+      var block=countriesBlock(fp.countries, fp.regions, true);
+      list.style.display="block";
+      list.innerHTML=block.html || '<p class="hint">'+t("Пока пусто")+'</p>';
+    }
+    return;
+  }
   var q=(qEl&&qEl.value||"").trim().toLowerCase();
   if(regionScope && regions && scopeList){
     var rowsR=scopeList.filter(function(r){ return regionMatches(r, q)!==null; });
@@ -11041,6 +11086,16 @@ function countryOfRid(rid){
   var s=String(rid||""), cut=s.indexOf(":");
   return cut>0?s.slice(0,cut):"RU";
 }
+function futurePlaces(){
+  var countries=[], regions=[], sc={}, sr={};
+  (ROUTES||[]).forEach(function(r){
+    if(typeof isFuture==="function" && !isFuture(r)) return;
+    var bag=endpointBag(r);
+    bag.countries.forEach(function(id){ if(!sc[id]){ sc[id]=1; countries.push(id); } });
+    bag.regions.forEach(function(id){ if(!sr[id]){ sr[id]=1; regions.push(id); } });
+  });
+  return {countries:countries, regions:regions};
+}
 function endpointBag(r){
   var countries=[], regions=[], sc={}, sr={};
   function hit(pt){
@@ -11108,12 +11163,33 @@ function routeCardHtml(r){
     (fut?'<span class="badge fut">'+t("скоро")+'</span>':"")+" "+(r.date||"")+
     (r.time?" · "+r.time:"")+kmNote+(dur?" · "+dur:"")+"</div></div>";
 }
+function tripYear(tp, tab){
+  var routes=tripRoutesFor(tp, tab), y="", i, d;
+  for(i=0;i<routes.length;i++){
+    d=(routes[i].date||"").slice(0,4);
+    if(d && (!y || (tab==="future"?d<y:d>y))) y=d;
+  }
+  return y;
+}
 function paintSheetList(el, list){
   if(!el) return;
   var tab=activeTab;
+  var nowY=String(new Date().getFullYear());
   var trips=loadTrips().filter(function(tp){ return tab==="trips" || tripInTab(tp, tab); });
-  var html="", i, tp;
-  for(i=0;i<trips.length;i++){ tp=trips[i]; html+=tripCard(tp, tab==="trips"?null:tab); }
+  var groups={}, order=[], html="", i, tp, y;
+  for(i=0;i<trips.length;i++){
+    tp=trips[i];
+    y=tripYear(tp, tab)||nowY;
+    if(tab==="future" && y<nowY) continue;
+    if(!groups[y]){ groups[y]=[]; order.push(y); }
+    groups[y].push(tp);
+  }
+  order.sort(function(a,b){ return tab==="future"?a.localeCompare(b):b.localeCompare(a); });
+  for(i=0;i<order.length;i++){
+    y=order[i];
+    html+='<div class="year">'+y+'</div>';
+    groups[y].forEach(function(one){ html+=tripCard(one, tab==="trips"?null:tab); });
+  }
   var loose=tab==="trips"?"":looseBlock(tab, list);
   if(!html && !loose){
     el.innerHTML='<div class="empty"><p>'+(tab==="future"?t("Нет предстоящих маршрутов. Откройте «Прошлые» или добавьте новый."):(tab==="trips"?t("Поездок пока нет"):t("В прошлых пока пусто")))+'</p></div>';
@@ -11131,11 +11207,29 @@ function paintSheetList(el, list){
   if(tab==="trips"){
     el.querySelectorAll("[data-card]").forEach(function(card){
       card.onclick=function(ev){
-        if(ev.target.closest("[data-all]")) return;
+        if(ev.target.closest("[data-all],[data-show]")) return;
         openTripWindow({tripId:card.getAttribute("data-card")});
       };
     });
+  } else {
+    el.querySelectorAll("[data-card]").forEach(function(card){
+      card.onclick=function(ev){
+        if(ev.target.closest("[data-all],[data-show]")) return;
+        var id=card.getAttribute("data-card");
+        if(!id || id==="loose") return;
+        selectedTripId=selectedTripId===id?null:id;
+        render();
+      };
+    });
   }
+  el.querySelectorAll("[data-show]").forEach(function(btn){
+    btn.onclick=function(ev){
+      ev.stopPropagation();
+      selectedTripId=btn.getAttribute("data-show");
+      render();
+      if(typeof startTripPlay==="function") startTripPlay();
+    };
+  });
 }
 function routeById(id){
   var i;
@@ -11185,8 +11279,8 @@ function tripInTab(tp, tab){
   if((tp.routes||[]).length) return false;
   return tab==="past" && ((tp.countries||[]).length||(tp.regions||[]).length);
 }
-function tripPlaces(tp, routes){
-  var countries=(tp.countries||[]).slice(), regions=(tp.regions||[]).slice(), i, bag;
+function tripPlaces(tp, routes, onlyRoutes){
+  var countries=onlyRoutes?[]:(tp.countries||[]).slice(), regions=onlyRoutes?[]:(tp.regions||[]).slice(), i, bag;
   for(i=0;i<routes.length;i++){
     bag=endpointBag(routes[i]);
     bag.countries.forEach(function(id){ if(countries.indexOf(id)<0) countries.push(id); });
@@ -11236,9 +11330,9 @@ function countriesBlock(countries, regions, expanded){
 }
 function tripCard(tp, tab){
   var routes=tripRoutesFor(tp, tab);
-  var places=tripPlaces(tp, routes);
+  var places=tripPlaces(tp, routes, tab==="future");
   var block=countriesBlock(places.countries, places.regions, !!cardMore[tp.id]);
-  return '<article class="f-card" data-card="'+tp.id+'"><h4>'+escLabel(tp.title||t("Поездка"))+'</h4>'+statRow(kmOf(routes))+'<div class="f-count">'+block.n+" "+t("стран")+'</div>'+block.html+'</article>';
+  return '<article class="f-card'+(selectedTripId===tp.id?" on":"")+'" data-card="'+tp.id+'"><h4>'+escLabel(tp.title||t("Поездка"))+'</h4>'+statRow(kmOf(routes))+'<div class="f-count">'+block.n+" "+t("стран")+'</div>'+block.html+'<button type="button" class="more-link" data-show="'+tp.id+'">'+t("Показать")+'</button></article>';
 }
 function looseBlock(tab, list){
   var used=usedRouteIds(), routes=[], i, tripCountries={}, countries=[], regions=[], seen={};
@@ -11331,6 +11425,14 @@ function paintTripWindow(){
     }
   }
 }
+function previewTripPlaces(){
+  var fromEl=document.getElementById("tw-from"), toEl=document.getElementById("tw-to");
+  if(!fromEl || !toEl) return;
+  var from=fromEl.value.trim(), to=toEl.value.trim();
+  if(!from || !to) return;
+  absorbRoute({from:from, to:to});
+  paintTripWindow();
+}
 function absorbRoute(r){
   var bag=endpointBag(r);
   bag.countries.forEach(function(id){ if(tw.countries.indexOf(id)<0) tw.countries.push(id); });
@@ -11353,10 +11455,10 @@ function bindTripWindow(){
       }).join("");
       box.classList.add("on");
       box.querySelectorAll("div").forEach(function(d){
-        d.onclick=function(){ input.value=d.getAttribute("data-v"); box.classList.remove("on"); };
+        d.onclick=function(){ input.value=d.getAttribute("data-v"); box.classList.remove("on"); if(typeof previewTripPlaces==="function") previewTripPlaces(); };
       });
     });
-    input.addEventListener("blur", function(){ setTimeout(function(){ box.classList.remove("on"); }, 180); });
+    input.addEventListener("blur", function(){ setTimeout(function(){ box.classList.remove("on"); previewTripPlaces(); }, 180); });
   }
   sug(document.getElementById("tw-from"), document.getElementById("tw-sug-from"), function(){ return document.getElementById("tw-mode").value; }, "from");
   sug(document.getElementById("tw-to"), document.getElementById("tw-sug-to"), function(){ return document.getElementById("tw-mode").value; }, "to");
