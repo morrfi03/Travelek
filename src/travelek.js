@@ -8973,7 +8973,8 @@ function render(){
   var ss=document.getElementById("s-ship"); if(ss) ss.textContent=Math.round(kmS).toLocaleString("ru-RU");
   var el;
   var futN=ROUTES.filter(isFuture).length;
-  document.getElementById("subtitle").textContent=(function(){
+  var subEl=document.getElementById("subtitle");
+  if(subEl) subEl.textContent=(function(){
     var total=ROUTES.length, fut=futN;
     if(!total) return t("Нет маршрутов");
     var s=total+" "+t(total===1?"маршрут":"маршрутов");
@@ -9498,7 +9499,7 @@ fFrom.addEventListener("change", function(){
 
 function openForm(){ updateLabels(); modal.classList.add("on"); }
 function closeForm(){ modal.classList.remove("on"); }
-document.getElementById("add-btn").onclick=function(){ openTripWindow(); };
+var addTop=document.getElementById("add-btn"); if(addTop) addTop.onclick=function(){ openTripWindow(); };
 document.getElementById("add-btn-2").onclick=function(){ openTripWindow(); };
 document.getElementById("f-cancel").onclick=closeForm;
 modal.addEventListener("click",function(e){ if(e.target===modal) closeForm(); });
@@ -9744,7 +9745,8 @@ function openSettings(){
   var trackPanel=document.getElementById("track-panel");
   if(trackPanel) trackPanel.classList.remove("on");
 }
-document.getElementById("settings-btn").onclick=openSettings;
+var settingsBtn=document.getElementById("settings-btn"); if(settingsBtn) settingsBtn.onclick=openSettings;
+var accountSettings=document.getElementById("account-settings"); if(accountSettings) accountSettings.onclick=openSettings;
 document.getElementById("set-close").onclick=function(){
   document.getElementById("settings-panel").classList.remove("on");
 };

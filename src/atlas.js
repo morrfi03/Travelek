@@ -174,6 +174,7 @@
     }
     function entPath(c, e) { for (var r = e.r0; r < e.r1; r++) if (RV[r]) ringPath(c, r); }
     var bc = document.createElement("canvas"), bctx = bc.getContext("2d"), bkey = "", snapTx = 0, snapTy = 0, snapK = 1, hold = 0, zoomIdle = 0;
+    var rc = document.createElement("canvas"), rctx = rc.getContext("2d");
     function base() {
       var c = bctx, kk = cw / WID * k; thr2 = Math.pow(1.3 / kk, 2);
       c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, bc.width, bc.height); c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -205,24 +206,31 @@
     }
     function draw() {
       var dragging = cv.classList.contains("drag");
-      var key = [cw, ch, dpr, Math.round(k * 1000), dragging ? "d" : Math.round(tx), dragging ? "d" : Math.round(ty), show.rd ? 1 : 0, show.rl ? 1 : 0, show.rv ? 1 : 0, texF.complete ? 1 : 0, markRev].join("|");
-      if (bc.width !== cv.width || bc.height !== cv.height) { bc.width = cv.width; bc.height = cv.height; bkey = ""; }
-      if (!dragging && !hold && key !== bkey) { base(); bkey = key; snapTx = tx; snapTy = ty; snapK = k; }
+      var settled = !dragging && !hold;
+      var key = [cw, ch, dpr, Math.round(k * 1000), settled ? Math.round(tx) : "m", settled ? Math.round(ty) : "m", show.rd ? 1 : 0, show.rl ? 1 : 0, show.rv ? 1 : 0, texF.complete ? 1 : 0, markRev].join("|");
+      if (bc.width !== cv.width || bc.height !== cv.height) { bc.width = cv.width; bc.height = cv.height; rc.width = cv.width; rc.height = cv.height; bkey = ""; }
+      if (settled && key !== bkey) { base(); bkey = key; snapTx = tx; snapTy = ty; snapK = k; }
+      if (settled) {
+        rctx.setTransform(1, 0, 0, 1, 0, 0); rctx.clearRect(0, 0, rc.width, rc.height);
+        if (hooks.paint) { rctx.setTransform(dpr, 0, 0, dpr, 0, 0); hooks.paint(rctx); }
+        var labels = document.getElementById("atlas-html"); if (labels) labels.style.transform = "";
+      }
       ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, cv.width, cv.height);
-      if ((dragging || hold) && snapK) {
+      if (!settled && snapK) {
         var s = k / snapK;
-        ctx.setTransform(s, 0, 0, s, tx - snapTx * s, ty - snapTy * s);
-        ctx.drawImage(bc, 0, 0);
+        ctx.setTransform(s, 0, 0, s, (tx - snapTx * s) * dpr, (ty - snapTy * s) * dpr);
+        ctx.drawImage(bc, 0, 0); ctx.drawImage(rc, 0, 0);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-      } else ctx.drawImage(bc, 0, 0);
-      // наведение и выбор рисуются поверх готового слоя, поэтому реагируют мгновенно
+        var labels2 = document.getElementById("atlas-html");
+        if (labels2) { labels2.style.transformOrigin = "0 0"; labels2.style.transform = "translate(" + (tx - snapTx * s) + "px," + (ty - snapTy * s) + "px) scale(" + s + ")"; }
+      } else { ctx.drawImage(bc, 0, 0); ctx.drawImage(rc, 0, 0); }
+      if (!settled) return;
       var kk = cw / WID * k; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.save(); ctx.translate(tx, ty); ctx.scale(kk, kk); ctx.lineJoin = "round";
       [[hoverEnt, "rgba(60,100,80,.38)"], [selEnt, "rgba(196,98,45,.65)"]].forEach(function (h) {
         if (h[0] < 0) return; var e = ents[h[0]]; ctx.beginPath(); entPath(ctx, e); ctx.fillStyle = h[1]; ctx.fill("evenodd");
         ctx.strokeStyle = h[0] === selEnt ? "rgba(120,50,15,.9)" : "rgba(30,60,45,.7)"; ctx.lineWidth = 1.2 / kk; ctx.stroke();
       });
       ctx.restore();
-      if (hooks.paint) { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); hooks.paint(ctx); }
     }
     function schedule() { if (!raf) raf = requestAnimationFrame(function () { raf = 0; if (mode === "flat") draw(); }); }
     function zoomAt(px, py, f) { var nk = Math.max(kMin(), Math.min(KMAX, k * f)); f = nk / k; tx = px - (px - tx) * f; ty = py - (py - ty) * f; k = nk; clamp(); hold = 1; schedule(); if (zoomIdle) clearTimeout(zoomIdle); zoomIdle = setTimeout(function () { zoomIdle = 0; hold = 0; bkey = ""; schedule(); if (hooks.afterView) hooks.afterView(); }, 140); }
