@@ -5955,6 +5955,15 @@ wipeRoutesOnce();
   var sid=localStorage.getItem(SESSION);
   var me=null, i;
   for(i=0;i<list.length;i++) if(list[i].id===sid) me=list[i];
+  if(me){
+    var anyAdmin=false, ai;
+    for(ai=0;ai<list.length;ai++) if(list[ai] && list[ai].role==="admin") anyAdmin=true;
+    if(!anyAdmin){
+      me.role="admin";
+      try{ localStorage.setItem(USERS, JSON.stringify(list)); }catch(e){}
+      scheduleSave();
+    }
+  }
   var viewId=sessionStorage.getItem("travelek-view");
   if(me && (!viewId || viewId===me.id)){
     var snap=vault();
