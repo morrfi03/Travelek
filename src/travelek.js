@@ -10474,15 +10474,21 @@ function syncVisited(){
     if(rid) autoR[rid]=1;
   }
   (typeof ROUTES!=="undefined"?ROUTES:[]).forEach(function(r){
-    if(typeof place!=="function") return;
-    var a=place(r.from, r.fromCode), b=place(r.to, r.toCode);
+    var g=typeof buildGeoSync==="function"?buildGeoSync(r):null;
+    if(g){
+      if(g.a) hit(g.a.lat, g.a.lng);
+      if(g.b) hit(g.b.lat, g.b.lng);
+    }
     if(r.coords && r.coords.length>=2){
       hit(r.coords[0][0], r.coords[0][1]);
       var last=r.coords[r.coords.length-1];
       hit(last[0], last[1]);
     }
-    if(a) hit(a.lat, a.lng);
-    if(b) hit(b.lat, b.lng);
+    if(typeof place==="function"){
+      var a=place(r.from, r.fromCode), b=place(r.to, r.toCode);
+      if(a) hit(a.lat, a.lng);
+      if(b) hit(b.lat, b.lng);
+    }
   });
   var next=[], seen={};
   function addC(id){
@@ -11506,6 +11512,25 @@ function absorbRoute(r){
   bag.countries.forEach(function(id){ if(tw.countries.indexOf(id)<0) tw.countries.push(id); });
   bag.regions.forEach(function(id){ if(tw.regions.indexOf(id)<0) tw.regions.push(id); });
   if(bag.countries.length) tw.focus=bag.countries[bag.countries.length-1];
+  var marked=false;
+  bag.countries.forEach(function(id){
+    if((visited||[]).indexOf(id)>=0 || manualCountries.indexOf(id)>=0) return;
+    offCountries=offCountries.filter(function(x){ return x!==id; });
+    manualCountries.push(id);
+    marked=true;
+  });
+  bag.regions.forEach(function(id){
+    if((visitedRegions||[]).indexOf(id)>=0 || manualRegions.indexOf(id)>=0) return;
+    offRegions=offRegions.filter(function(x){ return x!==id; });
+    manualRegions.push(id);
+    marked=true;
+  });
+  if(marked){
+    saveSets();
+    syncVisited();
+    if(typeof drawCountries==="function") drawCountries();
+    if(typeof renderCountryUi==="function") renderCountryUi();
+  }
 }
 function bindTripWindow(){
   var w=document.getElementById("trip-window");

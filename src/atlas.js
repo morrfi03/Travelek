@@ -340,19 +340,18 @@
       var g = ctx.createRadialGradient(cx, cy, R * 0.98, cx, cy, R * 1.08); g.addColorStop(0, "rgba(130,180,230,.40)"); g.addColorStop(1, "rgba(130,180,230,0)");
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R * 1.08, 0, 2 * PI); ctx.fill();
       if (!tex) { ctx.fillStyle = "#96b8d0"; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.fill(); return; }
-      relief(q); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.drawImage(rbuf, 0, 0, cw, ch); ctx.restore();
-      if (moving) { ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = 1.5; ctx.stroke(); return; }
+      relief(q); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; ctx.drawImage(rbuf, 0, 0, cw, ch); ctx.restore();
       project(); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
       ctx.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && markC[e.iso]) fillRings(e); }); ctx.fillStyle = "rgba(196,98,45,.42)"; ctx.fill("evenodd");
       ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionMarked(ents[i])) fillRings(ents[i]); }); }); ctx.fillStyle = "rgba(196,98,45,.62)"; ctx.fill("evenodd");
       [[hoverEnt, "rgba(60,110,85,.55)"], [selEnt, "rgba(196,98,45,.70)"]].forEach(function (h) { if (h[0] < 0) return; ctx.beginPath(); fillRings(ents[h[0]]); ctx.fillStyle = h[1]; ctx.fill("evenodd"); });
-      if (zoom >= 2.2) {
+      if (!moving && zoom >= 2.2) {
         ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) strokeRings(ents[i]); }); });
         ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 0.45; ctx.lineJoin = "round"; ctx.stroke();
       }
       ctx.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb) strokeRings(ents[i]); }); byLayer.B.forEach(function (i) { strokeRings(ents[i]); });
       ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke();
-      (function strokeNets() {
+      if (!moving) (function strokeNets() {
         var layers = views.flat.netLayers();
         if (!layers) return;
         layers.forEach(function (L) {
@@ -386,7 +385,7 @@
       if (hooks.paint) { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); hooks.paint(ctx); }
     }
     function redraw() { if (mode === "globe") { initTex(); draw(hq()); } }
-    function schedule() { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; if (mode !== "globe") return; initTex(); draw(moving || spinning ? hq() * 0.5 : hq()); if (spinning) { lon0 += 0.25; schedule(); } }); }
+    function schedule() { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; if (mode !== "globe") return; initTex(); draw(moving || spinning ? Math.max(0.85, hq() * 0.92) : hq()); if (spinning) { lon0 += 0.25; schedule(); } }); }
     function settle() { clearTimeout(idle); idle = setTimeout(function () { moving = 0; if (!spinning) redraw(); }, 160); }
     function pick(px, py) {
       setCam(); var nx = (px - cx) / R, ny = (cy - py) / R, r2 = nx * nx + ny * ny; if (r2 >= 1) return -1;
@@ -429,7 +428,7 @@
       var a = { lon: lon0, lat: lat0, z: zoom }, t0 = performance.now(), dl = ((lo - a.lon + 540) % 360) - 180;
       (function step(now) {
         var t = Math.min(1, (now - t0) / 700), e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-        lon0 = a.lon + dl * e; lat0 = a.lat + (la - a.lat) * e; zoom = a.z + (z - a.z) * e; draw(t < 1 ? hq() * 0.5 : hq()); if (t < 1) fly = requestAnimationFrame(step);
+        lon0 = a.lon + dl * e; lat0 = a.lat + (la - a.lat) * e; zoom = a.z + (z - a.z) * e; draw(t < 1 ? Math.max(0.85, hq() * 0.92) : hq()); if (t < 1) fly = requestAnimationFrame(step);
       })(t0);
     }
     return {
