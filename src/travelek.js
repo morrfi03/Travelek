@@ -6206,7 +6206,8 @@ wipeRoutesOnce();
     function packOf(vv, id){ return (vv && vv[id]) || {}; }
     function row(user, vv){
       var pack=packOf(vv, user.id);
-      var stats=(typeof window.__packStats==="function")?window.__packStats(pack):null;
+      var stats=null;
+      try{ if(typeof window.__packStats==="function") stats=window.__packStats(pack); }catch(e){}
       var routes=stats?stats.routesList:[];
       if(!stats){
         try{ routes=JSON.parse(pack["travelek-extra"]||"[]"); }catch(e){ routes=[]; }
@@ -11482,7 +11483,16 @@ function openTripWindow(seed){
   if(typeof applyI18n==="function") applyI18n();
 }
 function paintTripWindow(){
-  var free=(ROUTES||[]).filter(function(r){ return !tw.routes.some(function(x){ return x.id===r.id; }); });
+  var taken={}, trips=loadTrips(), ti, tj, ids;
+  for(ti=0;ti<trips.length;ti++){
+    if(tw.id && trips[ti].id===tw.id) continue;
+    ids=trips[ti].routes||[];
+    for(tj=0;tj<ids.length;tj++) taken[ids[tj]]=1;
+  }
+  var free=(ROUTES||[]).filter(function(r){
+    if(taken[r.id]) return false;
+    return !tw.routes.some(function(x){ return x.id===r.id; });
+  });
   var show=tw.freeAll?free:free.slice(0,2);
   var freeBox=document.getElementById("tw-free");
   if(freeBox){
@@ -11745,7 +11755,10 @@ bindTripWindow();
         return '<div class="admin-row"><b>'+(r.name||login)+'</b> · '+login+(r.role==="admin"?" · "+t("админ"):"")+'<div class="route-line">'+r.routes+" "+t("маршрутов")+" · "+r.countries+" "+t("стран")+" · "+r.regions+" "+t("регионов")+'</div><div class="route-line">'+r.kmPlane+" "+t("самолет, км")+" · "+r.kmTrain+" "+t("поезд, км")+" · "+r.kmCar+" "+t("авто, км")+'</div>'+(mine?"":'<button type="button" data-user="'+r.userId+'">'+t("Смотреть карту")+'</button><button type="button" data-del="'+r.userId+'" data-login="'+login+'">'+t("Удалить")+'</button>')+'</div>';
       }).join("");
     }
-    if(window.__peekUsers) draw(window.__peekUsers());
+    if(window.__peekUsers){
+      try{ var peek=window.__peekUsers(); if(peek && peek.length) draw(peek); else list.innerHTML='<p class="hint">'+t("Загрузка…")+'</p>'; }
+      catch(e){ list.innerHTML='<p class="hint">'+t("Загрузка…")+'</p>'; }
+    }
     if(typeof window.__cloudAdmin==="function"){
       window.__cloudAdmin().then(draw).catch(function(){
         if(!list.innerHTML) list.innerHTML='<p class="hint">'+t("Список аккаунтов не загрузился.")+'</p>';
@@ -11769,18 +11782,12 @@ bindTripWindow();
   }
   window.__fillAccount=fillAccount;
   var openUsers=document.getElementById("open-users");
-  var usersPanel=document.getElementById("users-panel");
-  if(openUsers && usersPanel) openUsers.onclick=function(){
-    var s=document.getElementById("settings-panel");
-    if(s) s.classList.remove("on");
-    usersPanel.classList.add("on");
-    paintAccounts();
-  };
-  var usersClose=document.getElementById("users-close");
-  if(usersClose && usersPanel) usersClose.onclick=function(){
-    usersPanel.classList.remove("on");
-    var s=document.getElementById("settings-panel");
-    if(s) s.classList.add("on");
+  var usersBox=document.getElementById("users-box");
+  if(openUsers && usersBox) openUsers.onclick=function(e){
+    e.stopPropagation();
+    usersBox.hidden=!usersBox.hidden;
+    openUsers.classList.toggle("on", !usersBox.hidden);
+    if(!usersBox.hidden) paintAccounts();
   };
   var must=document.getElementById("must-pass");
   if(must && window.__TRAVELEK_ME && window.__TRAVELEK_ME.mustChange) must.classList.add("on");
