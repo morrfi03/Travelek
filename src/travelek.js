@@ -5829,13 +5829,15 @@ wipeRoutesOnce();
     return sha256(typed).then(function(h){ return h===stored; });
   }
   function saveStoreNow(){
+    var gen=++storeGen;
+    var body=JSON.stringify({users:users(), vault:vault()});
     return fetch(STORE_URL, {
       method:"PUT",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+STORE_KEY},
-      body:JSON.stringify({users:users(), vault:vault()})
-    }).then(function(r){ if(!r.ok) throw new Error("save"); });
+      body:body
+    }).then(function(r){ if(!r.ok) throw new Error("save"); return gen; });
   }
-  var saveTimer=null;
+  var saveTimer=null, storeGen=0;
   function scheduleSave(){ clearTimeout(saveTimer); saveTimer=setTimeout(function(){ saveStoreNow().catch(function(){}); }, 500); }
   function hashList(list){
     var chain=Promise.resolve();
@@ -5852,10 +5854,12 @@ wipeRoutesOnce();
     if(!me || document.hidden || cloudTimer) return;
     var modal=document.getElementById("modal");
     if(modal && modal.classList.contains("on")) return;
+    var gen=storeGen;
     fetch(STORE_URL+"?t="+Date.now(),{cache:"no-store"}).then(function(r){
       if(!r.ok) throw new Error("load");
       return r.json();
     }).then(function(data){
+      if(gen!==storeGen) return;
       if(!data||!data.vault) return;
       var view=sessionStorage.getItem("travelek-view");
       var owner=(view && me.role==="admin")?view:me.id;
@@ -5904,11 +5908,13 @@ wipeRoutesOnce();
   function ensureStore(){
     if(storePromise) return storePromise;
     var before="";
+    var gen=storeGen;
     try{ before=(localStorage.getItem(USERS)||"")+"|"+(localStorage.getItem(VAULT)||""); }catch(e){}
     storePromise=fetch(STORE_URL+"?t="+Date.now(), {cache:"no-store"}).then(function(r){
       if(!r.ok) throw new Error("load");
       return r.json();
     }).then(function(data){
+      if(gen!==storeGen) return;
       if(!data||typeof data!=="object") data={};
       if(!Array.isArray(data.users)) data.users=[];
       if(!data.vault||typeof data.vault!=="object"||Array.isArray(data.vault)) data.vault={};
@@ -6192,20 +6198,15 @@ wipeRoutesOnce();
     });
   };
   window.__cloudAdmin=function(){
-    var vv=vault();
-    return Promise.resolve(users().map(function(user){
-      var pack=vv[user.id]||{};
+    function packOf(vv, id){ return (vv && vv[id]) || {}; }
+    function row(user, vv){
+      var pack=packOf(vv, user.id);
       var stats=(typeof window.__packStats==="function")?window.__packStats(pack):null;
       var routes=stats?stats.routesList:[];
       if(!stats){
         try{ routes=JSON.parse(pack["travelek-extra"]||"[]"); }catch(e){ routes=[]; }
         if(!Array.isArray(routes)) routes=[];
       }
-      var lines=[];
-      routes.slice(0,12).forEach(function(r){
-        var mode=r.mode==="plane"?"Самолёт":r.mode==="train"?"Поезд":"Авто";
-        lines.push(mode+" · "+(r.date||"без даты")+" · "+(r.from||"?")+" → "+(r.to||"?"));
-      });
       return {
         userId:user.id,
         email:user.login,
@@ -6216,10 +6217,32 @@ wipeRoutesOnce();
         regions:stats?stats.regions:0,
         kmPlane:stats?stats.kmPlane:0,
         kmTrain:stats?stats.kmTrain:0,
-        kmCar:stats?stats.kmCar:0,
-        lines:lines
+        kmCar:stats?stats.kmCar:0
       };
-    }));
+    }
+    function merged(remote, remoteVault){
+      var local=users(), have={}, out=[], i;
+      var vv=remoteVault || vault();
+      for(i=0;i<(remote||[]).length;i++){
+        if(!remote[i] || !remote[i].id) continue;
+        have[remote[i].id]=1;
+        out.push(remote[i]);
+      }
+      for(i=0;i<local.length;i++){
+        if(!local[i] || have[local[i].id]) continue;
+        out.push(local[i]);
+      }
+      try{ localStorage.setItem(USERS, JSON.stringify(out)); }catch(e){}
+      return out.map(function(user){ return row(user, vv); });
+    }
+    var gen=storeGen;
+    return fetch(STORE_URL+"?t="+Date.now(),{cache:"no-store"}).then(function(r){
+      if(!r.ok) throw new Error("load");
+      return r.json();
+    }).then(function(data){
+      if(gen!==storeGen) return merged(users(), vault());
+      return merged(Array.isArray(data.users)?data.users:[], data.vault||{});
+    }).catch(function(){ return merged(users(), vault()); });
   };
   window.__openDiary=function(userId){ sessionStorage.setItem("travelek-view", userId); location.reload(); };
   window.__exitView=function(){ sessionStorage.removeItem("travelek-view"); location.reload(); };
