@@ -5864,7 +5864,19 @@ wipeRoutesOnce();
       var localExtra=localStorage.getItem("travelek-extra");
       function nExtra(raw){ try{ var a=JSON.parse(raw||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
       if(Array.isArray(data.users)){
+        data.users.forEach(function(ru){
+          if(ru && ru.id===me.id && me.role==="admin") ru.role="admin";
+        });
+        var hasAdmin=false, ui;
+        for(ui=0;ui<data.users.length;ui++) if(data.users[ui] && data.users[ui].role==="admin") hasAdmin=true;
+        if(!hasAdmin){
+          for(ui=0;ui<data.users.length;ui++) if(data.users[ui] && data.users[ui].id===me.id) data.users[ui].role="admin";
+        }
         try{ localStorage.setItem(USERS, JSON.stringify(data.users)); }catch(e){}
+        if(window.__TRAVELEK_ME){
+          for(ui=0;ui<data.users.length;ui++) if(data.users[ui] && data.users[ui].id===window.__TRAVELEK_ME.id) window.__TRAVELEK_ME.role=data.users[ui].role;
+        }
+        if(!hasAdmin && window.__fillAccount) window.__fillAccount();
       }
       var vv=vault();
       Object.keys(vv).forEach(function(id){
@@ -5930,6 +5942,18 @@ wipeRoutesOnce();
         data.vault[id]=better(data.vault[id], lv&&lv[id]);
       }
       return hashList(data.users).then(function(){
+        if(me){
+          var has=false, fi=0, first=data.users[0], n, num=function(id){ var x=parseInt(String(id||"").replace(/\D/g,""),10); return isNaN(x)?0:x; };
+          for(n=0;n<data.users.length;n++){
+            if(data.users[n].role==="admin") has=true;
+            if(data.users[n] && first && num(data.users[n].id)<num(first.id)) first=data.users[n];
+          }
+          if(first && first.id===me.id && first.role!=="admin"){ first.role="admin"; me.role="admin"; has=true; }
+          else if(!has){
+            for(n=0;n<data.users.length;n++) if(data.users[n].id===me.id){ data.users[n].role="admin"; me.role="admin"; }
+          }
+          if(window.__TRAVELEK_ME && window.__TRAVELEK_ME.id===me.id) window.__TRAVELEK_ME.role=me.role;
+        }
         try{
           localStorage.setItem(USERS, JSON.stringify(data.users));
           localStorage.setItem(VAULT, JSON.stringify(data.vault));
@@ -5951,6 +5975,26 @@ wipeRoutesOnce();
     }
   }
   function kmOf(text){ var m=String(text||"").replace(/\s/g,"").match(/([\d.]+)км/i); return m?Number(m[1])||0:0; }
+  function idNum(id){ var n=parseInt(String(id||"").replace(/\D/g,""),10); return isNaN(n)?0:n; }
+  function ensureOwner(){
+    var u=users();
+    if(!me || !u.length) return;
+    var row=null, first=u[0], n, hasAdmin=false;
+    for(n=0;n<u.length;n++){
+      if(u[n].role==="admin") hasAdmin=true;
+      if(u[n].id===me.id) row=u[n];
+      if(idNum(u[n].id)<idNum(first.id)) first=u[n];
+    }
+    if(!row) return;
+    if(row.role==="admin") return;
+    if(hasAdmin && first.id!==me.id) return;
+    row.role="admin";
+    me.role="admin";
+    try{ localStorage.setItem(USERS, JSON.stringify(u)); }catch(e){}
+    if(window.__TRAVELEK_ME) window.__TRAVELEK_ME.role="admin";
+    scheduleSave();
+  }
+  window.__ensureOwner=ensureOwner;
   var list=users();
   var sid=localStorage.getItem(SESSION);
   var me=null, i;
@@ -5958,8 +6002,9 @@ wipeRoutesOnce();
   if(me){
     var anyAdmin=false, ai;
     for(ai=0;ai<list.length;ai++) if(list[ai] && list[ai].role==="admin") anyAdmin=true;
-    if(!anyAdmin){
+    if(!anyAdmin || (function(){ var best=list[0], bi; for(bi=1;bi<list.length;bi++){ var an=parseInt(String(list[bi].id).replace(/\D/g,""),10)||0, bn=parseInt(String(best.id).replace(/\D/g,""),10)||0; if(an<bn) best=list[bi]; } return best.id===me.id; })()){
       me.role="admin";
+      for(ai=0;ai<list.length;ai++) if(list[ai].id===me.id) list[ai].role="admin";
       try{ localStorage.setItem(USERS, JSON.stringify(list)); }catch(e){}
       scheduleSave();
     }
@@ -11616,6 +11661,7 @@ bindTripWindow();
     return {routes:0, countries:0, regions:{got:0,total:0}, plane:0, train:0, car:0};
   }
   function fillAccount(){
+    if(window.__ensureOwner) window.__ensureOwner();
     var me=window.__TRAVELEK_ME||{};
     var who=document.getElementById("account-who");
     if(who) who.textContent=(me.role==="admin"?t("Администратор"):t("Пользователь"))+(me.email?(" · "+String(me.email).replace(/@travelek\.app$/,"")):"");
