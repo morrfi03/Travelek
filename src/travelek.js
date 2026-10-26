@@ -6066,6 +6066,22 @@ wipeRoutesOnce();
       }).catch(reject);
     });
   };
+  window.__adminDelete=function(userId){
+    return new Promise(function(resolve, reject){
+      if(!me || me.role!=="admin") return reject(new Error("Только администратор"));
+      if(userId===me.id) return reject(new Error("Свой аккаунт удалить нельзя"));
+      ensureStore().then(function(){
+        var u=users().filter(function(x){ return x.id!==userId; });
+        localStorage.setItem(USERS, JSON.stringify(u));
+        var v=vault();
+        delete v[userId];
+        saveVault(v);
+        return saveStoreNow();
+      }).then(function(){ resolve({ok:true}); }).catch(function(e){
+        reject(new Error(e&&e.message?e.message:"Не удалось удалить"));
+      });
+    });
+  };
   window.__adminSetPassword=function(userId, newPassword){
     return new Promise(function(resolve, reject){
       if(!me || me.role!=="admin") return reject(new Error("Только администратор"));
@@ -11455,7 +11471,7 @@ bindTripWindow();
         list.innerHTML=rows.map(function(r){
           var login=String(r.email||"").replace(/@travelek\.app$/,"");
           var lines=(r.lines&&r.lines.length)?r.lines.map(function(line){ return '<div class="route-line">'+line+'</div>'; }).join(""):'<div class="route-line">'+t("Маршрутов пока нет")+'</div>';
-          return '<div class="admin-row"><button type="button" data-user="'+r.userId+'"><b>'+ (r.name||login) +'</b> · '+login+'<br><span style="color:var(--muted);font-size:12px">'+(r.role==="admin"?t("админ · "):"")+r.routes+" "+t("маршрутов")+" · "+r.countries+" "+t("стран")+" · "+((typeof RUSSIA_REGIONS!=="undefined"&&RUSSIA_REGIONS&&RUSSIA_REGIONS.length)?ofCount(r.regions, RUSSIA_REGIONS.length, t("регионов РФ")):(r.regions+" "+t("регионов РФ")))+' · '+r.kmPlane+' / '+r.kmTrain+' / '+r.kmCar+' '+t("км")+'</span>'+lines+'</button>'+(r.role==="admin"?"":'<button type="button" data-pass="'+r.userId+'" data-login="'+login+'">'+t("Сменить пароль")+'</button>')+'</div>';
+          return '<div class="admin-row"><button type="button" data-user="'+r.userId+'"><b>'+ (r.name||login) +'</b> · '+login+'<br><span style="color:var(--muted);font-size:12px">'+(r.role==="admin"?t("админ · "):"")+r.routes+" "+t("маршрутов")+" · "+r.countries+" "+t("стран")+" · "+((typeof RUSSIA_REGIONS!=="undefined"&&RUSSIA_REGIONS&&RUSSIA_REGIONS.length)?ofCount(r.regions, RUSSIA_REGIONS.length, t("регионов РФ")):(r.regions+" "+t("регионов РФ")))+' · '+r.kmPlane+' / '+r.kmTrain+' / '+r.kmCar+' '+t("км")+'</span>'+lines+'</button>'+(r.userId===(window.__TRAVELEK_ME&&window.__TRAVELEK_ME.id)?"":'<button type="button" data-pass="'+r.userId+'" data-login="'+login+'">'+t("Сменить пароль")+'</button><button type="button" data-del="'+r.userId+'" data-login="'+login+'">'+t("Удалить")+'</button>')+'</div>';
         }).join("");
       }).catch(function(){
         var list=document.getElementById("admin-list");
@@ -11466,6 +11482,16 @@ bindTripWindow();
   window.__fillAccount=fillAccount;
   var list=document.getElementById("admin-list");
   if(list) list.onclick=function(e){
+    var del=e.target.closest("[data-del]");
+    if(del){
+      e.preventDefault();
+      e.stopPropagation();
+      var who=del.getAttribute("data-login")||"этот аккаунт";
+      if(!confirm("Удалить "+who+"? Его дневник тоже сотрётся.")) return;
+      if(!window.__adminDelete) return;
+      window.__adminDelete(del.getAttribute("data-del")).then(function(){ fillAccount(); }).catch(function(err){ alert(err&&err.message?err.message:"Не удалось удалить"); });
+      return;
+    }
     var pass=e.target.closest("[data-pass]");
     if(pass){
       e.preventDefault();
