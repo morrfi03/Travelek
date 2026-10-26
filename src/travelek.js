@@ -8767,6 +8767,7 @@ function setLang(lang){
 }
 function drawCityLabels(){
   if(!labelsLayer || !map) return;
+  if(map._isAtlas && map.getZoom()<5){ labelsLayer.clearLayers(); return; }
   labelsLayer.clearLayers();
   var z=map.getZoom();
   if(z<3.4) return;
@@ -8793,9 +8794,9 @@ function drawCityLabels(){
     if(a.tier!==d.tier) return a.tier-d.tier;
     return a.dist-d.dist;
   });
-  var cell=z>=8?0.45:(z>=6.5?0.7:(z>=4.8?0.9:2.6));
+  var cell=z>=8?0.8:(z>=6.5?1.4:(z>=4.8?2.2:4));
   var used={};
-  var maxLabels=pickModeLabels?48:(z>=8?36:(z>=6.5?30:(z>=4.8?24:10)));
+  var maxLabels=pickModeLabels?20:(z>=8?12:(z>=6.5?8:6));
   var others=0, otherMax=z>=8?8:6;
   var n=0, gk, fs, name;
   for(i=0;i<ranked.length && n<maxLabels;i++){
@@ -9000,7 +9001,6 @@ function render(){
     });
     g.coords.forEach(function(c){bounds.push(c);});
   });
-  drawCityLabels();
   if(typeof syncVisited==="function") syncVisited();
   if(typeof drawCountries==="function") drawCountries();
   try{layer.bringToFront();labelsLayer.bringToFront();}catch(e){}
@@ -11051,8 +11051,13 @@ function routeById(id){
   return null;
 }
 function routeKm(r){
-  var g=r&&typeof buildGeoSync==="function"?buildGeoSync(r):null;
-  return g?g.km:0;
+  if(!r) return 0;
+  var key=r.mode+"|"+r.from+"|"+r.to+"|"+(r.date||"");
+  if(r._kmKey===key) return r._km;
+  var g=typeof buildGeoSync==="function"?buildGeoSync(r):null;
+  r._km=g?g.km:0;
+  r._kmKey=key;
+  return r._km;
 }
 function usedRouteIds(){
   var set={}, trips=loadTrips(), i, j, ids;
@@ -11103,19 +11108,39 @@ function statRow(km){
   return '<div class="f-kms">'+cell(km.plane,t("самолет, км"))+cell(km.train,t("поезд, км"))+cell(km.car,t("авто, км"))+'</div>';
 }
 function countriesBlock(countries, regions, expanded){
-  var html="", i, id, rec, regs, shown=0;
-  for(i=0;i<countries.length;i++){
+  var groups={}, order=[], i, id, g, rid, cid;
+  function ensure(code){
+    if(!code) return null;
+    if(!groups[code]){ groups[code]={id:code, regs:[]}; order.push(code); }
+    return groups[code];
+  }
+  for(i=0;i<countries.length;i++) ensure(countries[i]);
+  for(i=0;i<(regions||[]).length;i++){
+    rid=regions[i]; cid=countryOfRid(rid); g=ensure(cid);
+    if(g && g.regs.indexOf(rid)<0) g.regs.push(rid);
+  }
+  var html="", shown=0, rec, regs, ri, names, cut;
+  for(i=0;i<order.length;i++){
     if(!expanded && shown>=3){
       html+='<button type="button" class="more-link" data-all="1">'+t("Смотреть все")+'</button>';
       break;
     }
-    id=countries[i]; rec=countryRecord(id);
-    regs=(regions||[]).filter(function(rid){ return countryOfRid(rid)===id; });
+    id=order[i]; rec=countryRecord(id);
+    regs=groups[id].regs;
     html+='<div class="f-country">'+escLabel(rec?countryLabel(rec):id)+'</div>';
-    if(regs.length) html+='<div class="f-regs">'+regs.map(function(rid){ var rr=regionRecord(rid); return escLabel(rr?regionLabel(rr.n):rid); }).join("<br>")+'</div>';
+    if(regs.length){
+      cut=expanded?regs.length:Math.min(3, regs.length);
+      names=[];
+      for(ri=0;ri<cut;ri++){
+        var rr=regionRecord(regs[ri]);
+        names.push(escLabel(rr?regionLabel(rr.n):regs[ri]));
+      }
+      if(!expanded && regs.length>3) html+='<button type="button" class="more-link" data-all="1">'+t("Смотреть все")+'</button>';
+      html+='<div class="f-regs">'+names.join("<br>")+'</div>';
+    }
     shown++;
   }
-  return {html:html, n:countries.length};
+  return {html:html, n:order.length};
 }
 function tripCard(tp, tab){
   var routes=tripRoutesFor(tp, tab);
