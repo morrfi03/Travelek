@@ -5807,6 +5807,8 @@ wipeRoutesOnce();
   var KEYS=["travelek-extra","travelek-del","travelek-app-settings","travelek-mapprefs","travelek-theme","travelek-theme-pref","travelek-countries","travelek-countries-off","travelek-regions","travelek-regions-off","travelek-trips"];
   var STORE_URL="https://keepjson.fourlegs.workers.dev/bins/BkoU663gNtadZ-zfQvPYx";
   var STORE_KEY="kj_w_qgNZJtClt_6vg01Eq5c8j1wpxzMTpSzUKrazvkb12AY";
+  window.__TRAVELEK_STORE_URL=STORE_URL;
+  var DEL="travelek-deleted-users";
   function read(k, fb){ try{ var v=JSON.parse(localStorage.getItem(k)||""); return v==null?fb:v; }catch(e){ return fb; } }
   function users(){
     var u=read(USERS, null);
@@ -5815,6 +5817,41 @@ wipeRoutesOnce();
   }
   function vault(){ var v=read(VAULT, {}); return v&&typeof v==="object"&&!Array.isArray(v)?v:{}; }
   function saveVault(v){ try{ localStorage.setItem(VAULT, JSON.stringify(v)); }catch(e){} }
+  function deletedIds(){ var d=read(DEL, []); return Array.isArray(d)?d:[]; }
+  function rememberDeleted(ids){
+    var d=deletedIds(), i;
+    for(i=0;i<(ids||[]).length;i++) if(ids[i] && d.indexOf(ids[i])<0) d.push(ids[i]);
+    try{ localStorage.setItem(DEL, JSON.stringify(d)); }catch(e){}
+    return d;
+  }
+  function extraCount(pack){ try{ var a=JSON.parse((pack&&pack["travelek-extra"])||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
+  function mergeUsers(remoteUsers, remoteDeleted){
+    var del={}, out=[], by={}, i, u, t;
+    deletedIds().forEach(function(id){ del[id]=1; });
+    (remoteDeleted||[]).forEach(function(id){ if(id) del[id]=1; });
+    function add(user, prefer){
+      if(!user||!user.id||del[user.id]) return;
+      if(by[user.id]){
+        t=by[user.id];
+        if(prefer){
+          if(user.login) t.login=user.login;
+          if(user.name) t.name=user.name;
+          if(user.password) t.password=user.password;
+          if(user.role) t.role=user.role;
+          if(user.mustChange) t.mustChange=true;
+        }
+        return;
+      }
+      u={id:user.id, login:user.login, name:user.name, password:user.password, role:user.role};
+      if(user.mustChange) u.mustChange=true;
+      if(user.email && !u.login) u.login=String(user.email).replace(/@travelek\.app$/,"");
+      by[u.id]=u; out.push(u);
+    }
+    (remoteUsers||[]).forEach(function(user){ add(user, false); });
+    users().forEach(function(user){ add(user, true); });
+    rememberDeleted(Object.keys(del));
+    return {users:out, deleted:Object.keys(del)};
+  }
   function sha256(text){
     if(!window.crypto||!crypto.subtle||!window.TextEncoder) return Promise.resolve(String(text||""));
     return crypto.subtle.digest("SHA-256", new TextEncoder().encode(String(text||""))).then(function(buf){
@@ -5831,12 +5868,30 @@ wipeRoutesOnce();
   }
   function saveStoreNow(){
     var gen=++storeGen;
-    var body=JSON.stringify({users:users(), vault:vault()});
-    return fetch(STORE_URL, {
-      method:"PUT",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+STORE_KEY},
-      body:body
-    }).then(function(r){ if(!r.ok) throw new Error("save"); return gen; });
+    return fetch(STORE_URL+"?t="+Date.now(),{cache:"no-store"}).then(function(r){
+      if(!r.ok) throw new Error("load");
+      return r.json();
+    }).catch(function(){ return {}; }).then(function(data){
+      if(!data||typeof data!=="object") data={};
+      var merged=mergeUsers(Array.isArray(data.users)?data.users:[], Array.isArray(data.deleted)?data.deleted:[]);
+      var remoteVault=data.vault&&typeof data.vault==="object"&&!Array.isArray(data.vault)?data.vault:{};
+      var localVault=vault();
+      var vaultOut={};
+      Object.keys(remoteVault).forEach(function(id){ if(merged.deleted.indexOf(id)<0) vaultOut[id]=remoteVault[id]; });
+      Object.keys(localVault).forEach(function(id){
+        if(merged.deleted.indexOf(id)>=0) return;
+        if(!vaultOut[id] || extraCount(localVault[id])>=extraCount(vaultOut[id])) vaultOut[id]=localVault[id];
+      });
+      try{
+        localStorage.setItem(USERS, JSON.stringify(merged.users));
+        localStorage.setItem(VAULT, JSON.stringify(vaultOut));
+      }catch(e){}
+      return fetch(STORE_URL, {
+        method:"PUT",
+        headers:{"Content-Type":"application/json","Authorization":"Bearer "+STORE_KEY},
+        body:JSON.stringify({users:merged.users, vault:vaultOut, deleted:merged.deleted})
+      }).then(function(r){ if(!r.ok) throw new Error("save"); return gen; });
+    });
   }
   var saveTimer=null, storeGen=0;
   function scheduleSave(){ clearTimeout(saveTimer); saveTimer=setTimeout(function(){ saveStoreNow().catch(function(){}); }, 500); }
@@ -5861,7 +5916,8 @@ wipeRoutesOnce();
       return r.json();
     }).then(function(data){
       if(gen!==storeGen) return;
-      if(!data||!data.vault) return;
+      if(!data||typeof data!=="object") return;
+      if(!data.vault||typeof data.vault!=="object"||Array.isArray(data.vault)) data.vault={};
       var view=sessionStorage.getItem("travelek-view");
       var owner=(view && me.role==="admin")?view:me.id;
       var remotePack=data.vault[owner]||null;
@@ -5869,20 +5925,18 @@ wipeRoutesOnce();
       var localExtra=localStorage.getItem("travelek-extra");
       function nExtra(raw){ try{ var a=JSON.parse(raw||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
       if(Array.isArray(data.users)){
-        data.users.forEach(function(ru){
-          if(!ru) return;
-          ru.role=nickIsAdmin(ru)?"admin":"user";
-        });
+        var merged=mergeUsers(data.users, Array.isArray(data.deleted)?data.deleted:[]);
+        merged.users.forEach(function(ru){ if(ru) ru.role=nickIsAdmin(ru)?"admin":"user"; });
         var hasAdmin=false, ui;
-        for(ui=0;ui<data.users.length;ui++) if(data.users[ui] && data.users[ui].role==="admin") hasAdmin=true;
-        if(!hasAdmin){
-          for(ui=0;ui<data.users.length;ui++) if(data.users[ui] && data.users[ui].id===me.id) data.users[ui].role="admin";
+        for(ui=0;ui<merged.users.length;ui++) if(merged.users[ui] && (merged.users[ui].role==="admin" || nickIsAdmin(merged.users[ui]))) hasAdmin=true;
+        if(!hasAdmin && me){
+          for(ui=0;ui<merged.users.length;ui++) if(merged.users[ui] && merged.users[ui].id===me.id) merged.users[ui].role="admin";
         }
-        try{ localStorage.setItem(USERS, JSON.stringify(data.users)); }catch(e){}
+        try{ localStorage.setItem(USERS, JSON.stringify(merged.users)); }catch(e){}
+        if(merged.users.length>(data.users||[]).length) scheduleSave();
         if(window.__TRAVELEK_ME){
-          for(ui=0;ui<data.users.length;ui++) if(data.users[ui] && data.users[ui].id===window.__TRAVELEK_ME.id) window.__TRAVELEK_ME.role=data.users[ui].role;
+          for(ui=0;ui<merged.users.length;ui++) if(merged.users[ui] && merged.users[ui].id===window.__TRAVELEK_ME.id) window.__TRAVELEK_ME.role=merged.users[ui].role;
         }
-        if(!hasAdmin && window.__fillAccount) window.__fillAccount();
       }
       var vv=vault();
       Object.keys(vv).forEach(function(id){
@@ -5919,24 +5973,29 @@ wipeRoutesOnce();
       if(!data||typeof data!=="object") data={};
       if(!Array.isArray(data.users)) data.users=[];
       if(!data.vault||typeof data.vault!=="object"||Array.isArray(data.vault)) data.vault={};
-      var known={}, i;
-      for(i=0;i<data.users.length;i++) if(data.users[i]&&data.users[i].id) known[data.users[i].id]=1;
-      Object.keys(data.vault).forEach(function(id){ if(!known[id]) delete data.vault[id]; });
-      return hashList(data.users).then(function(){
+      var merged=mergeUsers(data.users, Array.isArray(data.deleted)?data.deleted:[]);
+      return hashList(merged.users).then(function(){
         if(me){
           var n;
-          grantNamedAdmin(data.users);
-          for(n=0;n<data.users.length;n++){
-            if(!data.users[n]) continue;
-            if(nickIsAdmin(data.users[n])) data.users[n].role="admin";
-            else if(data.users[n].role==="admin") data.users[n].role="user";
-            if(data.users[n].id===me.id) me.role=data.users[n].role;
+          grantNamedAdmin(merged.users);
+          for(n=0;n<merged.users.length;n++){
+            if(!merged.users[n]) continue;
+            if(nickIsAdmin(merged.users[n])) merged.users[n].role="admin";
+            else if(merged.users[n].role==="admin") merged.users[n].role="user";
+            if(merged.users[n].id===me.id) me.role=merged.users[n].role;
           }
           if(window.__TRAVELEK_ME && window.__TRAVELEK_ME.id===me.id) window.__TRAVELEK_ME.role=me.role;
         }
+        var vaultOut={};
+        Object.keys(data.vault).forEach(function(id){ if(merged.deleted.indexOf(id)<0) vaultOut[id]=data.vault[id]; });
+        var localV=vault();
+        Object.keys(localV).forEach(function(id){
+          if(merged.deleted.indexOf(id)>=0) return;
+          if(!vaultOut[id] || extraCount(localV[id])>=extraCount(vaultOut[id])) vaultOut[id]=localV[id];
+        });
         try{
-          localStorage.setItem(USERS, JSON.stringify(data.users));
-          localStorage.setItem(VAULT, JSON.stringify(data.vault));
+          localStorage.setItem(USERS, JSON.stringify(merged.users));
+          localStorage.setItem(VAULT, JSON.stringify(vaultOut));
         }catch(e){}
         var after="";
         try{ after=(localStorage.getItem(USERS)||"")+"|"+(localStorage.getItem(VAULT)||""); }catch(e){}
@@ -6135,6 +6194,7 @@ wipeRoutesOnce();
     return new Promise(function(resolve, reject){
       if(!me || me.role!=="admin") return reject(new Error("Только администратор"));
       if(userId===me.id) return reject(new Error("Свой аккаунт удалить нельзя"));
+      rememberDeleted([userId]);
       ensureStore().then(function(){
         var u=users().filter(function(x){ return x.id!==userId; });
         localStorage.setItem(USERS, JSON.stringify(u));
@@ -6169,12 +6229,18 @@ wipeRoutesOnce();
   };
   window.__createFirst=function(login, password){
     login=String(login||"").trim().toLowerCase();
-    return sha256(password).then(function(h){
-      var row={id:"u"+Date.now(), login:login, name:login, password:h, role:"admin"};
-      var u=users();
-      u.push(row);
-      try{ localStorage.setItem(USERS, JSON.stringify(u)); localStorage.setItem(SESSION, row.id); }catch(e){}
-      return saveStoreNow().catch(function(){}).then(function(){ location.reload(); });
+    return ensureStore().then(function(){
+      var u=users(), n;
+      for(n=0;n<u.length;n++){
+        if(String(u[n].login||"").toLowerCase()===login) return window.__localLogin(login, password);
+      }
+      if(u.length) return window.__localLogin(login, password);
+      return sha256(password).then(function(h){
+        var row={id:"u"+Date.now(), login:login, name:login, password:h, role:"admin"};
+        u.push(row);
+        try{ localStorage.setItem(USERS, JSON.stringify(u)); localStorage.setItem(SESSION, row.id); }catch(e){}
+        return saveStoreNow().catch(function(){}).then(function(){ location.reload(); });
+      });
     });
   };
   window.__cloudCreate=function(login, password, name){
@@ -11830,20 +11896,28 @@ bindTripWindow();
     function draw(rows){
       if(!rows || !rows.length){ list.innerHTML='<p class="hint">'+t("Пока только вы.")+'</p>'; return; }
       list.innerHTML=rows.map(function(r){
-        var login=String(r.email||"").replace(/@travelek\.app$/,"");
-        var mine=r.userId===(window.__TRAVELEK_ME&&window.__TRAVELEK_ME.id);
-        return '<div class="admin-row"><b>'+(r.name||login)+'</b> · '+login+(r.role==="admin"?" · "+t("админ"):"")+'<div class="route-line">'+r.routes+" "+t("маршрутов")+" · "+r.countries+" "+t("стран")+" · "+r.regions+" "+t("регионов")+'</div><div class="route-line">'+r.kmPlane+" "+t("самолет, км")+" · "+r.kmTrain+" "+t("поезд, км")+" · "+r.kmCar+" "+t("авто, км")+'</div>'+(mine?"":'<button type="button" data-user="'+r.userId+'">'+t("Смотреть карту")+'</button><button type="button" data-del="'+r.userId+'" data-login="'+login+'">'+t("Удалить")+'</button>')+'</div>';
+        var login=String(r.email||r.login||"").replace(/@travelek\.app$/,"");
+        var mine=r.userId===(window.__TRAVELEK_ME&&window.__TRAVELEK_ME.id) || r.id===(window.__TRAVELEK_ME&&window.__TRAVELEK_ME.id);
+        var id=r.userId||r.id;
+        return '<div class="admin-row"><b>'+(r.name||login)+'</b> · '+login+(r.role==="admin"?" · "+t("админ"):"")+'<div class="route-line">'+(r.routes||0)+" "+t("маршрутов")+" · "+(r.countries||0)+" "+t("стран")+" · "+(r.regions||0)+" "+t("регионов")+'</div><div class="route-line">'+(r.kmPlane||0)+" "+t("самолет, км")+" · "+(r.kmTrain||0)+" "+t("поезд, км")+" · "+(r.kmCar||0)+" "+t("авто, км")+'</div>'+(mine?"":'<button type="button" data-user="'+id+'">'+t("Смотреть карту")+'</button><button type="button" data-del="'+id+'" data-login="'+login+'">'+t("Удалить")+'</button>')+'</div>';
       }).join("");
     }
-    if(window.__peekUsers){
-      try{ var peek=window.__peekUsers(); if(peek && peek.length) draw(peek); else list.innerHTML='<p class="hint">'+t("Загрузка…")+'</p>'; }
-      catch(e){ list.innerHTML='<p class="hint">'+t("Загрузка…")+'</p>'; }
-    }
-    if(typeof window.__cloudAdmin==="function"){
-      window.__cloudAdmin().then(draw).catch(function(){
-        if(!list.innerHTML) list.innerHTML='<p class="hint">'+t("Список аккаунтов не загрузился.")+'</p>';
-      });
-    }
+    var local=[];
+    try{ local=JSON.parse(localStorage.getItem("travelek-users")||"[]"); }catch(e){ local=[]; }
+    if(!Array.isArray(local)) local=[];
+    if(local.length) draw(local.map(function(u){ return {userId:u.id, email:u.login, name:u.name||u.login, role:u.role, routes:0, countries:0, regions:0, kmPlane:0, kmTrain:0, kmCar:0}; }));
+    else list.innerHTML='<p class="hint">'+t("Загрузка…")+'</p>';
+    var job=null;
+    if(typeof window.__cloudAdmin==="function") job=window.__cloudAdmin();
+    else if(window.__TRAVELEK_STORE_URL) job=fetch(window.__TRAVELEK_STORE_URL+"?t="+Date.now(),{cache:"no-store"}).then(function(r){ return r.json(); }).then(function(data){
+      return (data.users||[]).map(function(u){ return {userId:u.id, email:u.login, name:u.name||u.login, role:u.role, routes:0, countries:0, regions:0, kmPlane:0, kmTrain:0, kmCar:0}; });
+    });
+    if(job && job.then) job.then(function(rows){
+      if(rows && rows.length) draw(rows);
+      else if(!local.length) draw([]);
+    }).catch(function(){
+      if(!local.length) list.innerHTML='<p class="hint">'+t("Список аккаунтов не загрузился.")+'</p>';
+    });
   }
   function fillAccount(){
     paintAccounts();
@@ -11951,7 +12025,7 @@ bindTripWindow();
   };
   var create=document.getElementById("new-user");
   if(create) create.onclick=function(){
-    if(typeof window.__cloudCreate!=="function") return;
+    if(typeof window.__cloudCreate!=="function"){ alert(t("Список аккаунтов не загрузился.")); return; }
     var login=document.getElementById("new-login").value;
     var pass=document.getElementById("new-pass").value;
     var pass2=document.getElementById("new-pass2").value;

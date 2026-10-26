@@ -18,6 +18,15 @@
     if(hint) hint.textContent="Аккаунтов ещё нет. Придумайте логин и пароль от 8 символов. Они сохранятся только на устройстве, не в коде.";
     form.dataset.setup="1";
   }
+  var waits=0, waitTimer=setInterval(function(){
+    var now=users();
+    if(now.length){
+      delete form.dataset.setup;
+      var hint2=form.querySelector("p");
+      if(hint2) hint2.textContent="Каждый видит только свой дневник. Администратор видит все маршруты. Новый аккаунт создаёт только администратор.";
+      clearInterval(waitTimer);
+    } else if(++waits>40) clearInterval(waitTimer);
+  }, 200);
   var legal=document.getElementById("file-login-legal");
   var goBtn=document.getElementById("file-login-go");
   function allow(){ if(goBtn) goBtn.disabled=!(legal && legal.checked); }
@@ -36,7 +45,9 @@
       if(login.length<2 || pass.length<8){ if(err) err.textContent="Логин от 2 символов, пароль от 8"; return; }
       function make(){
         if(!window.__createFirst){ if(err) err.textContent="Подождите секунду и нажмите ещё раз"; return; }
-        window.__createFirst(login, pass);
+        window.__createFirst(login, pass).then(function(ok){
+          if(ok===false && err) err.textContent="Неверный логин или пароль";
+        }).catch(function(){ if(err) err.textContent="Не удалось войти"; });
       }
       if(window.__TRAVELEK_STORE_READY) make();
       else setTimeout(make, 400);

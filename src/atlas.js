@@ -6,7 +6,7 @@
   var G = window.ATLAS_G;
   if (!root || !G) return;
   var hooks = { click: null, move: null, afterView: null, paint: null };
-  var markC = {}, markR = {}, markRev = 0, washIso = {};
+  var markC = {}, markR = {}, markRev = 0, washIso = {}, nameIso = {};
   (function mountAtlas() {
     var css = document.createElement("style");
     css.textContent = "#flatBox,#globeBox{position:absolute;inset:0;overflow:hidden}#flatBox{background:#dde8ee}#globeBox{background:#0e1a24}#cvF,#cvG{width:100%;height:100%;display:block;touch-action:none;cursor:grab}#cvF.drag,#cvG.drag{cursor:grabbing}#tipF,#tipG{position:absolute;z-index:4;pointer-events:none;background:#1f2a26;color:#fff;padding:5px 9px;border-radius:6px;font:600 13px/1.3 system-ui,sans-serif;opacity:0;transform:translate(12px,12px);white-space:nowrap}#tipF small,#tipG small{display:block;opacity:.7;font-size:11px;font-weight:500}#atlas-html{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}";
@@ -183,8 +183,17 @@
       c.imageSmoothingEnabled = true; if (texF.complete && texF.naturalWidth) c.drawImage(texF, 0, 0, WID, HF);
       for (var r = 0; r < NR; r++) RV[r] = (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1 || (rbx1[r] - rbx0[r] < px1 && rby1[r] - rby0[r] < px1)) ? 0 : 1;
       var lw = 1 / kk; c.lineJoin = "round"; c.lineCap = "round";
-      c.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && washIso[e.iso]) entPath(c, e); }); c.globalCompositeOperation = "source-over"; c.fillStyle = "rgba(36,112,168,.46)"; c.fill("evenodd");
-      c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionMarked(ents[i])) entPath(c, ents[i]); }); }); c.fillStyle = "rgba(196,98,45,.52)"; c.fill("evenodd");
+      byLayer.W.forEach(function (i) {
+        var e = ents[i]; if (!litCountry(e)) return;
+        c.beginPath(); entPath(c, e); c.fillStyle = "rgba(36,112,168,.5)"; c.fill();
+        c.strokeStyle = "rgba(12,64,110,.85)"; c.lineWidth = 1.3 * lw; c.stroke();
+      });
+      ["R", "C", "G"].forEach(function (L) {
+        byLayer[L].forEach(function (i) {
+          if (!regionMarked(ents[i])) return;
+          c.beginPath(); entPath(c, ents[i]); c.fillStyle = "rgba(196,98,45,.6)"; c.fill();
+        });
+      });
       if (k >= 2.6) {
         c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) entPath(c, ents[i]); }); });
         c.strokeStyle = "rgba(250,252,251,.55)"; c.lineWidth = 0.4 * lw; c.stroke();
@@ -460,8 +469,17 @@
       if (!tex) { ctx.fillStyle = "#96b8d0"; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.fill(); return; }
       relief(q); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; ctx.drawImage(rbuf, 0, 0, cw, ch); ctx.restore();
       project(); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
-      ctx.beginPath(); byLayer.W.forEach(function (i) { var e = ents[i]; if (e.iso && washIso[e.iso]) fillRings(e); }); ctx.fillStyle = "rgba(36,112,168,.46)"; ctx.fill("evenodd");
-      ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionMarked(ents[i])) fillRings(ents[i]); }); }); ctx.fillStyle = "rgba(196,98,45,.52)"; ctx.fill("evenodd");
+      byLayer.W.forEach(function (i) {
+        var e = ents[i]; if (!litCountry(e)) return;
+        ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(36,112,168,.5)"; ctx.fill();
+        ctx.strokeStyle = "rgba(12,64,110,.9)"; ctx.lineWidth = 1.1; ctx.stroke();
+      });
+      ["R", "C", "G"].forEach(function (L) {
+        byLayer[L].forEach(function (i) {
+          if (!regionMarked(ents[i])) return;
+          ctx.beginPath(); fillRings(ents[i]); ctx.fillStyle = "rgba(196,98,45,.6)"; ctx.fill();
+        });
+      });
       [[hoverEnt, "rgba(60,110,85,.55)"], [selEnt, "rgba(196,98,45,.70)"]].forEach(function (h) { if (h[0] < 0) return; ctx.beginPath(); fillRings(ents[h[0]]); ctx.fillStyle = h[1]; ctx.fill("evenodd"); });
       if (!moving && zoom >= 2.2) {
         ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) strokeRings(ents[i]); }); });
@@ -616,6 +634,20 @@
     if (!e) return false;
     return !!(markR[e.name] || (e.rid && markR[e.rid]));
   }
+  function isoOfName(name) {
+    var n = String(name || "").toLowerCase().replace(/ё/g, "е");
+    if (!n) return "";
+    if (nameIso[n]) return nameIso[n];
+    var k;
+    for (k in nameIso) if (k.length > 4 && (n.indexOf(k) >= 0 || k.indexOf(n) >= 0)) return nameIso[k];
+    return "";
+  }
+  function litCountry(e) {
+    if (!e) return false;
+    var iso = e.iso || isoOfName(e.name);
+    if (iso && !e.iso) e.iso = iso;
+    return !!(iso && washIso[iso]);
+  }
   function stampIso() {
     var list = (typeof COUNTRY_LIST !== "undefined") ? COUNTRY_LIST : null;
     if (!list || !list.length) return 0;
@@ -639,6 +671,7 @@
         if (k.length > 4 && (name.indexOf(k) >= 0 || k.indexOf(name) >= 0)) { e.iso = by[k]; added++; break; }
       }
     });
+    nameIso = by;
     return added;
   }
   function rebuildWash() {
