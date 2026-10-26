@@ -10995,10 +10995,8 @@ function routeCardHtml(r){
   var fromL=g&&g.a?shortPlaceLabel(r.from, g.a.lat, g.a.lng):shortPlaceLabel(r.from);
   var toL=g&&g.b?shortPlaceLabel(r.to, g.b.lat, g.b.lng):shortPlaceLabel(r.to);
   var dur=formatTripDuration(r, km);
-  var art=r.mode==="train"?"/art/train.jpg":(r.mode==="car"?"/art/car.jpg":"/art/plane.jpg");
   var kmNote=g&&g.railMiss?(" · "+t("нет железной дороги")):(g&&g.roadMiss?(" · "+t("нет автодороги")):(km?" · "+km.toLocaleString(currentLang()==="en"?"en":"ru-RU")+" "+t("км"):""));
   return '<div class="row '+(selectedId===r.id?"on ":"")+(fut?"future":"")+'" data-id="'+r.id+'">'+
-    '<img class="thumb" alt="" src="'+art+'">'+
     '<button type="button" class="edit" data-edit="'+r.id+'" title="'+t("Изменить")+'">✎</button>'+
     '<button type="button" class="del" data-del="'+r.id+'" title="'+t("Удалить")+'">×</button>'+
     '<div class="title">'+fromL+" → "+toL+"</div>"+
@@ -11011,7 +11009,7 @@ function paintSheetList(el, list){
   if(activeTab==="trips"){
     var tripsNow=loadTrips();
     if(!tripsNow.length){
-      el.innerHTML='<div class="empty"><img src="/art/empty.jpg" alt=""><p>'+t("Поездок пока нет")+'</p></div>';
+      el.innerHTML='<div class="empty"><p>'+t("Поездок пока нет")+'</p></div>';
       return;
     }
     el.innerHTML=tripsNow.map(function(tp){

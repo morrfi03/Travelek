@@ -664,43 +664,43 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <body>
 <style>
 :root,:root[data-theme="dark"]{
-  --bg:#07090f;
-  --panel:rgba(18,22,34,.82);
-  --panel-solid:#12162a;
-  --line:rgba(255,255,255,.08);
-  --text:#f2f4f8;
-  --muted:#8b93a8;
-  --train:#34d399;--plane:#60a5fa;--car:#fbbf24;--walk:#a3e635;--bike:#fb7185;--ship:#22d3ee;
-  --accent:#7c9cff;--future:#a78bfa;
-  --top-grad:linear-gradient(180deg,rgba(7,9,15,.92) 0%,rgba(7,9,15,.55) 55%,transparent 100%);
-  --chip:rgba(255,255,255,.06);
-  --row:rgba(255,255,255,.04);
-  --stat:rgba(255,255,255,.05);
-  --handle:rgba(255,255,255,.28);
-  --shadow:0 -8px 40px rgba(0,0,0,.5);
-  --map-bg:#05070c;
-  --glass:rgba(16,20,32,.72);
-  --radius:16px;
-  --radius-sm:12px;
+  --bg:#141210;
+  --panel:#1c1916;
+  --panel-solid:#1c1916;
+  --line:rgba(244,236,224,.12);
+  --text:#f4efe6;
+  --muted:#a89c90;
+  --train:#d9cbb8;--plane:#f4efe6;--car:#d9cbb8;--walk:#cbbba6;--bike:#d9cbb8;--ship:#cbbba6;
+  --accent:#e6d3b4;--future:#d9cbb8;
+  --top-grad:linear-gradient(180deg,#141210 0%,rgba(20,18,16,.72) 62%,transparent 100%);
+  --chip:rgba(244,236,224,.06);
+  --row:transparent;
+  --stat:transparent;
+  --handle:rgba(244,236,224,.28);
+  --shadow:none;
+  --map-bg:#d5e0e6;
+  --glass:rgba(28,25,22,.88);
+  --radius:0px;
+  --radius-sm:0px;
   --safe-b:env(safe-area-inset-bottom,0px);
 }
 :root[data-theme="light"]{
-  --bg:#eef1f6;
-  --panel:rgba(255,255,255,.88);
-  --panel-solid:#ffffff;
-  --line:rgba(0,0,0,.08);
-  --text:#0f1420;
-  --muted:#667085;
-  --train:#059669;--plane:#2563eb;--car:#d97706;--walk:#65a30d;--bike:#e11d48;--ship:#0891b2;
-  --accent:#3b82f6;--future:#7c3aed;
-  --top-grad:linear-gradient(180deg,rgba(238,241,246,.95) 0%,rgba(238,241,246,.5) 60%,transparent 100%);
-  --chip:rgba(0,0,0,.04);
-  --row:rgba(0,0,0,.03);
-  --stat:rgba(0,0,0,.04);
-  --handle:rgba(0,0,0,.2);
-  --shadow:0 -8px 32px rgba(0,0,0,.12);
-  --map-bg:#d8dee8;
-  --glass:rgba(255,255,255,.78);
+  --bg:#f4f0e8;
+  --panel:#f7f4ee;
+  --panel-solid:#f7f4ee;
+  --line:rgba(36,28,20,.1);
+  --text:#1c1814;
+  --muted:#6f655c;
+  --train:#3e4a40;--plane:#1c1814;--car:#5c4632;--walk:#3e4a40;--bike:#5c4632;--ship:#2c3e48;
+  --accent:#8c3d22;--future:#6b5344;
+  --top-grad:linear-gradient(180deg,#f4f0e8 0%,rgba(244,240,232,.78) 64%,transparent 100%);
+  --chip:rgba(36,28,20,.04);
+  --row:transparent;
+  --stat:transparent;
+  --handle:rgba(36,28,20,.22);
+  --shadow:none;
+  --map-bg:#d5e0e6;
+  --glass:rgba(247,244,238,.92);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{
@@ -1180,8 +1180,8 @@ body.globe-on #globe-hint{display:block}
 #country-list button{
   display:flex;justify-content:space-between;text-align:left;font-weight:550;
 }
-#country-list button.on{border-color:transparent;background:rgba(37,99,235,.22);color:#93c5fd}
-[data-theme="light"] #country-list button.on{color:#1d4ed8;background:rgba(37,99,235,.14)}
+#country-list button.on{border-color:transparent;background:rgba(140,61,34,.16);color:var(--text)}
+[data-theme="light"] #country-list button.on{color:var(--text);background:rgba(140,61,34,.1)}
 #countries-panel .hint{font-size:11px;color:var(--muted);margin:8px 0 0}
 #set-reset{background:rgba(220,60,60,.2)!important;color:#f0a0a0!important}
 
@@ -1200,11 +1200,10 @@ body.globe-on #globe-hint{display:block}
   border:0;background:transparent;color:var(--muted);border-radius:999px;font-weight:700;
 }
 #settings-panel .map-switch button.on{color:#fff}
-.countries-pct,.visit-stats{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-  margin:0 0 8px;padding:10px 12px;border-radius:14px;
-  background:rgba(59,130,246,.18);border:1px solid rgba(124,156,255,.45);
-  color:var(--text);font-size:13px;font-weight:750;
+.countries-pct{display:none!important}
+.visit-stats{
+  display:flex;align-items:baseline;gap:8px;margin:0 0 8px;padding:0;
+  background:transparent;border:0;color:var(--text);font-size:13px;font-weight:500;
 }
 .countries-pct b,.visit-stats b{font-size:28px;line-height:1;letter-spacing:-.04em;color:var(--accent);font-weight:800}
 .countries-pct span,.visit-stats span{font-size:13px;font-weight:650}
@@ -1318,21 +1317,21 @@ body.globe-on #globe-hint{display:block}
 body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!important}
 #file-login{
   display:none;position:fixed;inset:0;z-index:80;place-items:center;padding:24px;
-  background:radial-gradient(900px 420px at 50% -10%, rgba(79,125,255,.35), transparent 60%), #07090f;
+  background:var(--bg);color:var(--text);
 }
 #file-login form{
-  width:min(400px,100%);background:rgba(18,22,34,.92);border:1px solid rgba(255,255,255,.1);
-  border-radius:22px;padding:28px 22px 22px;color:#eef0f5;
+  width:min(400px,100%);background:transparent;border:0;
+  border-radius:0;padding:8px 4px 4px;color:var(--text);
 }
-#file-login h1{margin:0 0 8px;font-size:28px}
-#file-login p{margin:0 0 18px;color:#a7b0c0;font-size:14px;line-height:1.45}
+#file-login h1{margin:0 0 8px;font-size:32px;font-weight:500;font-family:Palatino,"Iowan Old Style",Georgia,serif}
+#file-login p{margin:0 0 18px;color:var(--muted);font-size:14px;line-height:1.45}
 #file-login input{
   width:100%;box-sizing:border-box;margin:0 0 10px;padding:12px 14px;border-radius:12px;
-  border:1px solid rgba(255,255,255,.12);background:#121722;color:#fff;font-size:16px;
+  border:1px solid var(--line);background:var(--chip);color:var(--text);font-size:16px;
 }
 #file-login button{
   width:100%;margin-top:6px;padding:12px;border:none;border-radius:12px;
-  background:linear-gradient(135deg,#5b8def,#4f7dff);color:#fff;font-weight:700;font-size:16px;
+  background:var(--text);color:var(--panel-solid);font-weight:600;font-size:16px;
 }
 #file-login .passline{display:flex;gap:8px;align-items:center;margin:0 0 10px}
 #file-login .passline input{flex:1;margin:0}
@@ -1348,18 +1347,18 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   border:1px solid var(--line);background:var(--chip);color:var(--text);font-weight:650;font-size:14px;
 }
 #account-panel .panel-x{width:40px;min-height:40px;margin:0;padding:0}
-#acc-name-save,#new-user{background:linear-gradient(135deg,#5b8def,#4f7dff)!important;color:#fff!important;border:none!important}
+#acc-name-save,#new-user{background:var(--text)!important;color:var(--panel-solid)!important;border:none!important}
 
 
 :root[data-theme="light"]{
-  --line:rgba(15,23,42,.18);
-  --muted:#4b5563;
-  --panel:rgba(255,255,255,.97);
-  --glass:rgba(255,255,255,.94);
-  --chip:rgba(15,23,42,.055);
-  --row:rgba(15,23,42,.045);
-  --stat:rgba(15,23,42,.055);
-  --map-bg:#e3e8f0;
+  --line:rgba(36,28,20,.12);
+  --muted:#6f655c;
+  --panel:#f7f4ee;
+  --glass:rgba(247,244,238,.94);
+  --chip:rgba(36,28,20,.04);
+  --row:transparent;
+  --stat:transparent;
+  --map-bg:#d5e0e6;
 }
 [data-theme="light"] .tab,
 [data-theme="light"] .zoom button,
@@ -1378,9 +1377,9 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 #file-login form{margin:auto;box-sizing:border-box}
 .legal-accept{display:block;margin:12px 0 14px;padding:12px;border-radius:14px;background:rgba(255,255,255,.06);color:#d5dced}
 .legal-check{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:flex-start;font-size:14px;line-height:1.4}
-.legal-check input{width:22px;height:22px;margin:1px 0 0;accent-color:#5b8def}
+.legal-check input{width:22px;height:22px;margin:1px 0 0;accent-color:#8c3d22}
 .legal-links{display:flex;gap:14px;margin-top:8px;padding-left:38px}
-#file-login .legal-links button{display:inline!important;width:auto!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;background:none!important;color:#9eb6ff!important;font-size:13px!important;font-weight:700;text-decoration:underline;box-shadow:none!important;border-radius:0!important}
+#file-login .legal-links button{display:inline!important;width:auto!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;background:none!important;color:var(--muted)!important;font-size:13px!important;font-weight:600;text-decoration:underline;box-shadow:none!important;border-radius:0!important}
 .net-toggle{position:fixed;right:max(10px,env(safe-area-inset-right,0px));top:calc(38% - 96px);z-index:26;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
 .net-toggle button{min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--glass);color:var(--text);font-size:12px;font-weight:750;backdrop-filter:blur(16px);box-shadow:0 2px 12px rgba(0,0,0,.2)}
 .net-toggle button.on{background:#1f4f97;color:#fff;border-color:transparent}
@@ -1407,7 +1406,45 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 .tw-add{width:100%;min-height:42px;border-radius:12px;border:1px solid var(--line);background:var(--chip);color:var(--text);font-weight:700;margin:0 0 8px}
 #tw-save{width:100%;min-height:46px;border:0;border-radius:14px;background:linear-gradient(135deg,#5b8def,#4f7dff);color:#fff;font-weight:700;margin-top:8px}
 #tw-delete{width:100%;min-height:42px;margin-top:8px;border-radius:12px;border:1px solid var(--line);background:rgba(220,60,60,.16);color:#e88;font-weight:700}
-.more-link{display:block;width:100%;margin:8px 0 4px;padding:12px;border:0;border-radius:12px;background:transparent;color:var(--accent);font-weight:750;font-size:14px}
+.more-link{display:block;width:100%;margin:4px 0 8px;padding:12px 2px;border:0;background:transparent;color:var(--text);font-weight:600;font-size:13px;text-align:left;letter-spacing:0}
+.sheet{background:var(--panel-solid);backdrop-filter:none;-webkit-backdrop-filter:none;border-radius:18px 18px 0 0;border-top:1px solid var(--line);box-shadow:0 -16px 40px rgba(20,16,12,.18)}
+.top h1{font-weight:500;font-size:22px;letter-spacing:-.03em}
+.top p{letter-spacing:.01em}
+#top-pct b{font-weight:500;font-size:15px;color:var(--text)}
+.tabs{background:transparent;border:0;border-radius:0;padding:0;margin-top:14px;gap:16px;backdrop-filter:none;-webkit-backdrop-filter:none}
+.tab{border-radius:0;font-weight:500;font-size:13px;padding:6px 0 8px;min-height:0}
+.tab.on{background:transparent;box-shadow:inset 0 -1px 0 var(--text);color:var(--text)}
+#add-btn{background:var(--text);color:var(--panel-solid);border:0;box-shadow:none;font-size:20px;font-weight:400}
+.top-actions button,.zoom button{border-radius:50%;box-shadow:none;background:var(--glass)}
+.stats{gap:0;padding:2px 18px 4px}
+.stat{background:transparent;border:0;border-radius:0;padding:4px 0;display:block}
+.stat + .stat{border-left:0}
+.stat b{font-size:18px;font-weight:500;font-variant-numeric:tabular-nums}
+.stat span{font-size:11px;letter-spacing:.01em}
+.countries-open-wrap{padding:0 18px 4px}
+.countries-open-wrap button{background:transparent;border:0;border-radius:0;border-top:1px solid var(--line);padding:12px 0;font-weight:500;font-size:14px}
+.countries-open-wrap b{color:var(--muted);font-weight:500}
+.visit-line{display:none}
+.year-filter{padding:0 18px 6px}
+.year-filter button{border-radius:0;background:transparent;border-color:transparent;padding:4px 0;margin-right:12px;font-weight:500}
+.year-filter button.on{background:transparent;color:var(--text);box-shadow:inset 0 -1px 0 var(--text)}
+.sheet-actions{padding:0 18px 8px}
+.sheet-actions button,#add-btn-2,.btn-save,#tw-save,.visit-yes,#set-save{
+  background:var(--text)!important;color:var(--panel-solid)!important;
+  box-shadow:none!important;border:0!important;border-radius:12px;font-weight:550;
+}
+.list{padding:0 18px 8px}
+.year{letter-spacing:.08em;font-weight:600;padding:16px 0 6px}
+.row{background:transparent;border:0;border-radius:0;border-bottom:1px solid var(--line);padding:13px 64px 13px 0;margin:0;min-height:0}
+.row.on{background:transparent;border-bottom-color:var(--text)}
+.row.future{border-color:transparent;border-bottom:1px solid var(--line)}
+.row .title{font-weight:550}
+.badge{border-radius:0;background:transparent;padding:0;font-weight:500;letter-spacing:0}
+.badge.pl,.badge.tr,.badge.car,.badge.wk,.badge.bk,.badge.sh,.badge.fut{background:transparent;color:var(--muted)}
+.row .edit,.row .del{border:0;background:transparent;border-radius:0;width:28px}
+.trip-window header b,.trip-window h3{font-family:Palatino,"Iowan Old Style",Georgia,serif;font-weight:500;letter-spacing:-.02em}
+.trip-window input,.trip-window select{border-radius:10px}
+#region-list button.on,#country-list .country-row.on .tick{background:rgba(140,61,34,.16);color:var(--text)}
 </style>
 <div id="file-login">
   <form id="file-login-form">
@@ -1439,7 +1476,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 <div class="top">
   <div class="top-row">
     <div>
-      <h1><img class="logo" src="art/logo.jpg" alt=""> ТравелЕк</h1>
+      <h1>ТравелЕк</h1>
       <p id="subtitle">Ваши маршруты</p>
       <p id="top-pct"><b>0%</b><span id="top-pct-sub"></span></p>
     </div>
@@ -1466,18 +1503,14 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 <div id="offline-pill" data-i18n="Нет сети · карта из кэша">Нет сети · карта из кэша</div>
 <div class="sheet mid" id="sheet">
   <div class="handle-wrap" id="handle-wrap"><div class="handle"></div></div>
-  <div class="cover">
-    <img src="art/cover.jpg" alt="">
-    <div class="cover-copy"><b data-i18n="Дневник путешествий">Дневник путешествий</b><span data-i18n="самолёт, поезд и дорога">самолёт, поезд и дорога</span></div>
-  </div>
   <div class="stats">
-    <div class="stat"><img src="art/plane.jpg" alt=""><div><b id="s-plane">0</b><span data-i18n="небо, км">небо, км</span></div></div>
-    <div class="stat"><img src="art/train.jpg" alt=""><div><b id="s-train">0</b><span data-i18n="поезд, км">поезд, км</span></div></div>
-    <div class="stat"><img src="art/car.jpg" alt=""><div><b id="s-car">0</b><span data-i18n="авто, км">авто, км</span></div></div>
+    <div class="stat"><div><b id="s-plane">0</b><span data-i18n="небо, км">небо, км</span></div></div>
+    <div class="stat"><div><b id="s-train">0</b><span data-i18n="поезд, км">поезд, км</span></div></div>
+    <div class="stat"><div><b id="s-car">0</b><span data-i18n="авто, км">авто, км</span></div></div>
   </div>
   <div class="countries-open-wrap">
-    <p class="countries-pct" id="countries-pct"><b>0%</b><span id="countries-pct-sub">0 из 0</span></p>
-    <button type="button" id="countries-open"><img src="art/passport.jpg" alt=""> <span data-i18n="Посещённые страны">Посещённые страны</span> <b id="countries-count">0</b></button>
+    <p class="countries-pct" id="countries-pct" hidden><b>0%</b><span id="countries-pct-sub">0 из 0</span></p>
+    <button type="button" id="countries-open"><span data-i18n="Посещённые страны">Посещённые страны</span> <b id="countries-count">0</b></button>
   </div>
   <p class="visit-line" id="visit-line">Считаем страны по маршрутам…</p>
   <div class="year-filter" id="year-filter"></div>
