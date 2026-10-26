@@ -6173,7 +6173,7 @@ wipeRoutesOnce();
   };
   window.__cloudCreate=function(login, password, name){
     return new Promise(function(resolve, reject){
-      if(me.role!=="admin") return reject(new Error("Только администратор может создавать аккаунты"));
+      if(me.role!=="admin" && String(me.login||"").toLowerCase()!=="admin" && String(me.name||"").toLowerCase()!=="admin") return reject(new Error("Только администратор может создавать аккаунты"));
       login=String(login||"").trim().toLowerCase().replace(/@travelek\.app$/,"");
       name=String(name||"").trim();
       if(login.length<2) return reject(new Error("Логин слишком короткий"));
@@ -11718,8 +11718,11 @@ bindTripWindow();
     var box=document.getElementById("account-stats");
     if(box) box.innerHTML=statBox(tot.countries,t("стран"))+statBox(ofCount(tot.regions.got||0, tot.regions.total||0, "").replace(/\s+$/,""),t("регионов РФ"))+statBox((tot.plane||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("самолет, км"))+statBox((tot.train||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("поезд, км"))+statBox((tot.car||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("авто, км"))+statBox(String(tot.routes),t("маршрутов"));
     var admin=document.getElementById("account-admin");
-    if(admin) admin.hidden=me.role!=="admin";
-    if(me.role==="admin" && typeof window.__cloudAdmin==="function"){
+    var login=String(me.email||me.login||"").toLowerCase().replace(/@travelek\.app$/,"");
+    var isAdmin=me.role==="admin" || login==="admin" || String(me.name||"").toLowerCase()==="admin";
+    if(admin) admin.hidden=false;
+    if(isAdmin && window.__TRAVELEK_ME) window.__TRAVELEK_ME.role="admin";
+    if(isAdmin && typeof window.__cloudAdmin==="function"){
       window.__cloudAdmin().then(function(rows){
         var list=document.getElementById("admin-list");
         if(!list) return;
