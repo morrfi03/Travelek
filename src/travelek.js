@@ -5865,8 +5865,8 @@ wipeRoutesOnce();
       function nExtra(raw){ try{ var a=JSON.parse(raw||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
       if(Array.isArray(data.users)){
         data.users.forEach(function(ru){
-          if(nickIsAdmin(ru)) ru.role="admin";
-          else if(ru && ru.id===me.id && me.role==="admin") ru.role="admin";
+          if(!ru) return;
+          ru.role=nickIsAdmin(ru)?"admin":"user";
         });
         var hasAdmin=false, ui;
         for(ui=0;ui<data.users.length;ui++) if(data.users[ui] && data.users[ui].role==="admin") hasAdmin=true;
@@ -5917,16 +5917,13 @@ wipeRoutesOnce();
       Object.keys(data.vault).forEach(function(id){ if(!known[id]) delete data.vault[id]; });
       return hashList(data.users).then(function(){
         if(me){
-          var has=false, first=data.users[0], n, num=function(id){ var x=parseInt(String(id||"").replace(/\D/g,""),10); return isNaN(x)?0:x; };
+          var n;
           grantNamedAdmin(data.users);
           for(n=0;n<data.users.length;n++){
-            if(data.users[n].role==="admin") has=true;
-            if(data.users[n] && first && num(data.users[n].id)<num(first.id)) first=data.users[n];
-            if(data.users[n] && data.users[n].id===me.id && nickIsAdmin(data.users[n])){ data.users[n].role="admin"; me.role="admin"; }
-          }
-          if(first && first.id===me.id && first.role!=="admin"){ first.role="admin"; me.role="admin"; has=true; }
-          else if(!has){
-            for(n=0;n<data.users.length;n++) if(data.users[n].id===me.id){ data.users[n].role="admin"; me.role="admin"; }
+            if(!data.users[n]) continue;
+            if(nickIsAdmin(data.users[n])) data.users[n].role="admin";
+            else if(data.users[n].role==="admin") data.users[n].role="user";
+            if(data.users[n].id===me.id) me.role=data.users[n].role;
           }
           if(window.__TRAVELEK_ME && window.__TRAVELEK_ME.id===me.id) window.__TRAVELEK_ME.role=me.role;
         }
@@ -5975,6 +5972,12 @@ wipeRoutesOnce();
       if(idNum(u[n].id)<idNum(first.id)) first=u[n];
     }
     if(!row) return;
+    var n;
+    for(n=0;n<u.length;n++){
+      if(!u[n]) continue;
+      if(nickIsAdmin(u[n])) u[n].role="admin";
+      else if(u[n].role==="admin") u[n].role="user";
+    }
     if(nickIsAdmin(row)){
       row.role="admin";
       me.role="admin";
@@ -5983,13 +5986,9 @@ wipeRoutesOnce();
       scheduleSave();
       return;
     }
-    if(row.role==="admin") return;
-    if(hasAdmin && first.id!==me.id) return;
-    row.role="admin";
-    me.role="admin";
+    me.role=row.role;
     try{ localStorage.setItem(USERS, JSON.stringify(u)); }catch(e){}
-    if(window.__TRAVELEK_ME) window.__TRAVELEK_ME.role="admin";
-    scheduleSave();
+    if(window.__TRAVELEK_ME) window.__TRAVELEK_ME.role=row.role;
   }
   window.__ensureOwner=ensureOwner;
   var list=users();
@@ -5999,7 +5998,7 @@ wipeRoutesOnce();
   if(me){
     var anyAdmin=false, ai;
     for(ai=0;ai<list.length;ai++) if(list[ai] && list[ai].role==="admin") anyAdmin=true;
-    if(nickIsAdmin(me) || !anyAdmin || (function(){ var best=list[0], bi; for(bi=1;bi<list.length;bi++){ var an=parseInt(String(list[bi].id).replace(/\D/g,""),10)||0, bn=parseInt(String(best.id).replace(/\D/g,""),10)||0; if(an<bn) best=list[bi]; } return best.id===me.id; })()){
+    if(nickIsAdmin(me)){
       me.role="admin";
       for(ai=0;ai<list.length;ai++) if(list[ai].id===me.id) list[ai].role="admin";
       try{ localStorage.setItem(USERS, JSON.stringify(list)); }catch(e){}
@@ -6178,7 +6177,7 @@ wipeRoutesOnce();
       name=String(name||"").trim();
       if(login.length<2) return reject(new Error("Логин слишком короткий"));
       if(String(password||"").length<8) return reject(new Error("Пароль короче 8 символов"));
-      if(!name) return reject(new Error("Нужно имя"));
+      if(!name) name=login;
       ensureStore().then(function(){
         var u=users(), n;
         for(n=0;n<u.length;n++) if(String(u[n].login||"").toLowerCase()===login) throw new Error("Такой логин уже есть");
@@ -9859,6 +9858,7 @@ function openSettings(){
   if(typeof syncMapSwitch==="function") syncMapSwitch();
   if(typeof syncLangButtons==="function") syncLangButtons();
   document.getElementById("settings-panel").classList.add("on");
+  if(typeof window.__fillAccount==="function") window.__fillAccount();
   var accountPanel=document.getElementById("account-panel");
   if(accountPanel) accountPanel.classList.remove("on");
   var trackPanel=document.getElementById("track-panel");
@@ -11720,7 +11720,7 @@ bindTripWindow();
     var admin=document.getElementById("account-admin");
     var login=String(me.email||me.login||"").toLowerCase().replace(/@travelek\.app$/,"");
     var isAdmin=me.role==="admin" || login==="admin" || String(me.name||"").toLowerCase()==="admin";
-    if(admin) admin.hidden=false;
+    if(admin) admin.hidden=!isAdmin;
     if(isAdmin && window.__TRAVELEK_ME) window.__TRAVELEK_ME.role="admin";
     if(isAdmin && typeof window.__cloudAdmin==="function"){
       window.__cloudAdmin().then(function(rows){
@@ -11729,8 +11729,8 @@ bindTripWindow();
         if(!rows || !rows.length){ list.innerHTML='<p class="hint">'+t("Пока только вы.")+'</p>'; return; }
         list.innerHTML=rows.map(function(r){
           var login=String(r.email||"").replace(/@travelek\.app$/,"");
-          var lines=(r.lines&&r.lines.length)?r.lines.map(function(line){ return '<div class="route-line">'+line+'</div>'; }).join(""):'<div class="route-line">'+t("Маршрутов пока нет")+'</div>';
-          return '<div class="admin-row"><button type="button" data-user="'+r.userId+'"><b>'+ (r.name||login) +'</b> · '+login+'<br><span style="color:var(--muted);font-size:12px">'+(r.role==="admin"?t("админ · "):"")+r.routes+" "+t("маршрутов")+" · "+r.countries+" "+t("стран")+" · "+((typeof RUSSIA_REGIONS!=="undefined"&&RUSSIA_REGIONS&&RUSSIA_REGIONS.length)?ofCount(r.regions, RUSSIA_REGIONS.length, t("регионов РФ")):(r.regions+" "+t("регионов РФ")))+' · '+r.kmPlane+' / '+r.kmTrain+' / '+r.kmCar+' '+t("км")+'</span>'+lines+'</button>'+(r.userId===(window.__TRAVELEK_ME&&window.__TRAVELEK_ME.id)?"":'<button type="button" data-pass="'+r.userId+'" data-login="'+login+'">'+t("Сменить пароль")+'</button><button type="button" data-del="'+r.userId+'" data-login="'+login+'">'+t("Удалить")+'</button>')+'</div>';
+          var mine=r.userId===(window.__TRAVELEK_ME&&window.__TRAVELEK_ME.id);
+          return '<div class="admin-row"><b>'+(r.name||login)+'</b> · '+login+(r.role==="admin"?" · "+t("админ"):"")+'<div class="route-line">'+r.routes+" "+t("маршрутов")+" · "+r.countries+" "+t("стран")+" · "+r.regions+" "+t("регионов")+'</div><div class="route-line">'+r.kmPlane+" "+t("самолет, км")+" · "+r.kmTrain+" "+t("поезд, км")+" · "+r.kmCar+" "+t("авто, км")+'</div>'+(mine?"":'<button type="button" data-user="'+r.userId+'">'+t("Смотреть карту")+'</button><button type="button" data-del="'+r.userId+'" data-login="'+login+'">'+t("Удалить")+'</button>')+'</div>';
         }).join("");
       }).catch(function(){
         var list=document.getElementById("admin-list");
@@ -11817,12 +11817,13 @@ bindTripWindow();
   if(create) create.onclick=function(){
     if(typeof window.__cloudCreate!=="function") return;
     var login=document.getElementById("new-login").value;
-    var name=document.getElementById("new-name").value;
     var pass=document.getElementById("new-pass").value;
-    window.__cloudCreate(login, pass, name).then(function(){
+    var pass2=document.getElementById("new-pass2").value;
+    if(pass!==pass2){ alert("Пароли не совпадают"); return; }
+    window.__cloudCreate(login, pass, login).then(function(){
       document.getElementById("new-login").value="";
-      document.getElementById("new-name").value="";
       document.getElementById("new-pass").value="";
+      document.getElementById("new-pass2").value="";
       alert(t("Аккаунт создан. Теперь по этому логину можно войти с любого телефона."));
       fillAccount();
     }).catch(function(e){ alert(e && e.message ? t(e.message) : t("Не удалось создать")); });

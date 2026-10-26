@@ -1337,11 +1337,14 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 }
 #file-login .passline{display:flex;gap:8px;align-items:center;margin:0 0 10px}
 #file-login .passline input{flex:1;margin:0}
-#file-login .eye,#account-panel .eye{
+#file-login .eye,#account-panel .eye,#settings-panel .eye{
   width:auto!important;margin:0!important;padding:12px;border-radius:12px;
   border:1px solid rgba(255,255,255,.16);background:transparent;color:#d5dbea;font-size:13px;
 }
 #account-panel .passline{display:flex;gap:8px;align-items:center;margin:0 0 10px}
+#settings-panel .passline{display:flex;gap:8px;align-items:center;margin:0 0 10px}
+#settings-panel .passline input{flex:1;margin:0}
+#settings-panel input{width:100%;box-sizing:border-box;margin:4px 0 10px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--chip);color:var(--text);font-size:15px}
 #account-panel .passline input{flex:1}
 #file-login-err{color:#f0a0a0;font-size:13px;min-height:18px}
 #account-panel button{
@@ -1575,6 +1578,21 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 
 <div id="settings-panel" style="max-height:70vh;overflow-y:auto">
   <b style="font-size:14px" data-i18n="Настройки">Настройки</b>
+  <div id="account-admin">
+    <b style="display:block;margin:14px 0 6px" data-i18n="Создать аккаунт">Создать аккаунт</b>
+    <input id="new-login" type="text" placeholder="Логин" data-i18n-ph="Логин" autocomplete="off" />
+    <div class="passline">
+      <input id="new-pass" type="password" placeholder="Пароль" data-i18n-ph="Пароль" autocomplete="new-password" />
+      <button type="button" class="eye" data-eye="new-pass" data-i18n="Показать">Показать</button>
+    </div>
+    <div class="passline">
+      <input id="new-pass2" type="password" placeholder="Повторите пароль" data-i18n-ph="Повторите пароль" autocomplete="new-password" />
+      <button type="button" class="eye" data-eye="new-pass2" data-i18n="Показать">Показать</button>
+    </div>
+    <button type="button" id="new-user" data-i18n="Создать аккаунт">Создать аккаунт</button>
+    <b style="display:block;margin:16px 0 6px" data-i18n="Список аккаунтов">Список аккаунтов</b>
+    <div id="admin-list"></div>
+  </div>
   <label style="display:block;font-size:11px;color:var(--muted);margin-top:10px" data-i18n="Тема">Тема</label>
   <div class="row2 theme-row">
     <button type="button" id="set-theme-dark" data-i18n="Тёмная">Тёмная</button>
@@ -1606,19 +1624,6 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     <button type="button" id="account-close" class="panel-x" aria-label="Закрыть" data-i18n-title="Закрыть">×</button>
   </div>
   <p class="hint" id="account-who"></p>
-  <div id="account-admin">
-    <b style="display:block;margin:8px 0 6px" data-i18n="Новый аккаунт">Новый аккаунт</b>
-    <input id="new-login" type="text" placeholder="Логин" data-i18n-ph="Логин" autocomplete="off" />
-    <input id="new-name" type="text" placeholder="Имя" data-i18n-ph="Имя" autocomplete="off" />
-    <div class="passline">
-      <input id="new-pass" type="password" placeholder="Пароль" data-i18n-ph="Пароль" autocomplete="new-password" />
-      <button type="button" class="eye" data-eye="new-pass" data-i18n="Показать">Показать</button>
-    </div>
-    <button type="button" id="new-user" data-i18n="Создать аккаунт">Создать аккаунт</button>
-    <b style="display:block;margin:16px 0 6px" data-i18n="Все аккаунты">Все аккаунты</b>
-    <p class="hint">Нажмите человека, чтобы открыть его маршруты и статистику. Менять его дневник нельзя.</p>
-    <div id="admin-list"></div>
-  </div>
   <div class="account-stats" id="account-stats"></div>
   <label style="font-size:11px;color:var(--muted)" data-i18n="Имя">Имя</label>
   <input id="acc-name" type="text" autocomplete="name" />
