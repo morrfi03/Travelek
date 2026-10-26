@@ -5912,36 +5912,9 @@ wipeRoutesOnce();
       if(!data||typeof data!=="object") data={};
       if(!Array.isArray(data.users)) data.users=[];
       if(!data.vault||typeof data.vault!=="object"||Array.isArray(data.vault)) data.vault={};
-      var local=read(USERS, []);
-      if(!Array.isArray(local)) local=[];
-      var have={}, i, L;
-      for(i=0;i<data.users.length;i++) have[String(data.users[i].login||"").toLowerCase()]=1;
-      for(i=0;i<local.length;i++){
-        L=String((local[i]&&(local[i].login||local[i].email))||"").toLowerCase().replace(/@travelek\.app$/,"");
-        if(!L||have[L]) continue;
-        have[L]=1;
-        data.users.push({id:local[i].id||("u"+Date.now()), login:L, name:local[i].name||L, password:local[i].password||"", role:local[i].role==="admin"?"admin":"user"});
-      }
-      var lv=read(VAULT, {});
-      function packCount(pack){
-        if(!pack) return 0;
-        try{ var raw=pack["travelek-extra"]; var a=typeof raw==="string"?JSON.parse(raw):raw; return Array.isArray(a)?a.length:0; }catch(e){ return 0; }
-      }
-      function better(a,b){
-        if(!a) return b||a;
-        if(!b) return a;
-        var an=packCount(a), bn=packCount(b);
-        if(bn>an) return b;
-        if(an>bn) return a;
-        return Object.keys(b).length>Object.keys(a).length?b:a;
-      }
-      var ids={}, id;
-      if(lv&&typeof lv==="object") Object.keys(lv).forEach(function(k){ ids[k]=1; });
-      Object.keys(data.vault).forEach(function(k){ ids[k]=1; });
-      for(id in ids){
-        if(!Object.prototype.hasOwnProperty.call(ids,id)) continue;
-        data.vault[id]=better(data.vault[id], lv&&lv[id]);
-      }
+      var known={}, i;
+      for(i=0;i<data.users.length;i++) if(data.users[i]&&data.users[i].id) known[data.users[i].id]=1;
+      Object.keys(data.vault).forEach(function(id){ if(!known[id]) delete data.vault[id]; });
       return hashList(data.users).then(function(){
         if(me){
           var has=false, first=data.users[0], n, num=function(id){ var x=parseInt(String(id||"").replace(/\D/g,""),10); return isNaN(x)?0:x; };
