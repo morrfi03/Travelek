@@ -10853,6 +10853,10 @@ function bootGeo(){
     drawCountries();
     renderCountryUi();
     if(typeof drawCityLabels==="function") drawCityLabels();
+    if(typeof absorbRoute==="function" && tw && tw.routes && document.getElementById("trip-window") && document.getElementById("trip-window").classList.contains("on")){
+      tw.routes.forEach(function(r){ absorbRoute(routeById(r.id)||r); });
+      paintTripWindow();
+    }
     globeLand=null;
     if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
     if(typeof scheduleNet==="function") scheduleNet();
@@ -11143,16 +11147,34 @@ function futurePlaces(){
 }
 function endpointBag(r){
   var countries=[], regions=[], sc={}, sr={};
-  function hit(pt){
-    if(!pt || typeof countryAt!=="function") return;
-    var cid=countryAt(pt.lat, pt.lng);
-    var rid=cid && typeof regionIn==="function"?regionIn(cid, pt.lat, pt.lng):null;
+  function hit(lat, lng){
+    if(lat==null || lng==null || isNaN(lat) || isNaN(lng) || typeof countryAt!=="function") return;
+    lat=+lat; lng=+lng;
+    var cid=countryAt(lat, lng);
+    var rid=cid && typeof regionIn==="function" ? regionIn(cid, lat, lng) : null;
+    if(!rid && typeof regionAt==="function") rid=regionAt(lat, lng);
+    if(!rid && typeof chinaRegionAt==="function") rid=chinaRegionAt(lat, lng);
+    if(!cid && rid) cid=countryOfRid(rid);
     if(cid && !sc[cid]){ sc[cid]=1; countries.push(cid); }
     if(rid && !sr[rid]){ sr[rid]=1; regions.push(rid); }
   }
-  if(typeof place==="function"){
-    hit(place(r.from, r.fromCode));
-    hit(place(r.to, r.toCode));
+  function hitPt(pt){ if(pt) hit(pt.lat, pt.lng); }
+  function hitPair(p){
+    if(!p) return;
+    if(p.lat!=null) hit(p.lat, p.lng);
+    else hit(p[0], p[1]);
+  }
+  if(r && r.coords && r.coords.length){
+    hitPair(r.coords[0]);
+    hitPair(r.coords[r.coords.length-1]);
+  }
+  if(!countries.length && typeof buildGeoSync==="function"){
+    var g=buildGeoSync(r);
+    if(g){ hitPt(g.a); hitPt(g.b); }
+  }
+  if(!countries.length && typeof place==="function"){
+    hitPt(place(r.from, r.fromCode));
+    hitPt(place(r.to, r.toCode));
   }
   return {countries:countries, regions:regions};
 }
@@ -11410,8 +11432,9 @@ function openTripWindow(seed){
     (existing.routes||[]).forEach(function(id){
       var r=null, k;
       for(k=0;k<(ROUTES||[]).length;k++) if(ROUTES[k].id===id) r=ROUTES[k];
-      if(r) tw.routes.push({saved:true, id:r.id, mode:r.mode, from:r.from, to:r.to, date:r.date, time:r.time||""});
+      if(r) tw.routes.push({saved:true, id:r.id, mode:r.mode, from:r.from, to:r.to, date:r.date, time:r.time||"", fromCode:r.fromCode||"", toCode:r.toCode||"", coords:r.coords||null});
     });
+    tw.routes.forEach(function(r){ absorbRoute(routeById(r.id)||r); });
     selectedTripId=existing.id;
   }
   var name=document.getElementById("tw-name");
@@ -11563,7 +11586,7 @@ function bindTripWindow(){
     if(take){
       var got=routeById(take.getAttribute("data-take"));
       if(got){
-        tw.routes.push({saved:true, id:got.id, mode:got.mode, from:got.from, to:got.to, date:got.date, time:got.time||""});
+        tw.routes.push({saved:true, id:got.id, mode:got.mode, from:got.from, to:got.to, date:got.date, time:got.time||"", fromCode:got.fromCode||"", toCode:got.toCode||"", coords:got.coords||null});
         absorbRoute(got);
         paintTripWindow();
       }
