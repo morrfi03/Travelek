@@ -11608,23 +11608,31 @@ function bindTripWindow(){
       };
     });
   });
-  document.getElementById("tw-add-route").onclick=function(){
+  function addDraftRoute(){
+    var fromEl=document.getElementById("tw-from"), toEl=document.getElementById("tw-to");
+    var from=fromEl?fromEl.value.trim():"", to=toEl?toEl.value.trim():"";
+    var dateEl=document.getElementById("tw-date");
+    var date=dateEl?dateEl.value:"";
+    if(!from && !to && !date) return true;
     editingId=null;
     fMode.value=document.getElementById("tw-mode").value;
-    fFrom.value=document.getElementById("tw-from").value.trim();
-    fTo.value=document.getElementById("tw-to").value.trim();
-    document.getElementById("f-date").value=document.getElementById("tw-date").value;
+    fFrom.value=from;
+    fTo.value=to;
+    document.getElementById("f-date").value=date;
     document.getElementById("f-time").value=document.getElementById("tw-time").value;
     document.getElementById("f-flight").value="";
     var made=buildRouteFromForm();
-    if(!made) return;
+    if(!made) return false;
+    var both=document.getElementById("tw-both");
+    var backDateEl=document.getElementById("tw-date-back");
+    if(both && both.checked){
+      var backDate=backDateEl?backDateEl.value:"";
+      if(!backDate){ alert("Укажите дату обратно"); return false; }
+    }
     tw.routes.push(made);
     absorbRoute(made);
-    var both=document.getElementById("tw-both");
     if(both && both.checked){
-      var backDate=document.getElementById("tw-date-back").value;
-      if(!backDate){ alert("Укажите дату обратно"); return; }
-      var back={id:"u"+(Date.now()+1), mode:made.mode, flight:made.flight, from:made.to, to:made.from, date:backDate};
+      var back={id:"u"+(Date.now()+1), mode:made.mode, flight:made.flight, from:made.to, to:made.from, date:backDateEl.value};
       if(made.time) back.time=made.time;
       if(made.toCode) back.fromCode=made.toCode;
       if(made.fromCode) back.toCode=made.fromCode;
@@ -11632,9 +11640,12 @@ function bindTripWindow(){
       tw.routes.push(back);
       absorbRoute(back);
     }
-    document.getElementById("tw-from").value="";
-    document.getElementById("tw-to").value="";
-    paintTripWindow();
+    if(fromEl) fromEl.value="";
+    if(toEl) toEl.value="";
+    return true;
+  }
+  document.getElementById("tw-add-route").onclick=function(){
+    if(addDraftRoute()) paintTripWindow();
   };
   w.addEventListener("click", function(e){
     var take=e.target.closest&&e.target.closest("[data-take]");
@@ -11673,6 +11684,7 @@ function bindTripWindow(){
   var freeMore=document.getElementById("tw-free-more");
   if(freeMore) freeMore.onclick=function(){ tw.freeAll=true; paintTripWindow(); };
   document.getElementById("tw-save").onclick=function(){
+    if(!addDraftRoute()) return;
     if(!tw.routes.length && !tw.countries.length && !tw.regions.length){
       alert(t("Отметьте страну, регион или маршрут"));
       return;
