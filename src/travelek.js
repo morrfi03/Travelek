@@ -10677,6 +10677,17 @@ function syncVisited(){
     if(rid) autoR[rid]=1;
   }
   (typeof ROUTES!=="undefined"?ROUTES:[]).forEach(function(r){
+    var fut=typeof isFuture==="function" && isFuture(r);
+    if(typeof activeTab!=="undefined" && activeTab==="future" && !fut) return;
+    if(typeof activeTab!=="undefined" && activeTab==="past" && fut) return;
+    if(typeof activeTab!=="undefined" && activeTab==="trips"){
+      var allowed={}, trips=typeof loadTrips==="function"?loadTrips():[], ti;
+      for(ti=0;ti<trips.length;ti++){
+        if(typeof selectedTripId!=="undefined" && selectedTripId && trips[ti].id!==selectedTripId) continue;
+        (trips[ti].routes||[]).forEach(function(id){ allowed[id]=1; });
+      }
+      if(!allowed[r.id]) return;
+    }
     var g=typeof buildGeoSync==="function"?buildGeoSync(r):null;
     if(g){
       if(g.a) hit(g.a.lat, g.a.lng);
@@ -10699,7 +10710,7 @@ function syncVisited(){
     seen[id]=1; next.push(id);
   }
   Object.keys(autoC).forEach(addC);
-  manualCountries.forEach(addC);
+  if(typeof activeTab==="undefined" || activeTab!=="future") manualCountries.forEach(addC);
   function countryOfRegion(id){
     if(!id) return null;
     var rec=regionRecord(id);
@@ -10717,7 +10728,7 @@ function syncVisited(){
     seenR[id]=1; nextR.push(id);
   }
   Object.keys(autoR).forEach(addR);
-  manualRegions.forEach(addR);
+  if(typeof activeTab==="undefined" || activeTab!=="future") manualRegions.forEach(addR);
   visitedRegions=nextR;
   autoCountries=autoC;
   autoRegions=autoR;
@@ -11971,7 +11982,7 @@ bindTripWindow();
     banner.innerHTML='<span>'+t("Дневник: ")+(window.__TRAVELEK_VIEW_NAME||t("Пользователь"))+'</span>';
     var back=document.createElement("button");
     back.type="button";
-    back.textContent=t("Назад");
+    back.textContent=t("К своей карте");
     back.onclick=function(){ if(window.__exitView) window.__exitView(); };
     banner.appendChild(back);
   }

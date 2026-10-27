@@ -157,4 +157,23 @@
     }
   };
   paint();
+  var view="";
+  try{ view=sessionStorage.getItem("travelek-view")||""; }catch(e){}
+  var sid="";
+  try{ sid=localStorage.getItem("travelek-session")||""; }catch(e){}
+  if(view && view!==sid){
+    function home(){ try{ sessionStorage.removeItem("travelek-view"); }catch(e){} location.reload(); }
+    var own=document.getElementById("back-own");
+    if(own){ own.hidden=false; own.onclick=home; }
+    var banner=document.getElementById("view-banner");
+    if(banner && !banner.querySelector("button")){
+      banner.hidden=false;
+      banner.innerHTML="<span>Чужой дневник</span>";
+      var back=document.createElement("button");
+      back.type="button";
+      back.textContent="К своей карте";
+      back.onclick=home;
+      banner.appendChild(back);
+    }
+  }
 })();

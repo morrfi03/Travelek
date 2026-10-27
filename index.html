@@ -1287,7 +1287,7 @@ body.globe-on #globe-hint{display:block}
   #settings-panel .theme-row{grid-template-columns:1fr 1fr 1fr}
 }
 #view-banner{
-  position:fixed;left:12px;right:12px;top:calc(8px + env(safe-area-inset-top,0px));z-index:50;
+  position:fixed;left:12px;right:12px;top:calc(8px + env(safe-area-inset-top,0px));z-index:260;pointer-events:auto;
   display:flex;gap:8px;align-items:center;justify-content:space-between;
   background:#1d4ed8;color:#fff;border-radius:14px;padding:10px 12px;font-size:13px;font-weight:650;
 }
@@ -1502,6 +1502,22 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 #settings-panel .panel-x,#account-panel .panel-x{width:40px;min-height:40px;margin:0;padding:0;flex:none;border-radius:12px}
 .sheet-tools{gap:8px}
 .acct-entry span{color:#93c5fd;font-size:22px}
+[data-theme="light"] .navy-card,
+[data-theme="light"] #admin-list .admin-row,
+[data-theme="light"] .f-card{
+  background:#fff;color:#0c1b33;
+}
+[data-theme="light"] .acct-entry{background:#fff;color:#0c1b33}
+[data-theme="light"] .acct-entry span{color:#2f7cf6}
+[data-theme="light"] .legal-accept{background:#e8f0fb;color:#0c1b33}
+[data-theme="light"] #set-reset{color:#9f1239;background:#fde8ec}
+[data-theme="light"] .sheet,
+[data-theme="light"] #settings-panel,
+[data-theme="light"] #account-panel,
+[data-theme="light"] #countries-panel{background:#f4f8fd;color:#0c1b33}
+[data-theme="light"] .row .title,
+[data-theme="light"] .stat,
+[data-theme="light"] .year{color:#0c1b33}
 </style>
 <div id="file-login">
   <form id="file-login-form">
@@ -1621,7 +1637,6 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     <b data-i18n="Настройки">Настройки</b>
     <button type="button" id="set-close" class="panel-x" aria-label="Закрыть">×</button>
   </div>
-  <button type="button" id="open-accounts" class="acct-entry">Управление аккаунтами <span>›</span></button>
   <div class="navy-card">
   <label style="display:block;font-size:12px;color:var(--muted)" data-i18n="Тема">Тема</label>
   <div class="row2 theme-row">
@@ -1692,9 +1707,8 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     <button type="button" class="eye" data-eye="acc-pass2" data-i18n="Показать">Показать</button>
   </div>
   <button type="button" id="acc-pass-save" data-i18n="Сменить пароль">Сменить пароль</button>
-  <div id="account-userbtn" style="margin-top:12px"></div>
-  <button type="button" id="account-settings" data-i18n="Настройки">Настройки</button>
   <button type="button" id="account-logout" style="margin-top:8px" data-i18n="Выйти">Выйти</button>
+  <button type="button" id="back-own" hidden>К своей карте</button>
 </div>
 <div id="countries-panel">
   <div class="panel-head">
@@ -1813,6 +1827,6 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 <script src="src/polygon-clipping.min.js"></script>
 <script src="geo/atlas-data.js"></script>
 <script src="src/atlas.js"></script>
-<script src="src/travelek.js?v=439"></script>
-<script src="src/accounts.js?v=439"></script>
+<script src="src/travelek.js?v=440"></script>
+<script src="src/accounts.js?v=440"></script>
 </body></html>
