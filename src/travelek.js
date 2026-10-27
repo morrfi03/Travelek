@@ -10707,22 +10707,50 @@ function syncVisited(){
     if(!id || seen[id] || offCountries.indexOf(id)>=0) return;
     seen[id]=1; next.push(id);
   }
-  Object.keys(autoC).forEach(addC);
-  function countryOfRegion(id){
-    if(!id) return null;
-    var rec=regionRecord(id);
-    if(rec && rec.c) return rec.c;
-    var cut=String(id).indexOf(":");
-    if(cut>0) return String(id).slice(0, cut);
-    return "RU";
-  }
-  Object.keys(autoR).forEach(function(id){ var c=countryOfRegion(id); if(c && offCountries.indexOf(c)<0) addC(c); });
-  visited=next;
   var nextR=[], seenR={};
   function addR(id){
     if(!id || seenR[id] || offRegions.indexOf(id)>=0) return;
     seenR[id]=1; nextR.push(id);
   }
+  function countryOfRegion(id){
+    if(!id) return null;
+    var rec=typeof regionRecord==="function"?regionRecord(id):null;
+    if(rec && rec.c) return rec.c;
+    var cut=String(id).indexOf(":");
+    if(cut>0) return String(id).slice(0, cut);
+    return "RU";
+  }
+  Object.keys(autoC).forEach(addC);
+  if(activeTab==="past"){
+    var futC={}, futR={};
+    (ROUTES||[]).forEach(function(r){
+      if(!(typeof isFuture==="function" && isFuture(r))) return;
+      var bag=endpointBag(r);
+      bag.countries.forEach(function(id){ futC[id]=1; });
+      bag.regions.forEach(function(id){ futR[id]=1; });
+    });
+    manualCountries.forEach(function(id){ if(!futC[id]) addC(id); });
+    manualRegions.forEach(function(id){
+      if(futR[id]) return;
+      addR(id);
+      var c=countryOfRegion(id);
+      if(c) addC(c);
+    });
+  }
+  if(activeTab==="trips"){
+    var trips=typeof loadTrips==="function"?loadTrips():[], ti;
+    for(ti=0;ti<trips.length;ti++){
+      if(selectedTripId && trips[ti].id!==selectedTripId) continue;
+      (trips[ti].countries||[]).forEach(addC);
+      (trips[ti].regions||[]).forEach(function(id){
+        addR(id);
+        var c=countryOfRegion(id);
+        if(c) addC(c);
+      });
+    }
+  }
+  Object.keys(autoR).forEach(function(id){ var c=countryOfRegion(id); if(c && offCountries.indexOf(c)<0) addC(c); });
+  visited=next;
   Object.keys(autoR).forEach(addR);
   visitedRegions=nextR;
   autoCountries=autoC;
