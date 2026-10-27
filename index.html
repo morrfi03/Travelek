@@ -664,37 +664,37 @@ svg.leaflet-image-layer.leaflet-interactive path {
 <body>
 <style>
 :root,:root[data-theme="dark"]{
-  --bg:#141210;
-  --panel:#1c1916;
-  --panel-solid:#1c1916;
-  --line:rgba(244,236,224,.12);
-  --text:#f4efe6;
-  --muted:#a89c90;
-  --train:#15803d;--plane:#1d4ed8;--car:#c2410c;--walk:#7c3aed;--bike:#0f766e;--ship:#0369a1;
-  --accent:#e6d3b4;--future:#d9cbb8;
-  --top-grad:linear-gradient(180deg,#141210 0%,rgba(20,18,16,.72) 62%,transparent 100%);
-  --chip:rgba(244,236,224,.06);
+  --bg:#071426;
+  --panel:#0e2244;
+  --panel-solid:#0c1c36;
+  --line:rgba(130,170,230,.28);
+  --text:#f3f7ff;
+  --muted:#9eb0cc;
+  --train:#34d399;--plane:#60a5fa;--car:#fb923c;--walk:#c4b5fd;--bike:#2dd4bf;--ship:#38bdf8;
+  --accent:#3b82f6;--future:#93c5fd;
+  --top-grad:linear-gradient(180deg,#071426 0%,rgba(7,20,38,.72) 62%,transparent 100%);
+  --chip:rgba(59,130,246,.14);
   --row:transparent;
   --stat:transparent;
-  --handle:rgba(244,236,224,.28);
+  --handle:rgba(180,210,255,.45);
   --shadow:none;
   --map-bg:#d5e0e6;
-  --glass:rgba(28,25,22,.88);
-  --radius:0px;
-  --radius-sm:0px;
+  --glass:rgba(8,22,44,.9);
+  --radius:16px;
+  --radius-sm:12px;
   --safe-b:env(safe-area-inset-bottom,0px);
 }
 :root[data-theme="light"]{
-  --bg:#f4f0e8;
-  --panel:#f7f4ee;
-  --panel-solid:#f7f4ee;
-  --line:rgba(36,28,20,.1);
-  --text:#1c1814;
-  --muted:#6f655c;
-  --train:#15803d;--plane:#1d4ed8;--car:#c2410c;--walk:#7c3aed;--bike:#0f766e;--ship:#0369a1;
-  --accent:#8c3d22;--future:#6b5344;
-  --top-grad:linear-gradient(180deg,#f4f0e8 0%,rgba(244,240,232,.78) 64%,transparent 100%);
-  --chip:rgba(36,28,20,.04);
+  --bg:#e7f0fb;
+  --panel:#f5f9ff;
+  --panel-solid:#f7fbff;
+  --line:rgba(47,124,246,.2);
+  --text:#0c1b33;
+  --muted:#5c7194;
+  --train:#15803d;--plane:#1d4ed8;--car:#c2410c;--walk:#6d28d9;--bike:#0f766e;--ship:#0369a1;
+  --accent:#2f7cf6;--future:#1d4ed8;
+  --top-grad:linear-gradient(180deg,#e7f0fb 0%,rgba(231,240,251,.8) 64%,transparent 100%);
+  --chip:rgba(47,124,246,.08);
   --row:transparent;
   --stat:transparent;
   --handle:rgba(36,28,20,.22);
@@ -1356,11 +1356,11 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 
 
 :root[data-theme="light"]{
-  --line:rgba(36,28,20,.12);
-  --muted:#6f655c;
-  --panel:#f7f4ee;
-  --glass:rgba(247,244,238,.94);
-  --chip:rgba(36,28,20,.04);
+  --line:rgba(47,124,246,.2);
+  --muted:#5c7194;
+  --panel:#f5f9ff;
+  --glass:rgba(255,255,255,.92);
+  --chip:rgba(47,124,246,.08);
   --row:transparent;
   --stat:transparent;
   --map-bg:#d5e0e6;
@@ -1470,7 +1470,38 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 .row .edit,.row .del{border:0;background:transparent;border-radius:0;width:28px}
 .trip-window header b,.trip-window h3{font-family:Palatino,"Iowan Old Style",Georgia,serif;font-weight:500;letter-spacing:-.02em}
 .trip-window input,.trip-window select{border-radius:10px}
-#region-list button.on,#country-list .country-row.on .tick{background:rgba(140,61,34,.16);color:var(--text)}
+#region-list button.on,#country-list .country-row.on .tick{background:rgba(47,124,246,.2);color:var(--text)}
+.sheet-actions button,#add-btn-2,.btn-save,#tw-save,.visit-yes,#set-save,#new-user,#file-login-go,#acc-name-save,#acc-pass-save,#must-pass-save{
+  background:#2f7cf6!important;color:#fff!important;border:0!important;border-radius:14px!important;font-weight:650;
+}
+.tabs{display:flex;gap:8px}
+.tab{border:1px solid var(--line);border-radius:999px;padding:8px 14px;color:var(--muted);background:transparent}
+.tab.on{background:#2f7cf6;color:#fff;box-shadow:none}
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.stat{background:var(--chip);border:1px solid var(--line);border-radius:14px;padding:10px 8px}
+.f-card{background:rgba(16,40,78,.35);border:1px solid var(--line);border-radius:16px;padding:14px;margin:0 0 10px}
+.f-card.on{background:rgba(47,124,246,.16)}
+#settings-panel,#account-panel,#countries-panel,#file-login form,.trip-window,.modal-card{color:var(--text)}
+#settings-panel .theme-row button.on,#settings-panel .lang-row button.on,#settings-panel .map-switch button.on{background:#2f7cf6;color:#fff;border-color:transparent}
+.acct-entry{
+  display:flex;align-items:center;justify-content:space-between;width:100%;
+  margin:12px 0;padding:14px;border-radius:16px;border:1px solid var(--line);
+  background:rgba(47,124,246,.16);color:#fff;font-weight:700;font-size:15px;
+}
+.navy-card{border:1px solid var(--line);border-radius:18px;padding:14px;margin:12px 0;background:rgba(16,42,82,.45)}
+.navy-card h3{display:flex;align-items:center;gap:10px;font-size:16px;margin:0 0 12px;font-weight:650}
+.plus-badge{width:36px;height:36px;border-radius:50%;background:#2f7cf6;color:#fff;display:grid;place-items:center;font-size:22px;line-height:1}
+#account-panel .navy-card label{display:block;font-size:12px;color:var(--muted);margin-top:8px}
+#admin-list .admin-row{flex-direction:row;flex-wrap:wrap;align-items:center;gap:10px;border:1px solid var(--line);border-radius:14px;padding:10px;background:rgba(8,22,44,.35)}
+#admin-list .avatar{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;flex:none}
+#admin-list .who{flex:1;min-width:140px}
+#admin-list .admin-row button{width:auto;flex:1;min-width:120px;margin-top:0}
+#admin-list:not(.open) .extra{display:none}
+#accounts-more{background:transparent}
+#open-accounts{margin-top:4px}
+#settings-panel .panel-x,#account-panel .panel-x{width:40px;min-height:40px;margin:0;padding:0;flex:none;border-radius:12px}
+.sheet-tools{gap:8px}
+.acct-entry span{color:#93c5fd;font-size:22px}
 </style>
 <div id="file-login">
   <form id="file-login-form">
@@ -1522,7 +1553,10 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 <div class="sheet mid" id="sheet">
   <div class="handle-wrap" id="handle-wrap"><div class="handle"></div></div>
   <div class="sheet-tools">
-    <button type="button" id="account-btn" title="Аккаунт" data-i18n-title="Аккаунт" aria-label="Аккаунт">
+    <button type="button" id="settings-btn" title="Настройки" data-i18n-title="Настройки" aria-label="Настройки">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6"/></svg>
+    </button>
+    <button type="button" id="account-btn" title="Управление аккаунтами" data-i18n-title="Управление аккаунтами" aria-label="Управление аккаунтами">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5 19.2c1.4-3 3.8-4.5 7-4.5s5.6 1.5 7 4.5"/></svg>
     </button>
   </div>
@@ -1582,15 +1616,20 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 </div>
 <div id="view-banner" hidden></div>
 
-<div id="settings-panel" style="max-height:70vh;overflow-y:auto">
-  <b style="font-size:14px" data-i18n="Настройки">Настройки</b>
-  <label style="display:block;font-size:11px;color:var(--muted);margin-top:10px" data-i18n="Тема">Тема</label>
+<div id="settings-panel" style="max-height:86vh;overflow-y:auto">
+  <div class="panel-head">
+    <b data-i18n="Настройки">Настройки</b>
+    <button type="button" id="set-close" class="panel-x" aria-label="Закрыть">×</button>
+  </div>
+  <button type="button" id="open-accounts" class="acct-entry">Управление аккаунтами <span>›</span></button>
+  <div class="navy-card">
+  <label style="display:block;font-size:12px;color:var(--muted)" data-i18n="Тема">Тема</label>
   <div class="row2 theme-row">
     <button type="button" id="set-theme-dark" data-i18n="Тёмная">Тёмная</button>
     <button type="button" id="set-theme-light" data-i18n="Светлая">Светлая</button>
     <button type="button" id="set-theme-system" data-i18n="Как на устройстве">Как на устройстве</button>
   </div>
-  <label style="display:block;font-size:11px;color:var(--muted);margin-top:10px" data-i18n="Язык">Язык</label>
+  <label style="display:block;font-size:12px;color:var(--muted);margin-top:10px" data-i18n="Язык">Язык</label>
   <div class="row2 theme-row lang-row" id="lang-switch">
     <button type="button" data-lang="ru">Русский</button>
     <button type="button" data-lang="en">English</button>
@@ -1601,34 +1640,39 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     <button type="button" data-view="map" class="on" aria-pressed="true" data-i18n="Карта">Карта</button>
     <button type="button" data-view="globe" aria-pressed="false" data-i18n="Глобус">Глобус</button>
   </div>
-  
-  <button type="button" id="set-reset" style="margin-top:14px;background:rgba(220,60,60,.2);color:#e88" data-i18n="Сбросить мои маршруты">Сбросить мои маршруты</button>
+  </div>
+  <button type="button" id="set-reset" style="margin-top:8px;background:rgba(220,60,60,.2);color:#f0a8a8" data-i18n="Сбросить мои маршруты">Сбросить мои маршруты</button>
   <p style="font-size:11px;color:var(--muted);margin-top:4px" data-i18n="Сброс — двойным нажатием.">Сброс — двойным нажатием.</p>
   <button type="button" class="legal-link" data-legal="terms" style="margin-top:12px;text-align:left" data-i18n="Пользовательское соглашение">Пользовательское соглашение</button>
   <button type="button" class="legal-link" data-legal="privacy" style="text-align:left" data-i18n="Обработка персональных данных">Обработка персональных данных</button>
-  <button type="button" id="set-save" style="margin-top:8px;background:var(--accent);color:#1a1d26;border:none;font-weight:600" data-i18n="Сохранить настройки">Сохранить настройки</button>
-  <button type="button" id="set-close" style="margin-top:8px" data-i18n="Закрыть">Закрыть</button>
+  <button type="button" id="set-save" style="margin-top:8px" data-i18n="Сохранить настройки">Сохранить настройки</button>
 </div>
 <div id="account-panel">
   <div class="panel-head">
-    <b data-i18n="Аккаунт">Аккаунт</b>
+    <b data-i18n="Управление аккаунтами">Управление аккаунтами</b>
     <button type="button" id="account-close" class="panel-x" aria-label="Закрыть" data-i18n-title="Закрыть">×</button>
   </div>
   <p class="hint" id="account-who"></p>
-  <div id="users-box">
-    <b style="display:block;margin:8px 0 6px" data-i18n="Создать аккаунт">Создать аккаунт</b>
-    <input id="new-login" type="text" placeholder="Логин" data-i18n-ph="Логин" autocomplete="off" />
+  <div class="navy-card" id="users-box">
+    <h3><span class="plus-badge">+</span> <span data-i18n="Создать новый аккаунт">Создать новый аккаунт</span></h3>
+    <label data-i18n="Новый ник">Новый ник</label>
+    <input id="new-login" type="text" placeholder="Введите ник" data-i18n-ph="Введите ник" autocomplete="off" />
+    <label data-i18n="Новый пароль">Новый пароль</label>
     <div class="passline">
-      <input id="new-pass" type="password" placeholder="Пароль" data-i18n-ph="Пароль" autocomplete="new-password" />
+      <input id="new-pass" type="password" placeholder="Введите пароль" data-i18n-ph="Введите пароль" autocomplete="new-password" />
       <button type="button" class="eye" data-eye="new-pass" data-i18n="Показать">Показать</button>
     </div>
+    <label data-i18n="Повторите новый пароль">Повторите новый пароль</label>
     <div class="passline">
       <input id="new-pass2" type="password" placeholder="Повторите пароль" data-i18n-ph="Повторите пароль" autocomplete="new-password" />
       <button type="button" class="eye" data-eye="new-pass2" data-i18n="Показать">Показать</button>
     </div>
-    <button type="button" id="new-user" data-i18n="Создать аккаунт">Создать аккаунт</button>
-    <b style="display:block;margin:16px 0 6px" data-i18n="Список аккаунтов">Список аккаунтов</b>
+    <button type="button" id="new-user" data-i18n="Создать">Создать</button>
+  </div>
+  <div class="navy-card" id="accounts-card">
+    <h3 data-i18n="Аккаунты">Аккаунты</h3>
     <div id="admin-list"></div>
+    <button type="button" id="accounts-more" data-i18n="Показать все">Показать все</button>
   </div>
   <div class="account-stats" id="account-stats"></div>
   <label style="font-size:11px;color:var(--muted)" data-i18n="Имя">Имя</label>

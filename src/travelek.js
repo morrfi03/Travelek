@@ -11895,12 +11895,16 @@ bindTripWindow();
     if(!list) return;
     function draw(rows){
       if(!rows || !rows.length){ list.innerHTML='<p class="hint">'+t("Пока только вы.")+'</p>'; return; }
-      list.innerHTML=rows.map(function(r){
+      list.innerHTML=rows.map(function(r, i){
         var login=String(r.email||r.login||"").replace(/@travelek\.app$/,"");
         var mine=r.userId===(window.__TRAVELEK_ME&&window.__TRAVELEK_ME.id) || r.id===(window.__TRAVELEK_ME&&window.__TRAVELEK_ME.id);
         var id=r.userId||r.id;
-        return '<div class="admin-row"><b>'+(r.name||login)+'</b> · '+login+(r.role==="admin"?" · "+t("админ"):"")+'<div class="route-line">'+(r.routes||0)+" "+t("маршрутов")+" · "+(r.countries||0)+" "+t("стран")+" · "+(r.regions||0)+" "+t("регионов")+'</div><div class="route-line">'+(r.kmPlane||0)+" "+t("самолет, км")+" · "+(r.kmTrain||0)+" "+t("поезд, км")+" · "+(r.kmCar||0)+" "+t("авто, км")+'</div>'+(mine?"":'<button type="button" data-user="'+id+'">'+t("Смотреть карту")+'</button><button type="button" data-del="'+id+'" data-login="'+login+'">'+t("Удалить")+'</button>')+'</div>';
+        var hues=["#3b82f6","#34d399","#a78bfa","#f59e0b","#fb7185","#22d3ee"];
+        var letter=String(r.name||login||"?").charAt(0).toUpperCase();
+        return '<div class="admin-row'+(i>2?" extra":"")+'"><span class="avatar" style="background:'+hues[i%hues.length]+'">'+letter+'</span><div class="who"><b>'+(r.name||login)+'</b><div class="route-line">'+login+(r.role==="admin"?" · "+t("админ"):"")+'</div><div class="route-line">'+(r.routes||0)+" "+t("маршрутов")+" · "+(r.countries||0)+" "+t("стран")+" · "+(r.regions||0)+" "+t("регионов")+'</div></div>'+(mine?"":'<button type="button" data-user="'+id+'">'+t("Смотреть карту")+'</button><button type="button" data-del="'+id+'" data-login="'+login+'">'+t("Удалить")+'</button>')+'</div>';
       }).join("");
+      var more=document.getElementById("accounts-more");
+      if(more) more.hidden=rows.length<=3;
     }
     var local=[];
     try{ local=JSON.parse(localStorage.getItem("travelek-users")||"[]"); }catch(e){ local=[]; }
@@ -11936,6 +11940,10 @@ bindTripWindow();
     }
     var usersBox=document.getElementById("users-box");
     if(usersBox) usersBox.style.display=adminOk?"block":"none";
+    var accountsCard=document.getElementById("accounts-card");
+    if(accountsCard) accountsCard.style.display=adminOk?"block":"none";
+    var openAcc=document.getElementById("open-accounts");
+    if(openAcc) openAcc.style.display=adminOk?"flex":"none";
     var who=document.getElementById("account-who");
     if(who) who.textContent=(me.role==="admin"?t("Администратор"):t("Пользователь"))+(me.email?(" · "+String(me.email).replace(/@travelek\.app$/,"")):"");
     paintAccounts();
@@ -12040,6 +12048,21 @@ bindTripWindow();
   };
   var out=document.getElementById("account-logout");
   if(out) out.onclick=function(){ if(window.__signOut) window.__signOut(); };
+  var moreAcc=document.getElementById("accounts-more");
+  if(moreAcc) moreAcc.onclick=function(){
+    var box=document.getElementById("admin-list");
+    if(!box) return;
+    var on=box.classList.toggle("open");
+    moreAcc.textContent=on?t("Свернуть"):t("Показать все");
+  };
+  var openAccounts=document.getElementById("open-accounts");
+  if(openAccounts) openAccounts.onclick=function(){
+    var s=document.getElementById("settings-panel");
+    if(s) s.classList.remove("on");
+    var panel=document.getElementById("account-panel");
+    if(panel) panel.classList.add("on");
+    fillAccount();
+  };
   document.querySelectorAll("[data-eye]").forEach(function(btn){
     btn.addEventListener("click", function(){
       var input=document.getElementById(btn.getAttribute("data-eye"));
