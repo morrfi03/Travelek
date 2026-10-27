@@ -11669,7 +11669,7 @@ function countriesBlock(countries, regions, expanded){
 }
 function tripCard(tp, tab){
   var routes=tripRoutesFor(tp, tab).slice().sort(cmpDate);
-  var places=tripPlaces(tp, routes, tab==="future");
+  var places=tripPlaces(tp, routes, tab==="past" || tab==="future");
   var block=countriesBlock(places.countries, places.regions, !!cardMore[tp.id]);
   return '<article class="f-card'+(selectedTripId===tp.id?" on":"")+'" data-card="'+tp.id+'"><h4>'+escLabel(tp.title||t("Поездка"))+'</h4>'+routes.map(routeText).join("")+statRow(kmOf(routes))+'<div class="f-count">'+block.n+" "+t("стран")+'</div>'+block.html+'<button type="button" class="more-link" data-show="'+tp.id+'">'+t("Показать")+'</button></article>';
 }
