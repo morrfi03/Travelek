@@ -6418,6 +6418,16 @@ var deleted = loadDeleted();
 var ROUTES = assembleRoutes();
 
 /* place lookup */
+function airportLabel(a){
+  if(!a) return "";
+  var lang=typeof currentLang==="function"?currentLang():"ru";
+  var name=a.n||"";
+  var ru=/[А-Яа-яЁё]/.test(name);
+  var latin=(a.alias||"").split(/\s+/).filter(function(w){ return /[A-Za-z]/.test(w); }).slice(0,4).join(" ");
+  if(!latin && !ru) latin=name;
+  if(lang==="en" || lang==="zh") return latin || name;
+  return ru ? name : (latin || name);
+}
 function norm(s){ return (s||"").toLowerCase().replace(/\s+/g," ").trim(); }
 function nameHas(hay, needle){
   if(!needle || !hay) return false;
@@ -6456,8 +6466,13 @@ function place(name, code){
   /* exact airport code */
   for(i=0;i<AIRPORTS.length;i++){
     a = AIRPORTS[i];
-    if(norm(a.code)===k || norm(a.n)===k || norm(a.n+" ("+a.code+")")===k)
-      return {lat:a.lat,lng:a.lng,label:a.n+" ("+a.code+")"};
+    if(norm(a.code)===k || norm(a.n)===k || norm(airportLabel(a))===k || norm(airportLabel(a)+" ("+a.code+")")===k || norm(a.n+" ("+a.code+")")===k)
+      return {lat:a.lat,lng:a.lng,label:airportLabel(a)+" ("+a.code+")"};
+  }
+  /* город раньше порта и вокзала: «Москва» — центр, не речной порт */
+  for(i=0;i<CITIES.length;i++){
+    c = CITIES[i];
+    if(norm(c.n)===k) return {lat:c.lat,lng:c.lng,label:c.n};
   }
   /* station exact */
   for(i=0;i<STATIONS.length;i++){
@@ -6503,7 +6518,7 @@ var IDX_AIR = null, IDX_ST = null, IDX_CITY = null;
 function buildIdx(){
   if(IDX_AIR) return;
   IDX_AIR = AIRPORTS.map(function(a){
-    return {code:a.code, n:a.n, key:norm(a.code+" "+a.n+" "+(a.alias||"")), lat:a.lat, lng:a.lng};
+    return {code:a.code, n:a.n, alias:a.alias||"", key:norm(a.code+" "+a.n+" "+(a.alias||"")), lat:a.lat, lng:a.lng};
   });
   IDX_ST = STATIONS.map(function(s){
     return {n:s.n, key:norm(s.n+" "+s.id), lat:s.lat, lng:s.lng};
@@ -6540,14 +6555,14 @@ function searchCatalog(mode, q, fromHint){
       it=IDX_AIR[i];
       if(fromCode && it.code===fromCode) continue;
       if(fromCode && !flightAllowed(fromCode, it.code)) continue;
-      if(norm(it.code).indexOf(q)===0) push(it.n+" ("+it.code+")", it.n+" ("+it.code+")", it.code);
+      if(norm(it.code).indexOf(q)===0) push(airportLabel(it)+" ("+it.code+")", airportLabel(it)+" ("+it.code+")", it.code);
     }
     for(i=0;i<IDX_AIR.length && out.length<12;i++){
       it=IDX_AIR[i];
       if(fromCode && it.code===fromCode) continue;
       if(fromCode && !flightAllowed(fromCode, it.code)) continue;
       if(norm(it.code).indexOf(q)===0) continue;
-      if(it.key.indexOf(q)>=0) push(it.n+" ("+it.code+")", it.n+" ("+it.code+")", it.code);
+      if(it.key.indexOf(q)>=0) push(airportLabel(it)+" ("+it.code+")", airportLabel(it)+" ("+it.code+")", it.code);
     }
   } else if(mode==="train"){
     /* ——— Поезд: только станции; «Куда» — есть путь по графу ЖД ——— */
@@ -6597,11 +6612,19 @@ function searchCatalog(mode, q, fromHint){
       if(norm(p.n).indexOf(q)>=0 || portCityKey(p.n).indexOf(q)>=0) addPort(p);
     }
   } else {
-    /* авто / пешком / вело — города без жёсткого графа */
-    for(i=0;i<IDX_CITY.length && out.length<12;i++){
+    /* авто / пешком / вело — только города, без повторов */
+    var seenCity={}, exact=[], rest=[];
+    for(i=0;i<IDX_CITY.length;i++){
       it=IDX_CITY[i];
-      if(it.key.indexOf(q)>=0) push(it.n, it.n);
+      if(seenCity[it.key]) continue;
+      if(it.key===q){ seenCity[it.key]=1; exact.push(it); }
     }
+    for(i=0;i<IDX_CITY.length;i++){
+      it=IDX_CITY[i];
+      if(seenCity[it.key]) continue;
+      if(it.key.indexOf(q)>=0){ seenCity[it.key]=1; rest.push(it); }
+    }
+    exact.concat(rest).forEach(function(it){ push(it.n, it.n); });
   }
   return out;
 }
@@ -8756,7 +8779,7 @@ function bindGlobePointer(){
   globeCv.addEventListener("pointermove", function(e){
     if(!globePtr || !globeOn) return;
     var dx=e.clientX-globePtr.x, dy=e.clientY-globePtr.y;
-    if(Math.hypot(e.clientX-globePtr.x0, e.clientY-globePtr.y0)>12) globePtr.moved=true;
+    if(Math.hypot(e.clientX-globePtr.x0, e.clientY-globePtr.y0)>12){ globePtr.moved=true; globeMoved=true; }
     globePtr.x=e.clientX; globePtr.y=e.clientY;
     globePtr.vx=dx; globePtr.vy=dy;
     if(globePtr.moved){ globeNudge(dx, dy); scheduleGlobe(); }
@@ -8773,7 +8796,7 @@ function bindGlobePointer(){
   globeCv.addEventListener("pointerup", end);
   globeCv.addEventListener("pointercancel", end);
   globeCv.addEventListener("wheel", function(e){
-    if(!globeOn) return;
+    if(!globeOn || globePtr) return;
     e.preventDefault();
     globeZoom(e.deltaY>0?0.92:1.08);
   }, {passive:false});
@@ -8783,7 +8806,7 @@ function bindGlobePointer(){
     e.preventDefault();
     globeZoom(1.6);
   });
-  var pinch=null, lastTap=0;
+  var pinch=null, lastTap=0, globeMoved=false;
   globeCv.addEventListener("touchstart", function(e){
     if(!globeOn) return;
     if(e.touches.length===2){
@@ -8796,12 +8819,15 @@ function bindGlobePointer(){
     if(!globeOn || !pinch || e.touches.length<2) return;
     var a=e.touches[0], b=e.touches[1];
     var dist=Math.hypot(a.clientX-b.clientX, a.clientY-b.clientY)||1;
-    globeScale=Math.max(0.45, Math.min(8, pinch.scale*(dist/pinch.dist)));
+    var factor=dist/pinch.dist;
+    if(factor>0.94 && factor<1.06) return;
+    globeScale=Math.max(0.45, Math.min(8, pinch.scale*factor));
     scheduleGlobe();
     if(e.cancelable) e.preventDefault();
   }, {passive:false});
   globeCv.addEventListener("touchend", function(e){
     if(e.touches.length<2) pinch=null;
+    if(globeMoved){ globeMoved=false; return; }
     if(e.changedTouches.length===1 && e.touches.length===0){
       var t=e.changedTouches[0];
       var now=Date.now();
@@ -10473,7 +10499,7 @@ function polyHas(poly, lat, lng){
 function countryAt(lat, lng){
   if(!COUNTRY_LIST) return null;
   var i, c, k, polys, region;
-  region=regionAtList(RUSSIA_REGIONS, lat, lng);
+  region=regionAtList(RUSSIA_REGIONS, lat, lng, 0.08);
   if(region) return "RU";
   for(i=0;i<COUNTRY_LIST.length;i++){
     c=COUNTRY_LIST[i];
@@ -10487,7 +10513,15 @@ function countryAt(lat, lng){
     polys=polysOf(c);
     for(k=0;k<polys.length;k++){ if(polyHas(polys[k], lat, lng)) return c.i; }
   }
-  return null;
+  var near=null, nearD=0.06;
+  for(i=0;i<COUNTRY_LIST.length;i++){
+    c=COUNTRY_LIST[i];
+    if(c.i==="RU") continue;
+    if(c.b && (lat<c.b[0]-nearD || lat>c.b[2]+nearD || lng<c.b[1]-nearD || lng>c.b[3]+nearD)) continue;
+    var dlt=regionEdgeDist(c, lat, lng);
+    if(dlt<nearD){ nearD=dlt; near=c.i; }
+  }
+  return near;
 }
 function regionEdgeDist(reg, lat, lng){
   var polys=polysOf(reg), best=1e9, k, ring, i, a, b, dx, dy, den, t, d;
@@ -10615,9 +10649,9 @@ function openVisitPrompt(lat,lng){
   if(!cid) return;
   var been=visited && visited.indexOf(cid)>=0;
   var regs=regionsFor(cid);
-  var rid=been && regs ? regionIn(cid, lat, lng) : null;
-  if(been && (!regs || !rid)) return;
+  var rid=regs ? regionIn(cid, lat, lng) : null;
   if(rid && visitedRegions && visitedRegions.indexOf(rid)>=0) return;
+  if(!rid && been) return;
   var c=countryRecord(cid), reg=rid?regionRecord(rid):null;
   pendingVisit={countryId:cid, regionId:rid, name:reg?(regionLabel(reg.n)+" · "+(c?countryLabel(c):cid)):(c?countryLabel(c):cid)};
   var modal=document.getElementById("visit-confirm");
@@ -10638,6 +10672,7 @@ function confirmVisitedPlace(){
   if(rid){
     offRegions=offRegions.filter(function(id){return id!==rid;});
     if(manualRegions.indexOf(rid)<0) manualRegions.push(rid);
+    if(manualCountries.indexOf(cid)<0) manualCountries.push(cid);
   }else if(manualCountries.indexOf(cid)<0) manualCountries.push(cid);
   offCountries=offCountries.filter(function(id){return id!==cid;});
   saveSets();
@@ -11502,7 +11537,17 @@ function placeRows(tab){
 function modeColor(mode){ return (typeof COLORS!=="undefined" && COLORS[mode]) || "#1d4ed8"; }
 function cmpDate(a, b){ return ((a&&a.date||"")+" "+(a&&a.time||"")).localeCompare((b&&b.date||"")+" "+(b&&b.time||"")); }
 function routeText(r){
-  return '<div class="route-line" style="color:'+modeColor(r.mode)+'">'+escLabel((r.from||"")+" → "+(r.to||""))+(r.date?" · "+escLabel(r.date):"")+'</div>';
+  return '<div class="route-line" style="color:'+modeColor(r.mode)+'">'+
+    '<button type="button" class="route-x" data-route-del="'+r.id+'" title="'+t("Удалить")+'">×</button>'+
+    escLabel((r.from||"")+" → "+(r.to||""))+(r.date?" · "+escLabel(r.date):"")+'</div>';
+}
+function deleteRoute(id){
+  if(!id) return;
+  if(deleted.indexOf(id)<0){ deleted.push(id); saveDeleted(deleted); }
+  saveExtra(loadExtra().filter(function(x){ return x.id!==id; }));
+  ROUTES=assembleRoutes();
+  if(selectedId===id) selectedId=null;
+  render();
 }
 function routeCardHtml(r){
   var fut=isFuture(r), g=buildGeoSync(r), km=g?Math.round(g.km):0;
@@ -11570,6 +11615,13 @@ function paintSheetList(el, list){
     return;
   }
   el.innerHTML=html+loose;
+  el.querySelectorAll("[data-route-del]").forEach(function(btn){
+    btn.onclick=function(ev){
+      ev.stopPropagation();
+      ev.preventDefault();
+      deleteRoute(btn.getAttribute("data-route-del"));
+    };
+  });
   el.querySelectorAll("[data-all]").forEach(function(btn){
     btn.onclick=function(ev){
       ev.stopPropagation();

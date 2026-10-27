@@ -7,6 +7,32 @@
   if (!root || !G) return;
   var hooks = { click: null, move: null, afterView: null, paint: null };
   var markC = {}, markR = {}, markRev = 0, washIso = {}, nameIso = {};
+  function countryRings(iso){
+    var list=(typeof COUNTRY_LIST!=="undefined")?COUNTRY_LIST:null, i, item, out=[], poly, ring;
+    if(!list) return out;
+    for(i=0;i<list.length;i++) if(list[i].i===iso){ item=list[i]; break; }
+    if(!item || !item.p) return out;
+    item.p.forEach(function(poly){
+      ring=(poly[0] && typeof poly[0][0]!=="number")?poly[0]:poly;
+      if(ring && ring.length>2) out.push(ring);
+    });
+    return out;
+  }
+  function traceFlat(ctx, iso){
+    var rings=countryRings(iso), r, i, p;
+    if(!rings.length) return false;
+    ctx.beginPath();
+    for(r=0;r<rings.length;r++){
+      p=flatXY(rings[r][0][0]*PI/180, rings[r][0][1]*PI/180);
+      ctx.moveTo(p[0], p[1]);
+      for(i=1;i<rings[r].length;i++){
+        p=flatXY(rings[r][i][0]*PI/180, rings[r][i][1]*PI/180);
+        ctx.lineTo(p[0], p[1]);
+      }
+      ctx.closePath();
+    }
+    return true;
+  }
   (function mountAtlas() {
     var css = document.createElement("style");
     css.textContent = "#flatBox,#globeBox{position:absolute;inset:0;overflow:hidden}#flatBox{background:#dde8ee}#globeBox{background:#0e1a24}#cvF,#cvG{width:100%;height:100%;display:block;touch-action:none;cursor:grab}#cvF.drag,#cvG.drag{cursor:grabbing}#tipF,#tipG{position:absolute;z-index:4;pointer-events:none;background:#1f2a26;color:#fff;padding:5px 9px;border-radius:6px;font:600 13px/1.3 system-ui,sans-serif;opacity:0;transform:translate(12px,12px);white-space:nowrap}#tipF small,#tipG small{display:block;opacity:.7;font-size:11px;font-weight:500}#atlas-html{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}";
@@ -195,7 +221,13 @@
         }
       }
       byLayer.W.forEach(function (i) {
-        var e = ents[i]; if (!litCountry(e)) return;
+        var e = ents[i];
+        if (e.name === "Украина") {
+          if (!(litCountry(e) || markC.UA || washIso.UA)) return;
+          if (traceFlat(c, "UA")) { c.fillStyle = "rgba(214,168,72,.62)"; c.fill(); c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke(); }
+          return;
+        }
+        if (!litCountry(e)) return;
         showSmall(e);
         c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.62)"; c.fill();
         c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke();
@@ -226,8 +258,9 @@
         c.strokeStyle = L.style.c; c.globalAlpha = L.style.a; c.lineWidth = L.style.w * lw; c.setLineDash(L.style.dash ? L.style.dash.map(function (d) { return d * lw; }) : []); c.stroke();
       });
       c.setLineDash([]); c.globalAlpha = 1;
-      c.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb) entPath(c, ents[i]); }); byLayer.B.forEach(function (i) { entPath(c, ents[i]); });
+      c.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name!=="Украина") entPath(c, ents[i]); }); byLayer.B.forEach(function (i) { entPath(c, ents[i]); });
       c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke();
+      if (traceFlat(c, "UA")) { c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke(); }
       c.restore();
     }
     function draw() {
@@ -479,6 +512,23 @@
         if (ZV[s + n - 1] && ZV[s]) ctx.lineTo(SX[s], SY[s]);
       }
     }
+    function fillGeo(iso){
+      var rings=countryRings(iso), r, i, la, lo, X, Y, Z, x1, zz, y2, zc, prev;
+      if(!rings.length) return false;
+      ctx.beginPath();
+      for(r=0;r<rings.length;r++){
+        prev=false;
+        for(i=0;i<rings[r].length;i++){
+          lo=rings[r][i][0]*PI/180; la=rings[r][i][1]*PI/180;
+          X=Math.cos(la)*Math.sin(lo); Y=Math.sin(la); Z=Math.cos(la)*Math.cos(lo);
+          x1=X*cl-Z*sl; zz=X*sl+Z*cl; y2=Y*cp-zz*sp; zc=Y*sp+zz*cp;
+          if(zc<=0.05){ prev=false; continue; }
+          if(prev) ctx.lineTo(cx+R*x1, cy-R*y2); else ctx.moveTo(cx+R*x1, cy-R*y2);
+          prev=true;
+        }
+      }
+      return true;
+    }
     function draw(q) {
       setCam(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, cw, ch);
       var g = ctx.createRadialGradient(cx, cy, R * 0.98, cx, cy, R * 1.08); g.addColorStop(0, "rgba(130,180,230,.40)"); g.addColorStop(1, "rgba(130,180,230,0)");
@@ -487,7 +537,13 @@
       relief(q); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; ctx.drawImage(rbuf, 0, 0, cw, ch); ctx.restore();
       project(); stampIso(); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
       byLayer.W.forEach(function (i) {
-        var e = ents[i]; if (!litCountry(e)) return;
+        var e = ents[i];
+        if (e.name === "Украина") {
+          if (!(litCountry(e) || markC.UA || washIso.UA)) return;
+          if (fillGeo("UA")) { ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill(); ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke(); }
+          return;
+        }
+        if (!litCountry(e)) return;
         ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill();
         ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke();
       });
@@ -506,8 +562,9 @@
         ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) strokeRings(ents[i]); }); });
         ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 0.45; ctx.lineJoin = "round"; ctx.stroke();
       }
-      ctx.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb) strokeRings(ents[i]); }); byLayer.B.forEach(function (i) { strokeRings(ents[i]); });
+      ctx.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name!=="Украина") strokeRings(ents[i]); }); byLayer.B.forEach(function (i) { strokeRings(ents[i]); });
       ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke();
+      if (fillGeo("UA")) { ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke(); }
       if (!moving) (function strokeNets() {
         var layers = views.flat.netLayers();
         if (!layers) return;
