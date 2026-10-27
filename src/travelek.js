@@ -11994,41 +11994,7 @@ bindTripWindow();
     return {routes:0, countries:0, regions:{got:0,total:0}, plane:0, train:0, car:0};
   }
   function paintAccounts(){
-    var list=document.getElementById("admin-list");
-    if(!list) return;
-    function draw(rows){
-      if(!rows || !rows.length){ list.innerHTML='<p class="hint">'+t("Пока только вы.")+'</p>'; return; }
-      list.innerHTML=rows.map(function(r, i){
-        var login=String(r.email||r.login||"").replace(/@travelek\.app$/,"");
-        var mine=r.userId===(window.__TRAVELEK_ME&&window.__TRAVELEK_ME.id) || r.id===(window.__TRAVELEK_ME&&window.__TRAVELEK_ME.id);
-        var id=r.userId||r.id;
-        var hues=["#3b82f6","#34d399","#a78bfa","#f59e0b","#fb7185","#22d3ee"];
-        var letter=String(r.name||login||"?").charAt(0).toUpperCase();
-        return '<div class="admin-row"><span class="avatar" style="background:'+hues[i%hues.length]+'">'+letter+'</span><div class="who"><b>'+(r.name||login)+'</b><div class="route-line">'+login+(r.role==="admin"?" · "+t("админ"):"")+'</div><div class="route-line">'+(r.routes||0)+" "+t("маршрутов")+" · "+(r.countries||0)+" "+t("стран")+" · "+(r.regions||0)+" "+t("регионов")+'</div></div>'+(mine?"":'<button type="button" data-user="'+id+'">'+t("Смотреть карту")+'</button><button type="button" data-pass="'+id+'" data-login="'+login+'">'+t("Пароль")+'</button><button type="button" data-del="'+id+'" data-login="'+login+'">'+t("Удалить")+'</button>')+'</div>';
-      }).join("");
-      var head=document.querySelector("#accounts-card h3");
-      if(head) head.textContent=t("Аккаунты")+" · "+rows.length;
-      var more=document.getElementById("accounts-more");
-      if(more) more.hidden=true;
-    }
-    var local=[];
-    try{ local=JSON.parse(localStorage.getItem("travelek-users")||"[]"); }catch(e){ local=[]; }
-    if(!Array.isArray(local)) local=[];
-    if(local.length) draw(local.map(function(u){ return {userId:u.id, email:u.login, name:u.name||u.login, role:u.role, routes:0, countries:0, regions:0, kmPlane:0, kmTrain:0, kmCar:0}; }));
-    else list.innerHTML='<p class="hint">'+t("Загрузка…")+'</p>';
-    var job=null;
-    if(typeof window.__cloudAdmin==="function") job=window.__cloudAdmin();
-    else if(window.__TRAVELEK_STORE_URL) job=fetch(window.__TRAVELEK_STORE_URL+"?t="+Date.now(),{cache:"no-store"}).then(function(r){ return r.json(); }).then(function(data){
-      return (data.users||[]).map(function(u){ return {userId:u.id, email:u.login, name:u.name||u.login, role:u.role, routes:0, countries:0, regions:0, kmPlane:0, kmTrain:0, kmCar:0}; });
-    });
-    if(job && job.then) job.then(function(rows){
-      if(rows && rows.length) draw(rows);
-      else if(!local.length) draw([]);
-      else list.insertAdjacentHTML("beforeend", '<p class="hint">'+t("Облако не ответило, показан список с телефона.")+'</p>');
-    }).catch(function(){
-      if(!local.length) list.innerHTML='<p class="hint">'+t("Список аккаунтов не загрузился.")+'</p>';
-      else list.insertAdjacentHTML("beforeend", '<p class="hint">'+t("Список аккаунтов не загрузился.")+'</p>');
-    });
+    if(typeof window.__paintAccounts==="function") window.__paintAccounts();
   }
   function fillAccount(){
     paintAccounts();
