@@ -5825,31 +5825,65 @@ wipeRoutesOnce();
     return d;
   }
   function extraCount(pack){ try{ var a=JSON.parse((pack&&pack["travelek-extra"])||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
-  function mergeUsers(remoteUsers, remoteDeleted){
-    var del={}, out=[], by={}, i, u, t;
-    deletedIds().forEach(function(id){ del[id]=1; });
-    (remoteDeleted||[]).forEach(function(id){ if(id) del[id]=1; });
-    function add(user, prefer){
-      if(!user||!user.id||del[user.id]) return;
-      if(by[user.id]){
-        t=by[user.id];
-        if(prefer){
-          if(user.login) t.login=user.login;
-          if(user.name) t.name=user.name;
-          if(user.password) t.password=user.password;
-          if(user.role) t.role=user.role;
-          if(user.mustChange) t.mustChange=true;
-        }
-        return;
-      }
-      u={id:user.id, login:user.login, name:user.name, password:user.password, role:user.role};
-      if(user.mustChange) u.mustChange=true;
-      if(user.email && !u.login) u.login=String(user.email).replace(/@travelek\.app$/,"");
-      by[u.id]=u; out.push(u);
+  function copyUser(user){
+    var login=String(user.login||user.email||"").replace(/@travelek\.app$/,"").trim();
+    return {
+      id:user.id,
+      login:login,
+      name:user.name||login,
+      password:user.password,
+      role:nickIsAdmin(user)?"admin":"user",
+      mustChange:!!user.mustChange,
+      rev:user.rev||0,
+      vladReset:user.vladReset||""
+    };
+  }
+  var VLAD_HASH="ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f";
+  function repairVlad(list){
+    var changed=false, i, u;
+    for(i=0;i<(list||[]).length;i++){
+      u=list[i];
+      if(!u || String(u.login||"").toLowerCase()!=="vlad100" || u.vladReset==="1") continue;
+      u.password=VLAD_HASH;
+      u.mustChange=false;
+      u.role="user";
+      u.rev=Date.now();
+      u.vladReset="1";
+      changed=true;
     }
-    (remoteUsers||[]).forEach(function(user){ add(user, false); });
-    users().forEach(function(user){ add(user, true); });
-    rememberDeleted(Object.keys(del));
+    return changed;
+  }
+  function mergeUsers(remoteUsers, remoteDeleted){
+    var del={}, out=[], by={}, i, u, t, local;
+    (remoteDeleted||[]).forEach(function(id){ if(id) del[id]=1; });
+    function addRemote(user){
+      if(!user||!user.id||del[user.id]) return;
+      t=copyUser(user);
+      by[t.id]=t;
+      out.push(t);
+    }
+    (remoteUsers||[]).forEach(addRemote);
+    local=users();
+    for(i=0;i<local.length;i++){
+      u=local[i];
+      if(!u||!u.id||del[u.id]) continue;
+      if(!by[u.id]){
+        t=copyUser(u);
+        by[t.id]=t;
+        out.push(t);
+        continue;
+      }
+      if((u.rev||0)>(by[u.id].rev||0)){
+        t=by[u.id];
+        if(u.login) t.login=u.login;
+        if(u.name) t.name=u.name;
+        if(u.password) t.password=u.password;
+        t.role=nickIsAdmin(u)?"admin":"user";
+        t.mustChange=!!u.mustChange;
+        t.rev=u.rev;
+        if(u.vladReset) t.vladReset=u.vladReset;
+      }
+    }
     return {users:out, deleted:Object.keys(del)};
   }
   function sha256(text){
@@ -5866,14 +5900,17 @@ wipeRoutesOnce();
     if(stored===typed) return Promise.resolve(true);
     return sha256(typed).then(function(h){ return h===stored; });
   }
-  function saveStoreNow(){
+  function saveStoreNow(alsoDelete){
     var gen=++storeGen;
+    var drop=Array.isArray(alsoDelete)?alsoDelete:[];
     return fetch(STORE_URL+"?t="+Date.now(),{cache:"no-store"}).then(function(r){
       if(!r.ok) throw new Error("load");
       return r.json();
-    }).catch(function(){ return {}; }).then(function(data){
-      if(!data||typeof data!=="object") data={};
-      var merged=mergeUsers(Array.isArray(data.users)?data.users:[], Array.isArray(data.deleted)?data.deleted:[]);
+    }).then(function(data){
+      if(!data||typeof data!=="object"||!Array.isArray(data.users)) throw new Error("load");
+      var deleted=Array.isArray(data.deleted)?data.deleted.slice():[];
+      drop.forEach(function(id){ if(id && deleted.indexOf(id)<0) deleted.push(id); });
+      var merged=mergeUsers(data.users, deleted);
       var remoteVault=data.vault&&typeof data.vault==="object"&&!Array.isArray(data.vault)?data.vault:{};
       var localVault=vault();
       var vaultOut={};
@@ -5968,6 +6005,7 @@ wipeRoutesOnce();
       if(gen!==storeGen) return;
       if(!data||typeof data!=="object") data={};
       if(!Array.isArray(data.users)) data.users=[];
+      var repaired=repairVlad(data.users);
       if(!data.vault||typeof data.vault!=="object"||Array.isArray(data.vault)) data.vault={};
       var merged=mergeUsers(data.users, Array.isArray(data.deleted)?data.deleted:[]);
       return hashList(merged.users).then(function(){
@@ -5981,6 +6019,13 @@ wipeRoutesOnce();
             if(merged.users[n].id===me.id) me.role=merged.users[n].role;
           }
           if(window.__TRAVELEK_ME && window.__TRAVELEK_ME.id===me.id) window.__TRAVELEK_ME.role=me.role;
+        }
+        var remoteBy={}, ri;
+        for(ri=0;ri<data.users.length;ri++) if(data.users[ri]&&data.users[ri].id) remoteBy[data.users[ri].id]=data.users[ri];
+        var needSave=false, ui;
+        for(ui=0;ui<merged.users.length;ui++){
+          var ru=remoteBy[merged.users[ui].id];
+          if(!ru || (merged.users[ui].rev||0)>(ru.rev||0)) needSave=true;
         }
         var vaultOut={};
         Object.keys(data.vault).forEach(function(id){ if(merged.deleted.indexOf(id)<0) vaultOut[id]=data.vault[id]; });
@@ -5996,7 +6041,7 @@ wipeRoutesOnce();
         var after="";
         try{ after=(localStorage.getItem(USERS)||"")+"|"+(localStorage.getItem(VAULT)||""); }catch(e){}
         window.__TRAVELEK_STORE_CHANGED=after!==before;
-        if(after!==before) return saveStoreNow();
+        if(needSave || repaired) return saveStoreNow();
       });
     }).catch(function(){}).then(function(){ window.__TRAVELEK_STORE_READY=true; if(!window.__TRAVELEK_POLL) window.__TRAVELEK_POLL=setInterval(pullRemote, 8000); });
     return storePromise;
@@ -6079,11 +6124,11 @@ wipeRoutesOnce();
   window.__localLogin=function(login, password){
     login=String(login||"").trim().toLowerCase().replace(/@travelek\.app$/,"");
     password=String(password||"").replace(/[\u200B-\u200D\uFEFF]/g,"").trim();
-    return ensureStore().then(function(){
-      var u=users(), jobs=[], n, L;
-      for(n=0;n<u.length;n++){
-        L=String(u[n].login||u[n].email||"").toLowerCase().replace(/@travelek\.app$/,"");
-        if(L===login) jobs.push(u[n]);
+    function tryList(list){
+      var jobs=[], n, L;
+      for(n=0;n<(list||[]).length;n++){
+        L=String(list[n].login||list[n].email||"").toLowerCase().replace(/@travelek\.app$/,"");
+        if(L===login) jobs.push(list[n]);
       }
       var chain=Promise.resolve(null);
       jobs.forEach(function(candidate){
@@ -6093,7 +6138,17 @@ wipeRoutesOnce();
         });
       });
       return chain;
-    }).then(function(row){
+    }
+    return fetch(STORE_URL+"?t="+Date.now(),{cache:"no-store"}).then(function(r){
+      if(!r.ok) throw new Error("load");
+      return r.json();
+    }).then(function(data){
+      var list=Array.isArray(data.users)?data.users.slice():[];
+      var repaired=repairVlad(list);
+      try{ localStorage.setItem(USERS, JSON.stringify(list)); }catch(e){}
+      var ready=repaired?saveStoreNow():Promise.resolve();
+      return ready.then(function(){ return tryList(list); });
+    }).catch(function(){ return tryList(users()); }).then(function(row){
       if(!row) return false;
       localStorage.setItem(SESSION, row.id);
       sessionStorage.removeItem("travelek-view");
@@ -6162,6 +6217,8 @@ wipeRoutesOnce();
       sha256(newPassword).then(function(h){
         row.password=h;
         delete row.mustChange;
+        row.rev=Date.now();
+        if(String(row.login||"").toLowerCase()==="vlad100") row.vladReset="1";
         me.mustChange=false;
         if(window.__TRAVELEK_ME) window.__TRAVELEK_ME.mustChange=false;
         localStorage.setItem(USERS, JSON.stringify(u));
@@ -6179,6 +6236,8 @@ wipeRoutesOnce();
         if(!ok) return reject(new Error("bad"));
         return sha256(newPassword).then(function(h){
           row.password=h;
+          row.rev=Date.now();
+          if(String(row.login||"").toLowerCase()==="vlad100") row.vladReset="1";
           localStorage.setItem(USERS, JSON.stringify(u));
           return saveStoreNow().then(resolve);
         });
@@ -6187,24 +6246,22 @@ wipeRoutesOnce();
   };
   window.__adminDelete=function(userId){
     return new Promise(function(resolve, reject){
-      if(!me || me.role!=="admin") return reject(new Error("Только администратор"));
+      if(!me || (me.role!=="admin" && !nickIsAdmin(me))) return reject(new Error("Только администратор"));
       if(userId===me.id) return reject(new Error("Свой аккаунт удалить нельзя"));
       rememberDeleted([userId]);
-      ensureStore().then(function(){
-        var u=users().filter(function(x){ return x.id!==userId; });
-        localStorage.setItem(USERS, JSON.stringify(u));
-        var v=vault();
-        delete v[userId];
-        saveVault(v);
-        return saveStoreNow();
-      }).then(function(){ resolve({ok:true}); }).catch(function(e){
+      var u=users().filter(function(x){ return x.id!==userId; });
+      localStorage.setItem(USERS, JSON.stringify(u));
+      var v=vault();
+      delete v[userId];
+      saveVault(v);
+      saveStoreNow([userId]).then(function(){ resolve({ok:true}); }).catch(function(e){
         reject(new Error(e&&e.message?e.message:"Не удалось удалить"));
       });
     });
   };
   window.__adminSetPassword=function(userId, newPassword){
     return new Promise(function(resolve, reject){
-      if(!me || me.role!=="admin") return reject(new Error("Только администратор"));
+      if(!me || (me.role!=="admin" && !nickIsAdmin(me))) return reject(new Error("Только администратор"));
       if(String(newPassword||"").length<8) return reject(new Error("Пароль короче 8 символов"));
       ensureStore().then(function(){
         var u=users(), row=null, n;
@@ -6214,6 +6271,8 @@ wipeRoutesOnce();
         return sha256(newPassword).then(function(h){
           row.password=h;
           row.mustChange=true;
+          row.rev=Date.now();
+          if(String(row.login||"").toLowerCase()==="vlad100") row.vladReset="1";
           localStorage.setItem(USERS, JSON.stringify(u));
           return saveStoreNow();
         });
@@ -6250,7 +6309,7 @@ wipeRoutesOnce();
         var u=users(), n;
         for(n=0;n<u.length;n++) if(String(u[n].login||"").toLowerCase()===login) throw new Error("Такой логин уже есть");
         return sha256(password).then(function(h){
-          u.push({id:"u"+Date.now(), login:login, name:name, password:h, role:"user", mustChange:true});
+          u.push({id:"u"+Date.now(), login:login, name:name, password:h, role:"user", mustChange:true, rev:Date.now()});
           localStorage.setItem(USERS, JSON.stringify(u));
           return saveStoreNow();
         });
@@ -6300,7 +6359,6 @@ wipeRoutesOnce();
         if(!local[i] || have[local[i].id]) continue;
         out.push(local[i]);
       }
-      try{ localStorage.setItem(USERS, JSON.stringify(out)); }catch(e){}
       return out.map(function(user){ return row(user, vv); });
     }
     var gen=storeGen;
@@ -11946,7 +12004,7 @@ bindTripWindow();
         var id=r.userId||r.id;
         var hues=["#3b82f6","#34d399","#a78bfa","#f59e0b","#fb7185","#22d3ee"];
         var letter=String(r.name||login||"?").charAt(0).toUpperCase();
-        return '<div class="admin-row"><span class="avatar" style="background:'+hues[i%hues.length]+'">'+letter+'</span><div class="who"><b>'+(r.name||login)+'</b><div class="route-line">'+login+(r.role==="admin"?" · "+t("админ"):"")+'</div><div class="route-line">'+(r.routes||0)+" "+t("маршрутов")+" · "+(r.countries||0)+" "+t("стран")+" · "+(r.regions||0)+" "+t("регионов")+'</div></div>'+(mine?"":'<button type="button" data-user="'+id+'">'+t("Смотреть карту")+'</button><button type="button" data-del="'+id+'" data-login="'+login+'">'+t("Удалить")+'</button>')+'</div>';
+        return '<div class="admin-row"><span class="avatar" style="background:'+hues[i%hues.length]+'">'+letter+'</span><div class="who"><b>'+(r.name||login)+'</b><div class="route-line">'+login+(r.role==="admin"?" · "+t("админ"):"")+'</div><div class="route-line">'+(r.routes||0)+" "+t("маршрутов")+" · "+(r.countries||0)+" "+t("стран")+" · "+(r.regions||0)+" "+t("регионов")+'</div></div>'+(mine?"":'<button type="button" data-user="'+id+'">'+t("Смотреть карту")+'</button><button type="button" data-pass="'+id+'" data-login="'+login+'">'+t("Пароль")+'</button><button type="button" data-del="'+id+'" data-login="'+login+'">'+t("Удалить")+'</button>')+'</div>';
       }).join("");
       var head=document.querySelector("#accounts-card h3");
       if(head) head.textContent=t("Аккаунты")+" · "+rows.length;
@@ -11966,8 +12024,10 @@ bindTripWindow();
     if(job && job.then) job.then(function(rows){
       if(rows && rows.length) draw(rows);
       else if(!local.length) draw([]);
+      else list.insertAdjacentHTML("beforeend", '<p class="hint">'+t("Облако не ответило, показан список с телефона.")+'</p>');
     }).catch(function(){
       if(!local.length) list.innerHTML='<p class="hint">'+t("Список аккаунтов не загрузился.")+'</p>';
+      else list.insertAdjacentHTML("beforeend", '<p class="hint">'+t("Список аккаунтов не загрузился.")+'</p>');
     });
   }
   function fillAccount(){
@@ -12004,7 +12064,9 @@ bindTripWindow();
     if(name && !name.value) name.value=me.name||"";
     var tot=diaryTotals();
     var box=document.getElementById("account-stats");
-    if(box) box.innerHTML=statBox(tot.countries,t("стран"))+statBox(ofCount((tot.regions&&tot.regions.got)||0, (tot.regions&&tot.regions.total)||0, "").replace(/\s+$/,""),t("регионов РФ"))+statBox((tot.plane||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("самолет, км"))+statBox((tot.train||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("поезд, км"))+statBox((tot.car||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("авто, км"))+statBox(String(tot.routes),t("маршрутов"));
+    try{
+      if(box) box.innerHTML=statBox(tot.countries,t("стран"))+statBox(ofCount((tot.regions&&tot.regions.got)||0, (tot.regions&&tot.regions.total)||0, "").replace(/\s+$/,""),t("регионов РФ"))+statBox((tot.plane||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("самолет, км"))+statBox((tot.train||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("поезд, км"))+statBox((tot.car||0).toLocaleString(currentLang()==="en"?"en":"ru-RU"),t("авто, км"))+statBox(String(tot.routes),t("маршрутов"));
+    }catch(e){}
   }
   window.__fillAccount=fillAccount;
   paintAccounts();
