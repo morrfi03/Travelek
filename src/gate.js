@@ -27,14 +27,32 @@
       clearInterval(waitTimer);
     } else if(++waits>40) clearInterval(waitTimer);
   }, 200);
+  function legalRead(){
+    try{ return localStorage.getItem("travelek-legal-read")==="2"; }catch(e){ return false; }
+  }
   var legal=document.getElementById("file-login-legal");
   var goBtn=document.getElementById("file-login-go");
-  function allow(){ if(goBtn) goBtn.disabled=!(legal && legal.checked); }
+  function allow(){
+    var read=legalRead();
+    if(legal && !read){ legal.checked=false; legal.disabled=true; }
+    else if(legal) legal.disabled=false;
+    if(goBtn) goBtn.disabled=!(read && legal && legal.checked);
+  }
   if(legal) legal.addEventListener("change", allow);
+  if(legal) legal.addEventListener("click", function(){
+    if(legalRead()) return;
+    legal.checked=false;
+    if(window.openLegal) openLegal("terms", true);
+  });
   allow();
   form.addEventListener("submit", function(e){
     e.preventDefault();
     var err=document.getElementById("file-login-err");
+    if(!legalRead()){
+      if(err) err.textContent="Сначала прочитайте соглашение и политику до конца";
+      if(window.openLegal) openLegal("terms", true);
+      return;
+    }
     if(!legal || !legal.checked){
       if(err) err.textContent="Сначала примите соглашение и политику";
       return;
