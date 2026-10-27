@@ -733,6 +733,8 @@ input,select,textarea{font-size:16px!important}
   box-shadow:0 2px 10px rgba(0,0,0,.35);
 }
 .top p{font-size:11px;color:var(--muted);margin-top:2px;font-weight:500}
+.ver{font-size:11px;letter-spacing:.04em}
+#file-login .ver{margin:-4px 0 12px;font-size:12px}
 #top-pct{display:flex;align-items:baseline;gap:6px;margin-top:1px}
 #top-pct b{font-size:18px;line-height:1;font-weight:800;color:var(--accent);letter-spacing:-.04em}
 #top-pct span{font-size:11px;font-weight:650;color:var(--muted)}
@@ -1524,6 +1526,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 <div id="file-login">
   <form id="file-login-form">
     <h1>ТравелЕк</h1>
+    <p class="ver">Версия 0.0.1</p>
     <p>Каждый видит только свой дневник. Администратор видит все маршруты. Новый аккаунт создаёт только администратор.</p>
     <input id="file-login-name" type="text" placeholder="Логин" data-i18n-ph="Логин" autocomplete="username" />
     <div class="passline">
@@ -1560,6 +1563,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 <div class="pick-banner" id="pick-banner" data-i18n="Ткните точку на карте">Ткните точку на карте</div>
 <div class="top">
   <h1>ТравелЕк</h1>
+  <p class="ver">Версия 0.0.1</p>
 </div>
 <div class="zoom">
   <button type="button" id="z-fit" title="Все маршруты" data-i18n-title="Все маршруты">⌂</button>
