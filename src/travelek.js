@@ -32,7 +32,7 @@ if(window.__travelekMap){
 var AIRPORTS = [
   /* Россия */
   {code:"SVO",n:"Москва Шереметьево",lat:55.9726,lng:37.4146},
-  {code:"DME",n:"Москва Домодедово",lat:55.4088,lng:37.9063},
+  {code:"DME",n:"Москва Домодедово",alias:"домоседа",lat:55.4088,lng:37.9063},
   {code:"VKO",n:"Москва Внуково",lat:55.5915,lng:37.2615},
   {code:"ZIA",n:"Москва Жуковский",lat:55.5533,lng:38.1500},
   {code:"LED",n:"Санкт-Петербург Пулково",lat:59.8003,lng:30.2625},
@@ -288,7 +288,7 @@ var AIRPORTS = [
   {code:"GZT",n:"Газиантеп",lat:36.9472,lng:37.4787},
   {code:"TZX",n:"Трабзон",lat:40.9951,lng:39.7897},
   {code:"ASR",n:"Кайсери",lat:38.7704,lng:35.4954},
-  {code:"UTP",n:"Утапао",lat:12.6799,lng:101.0050},
+  {code:"UTP",n:"Районг Утапао",alias:"паттайя пайонг районг u-tapao",lat:12.6799,lng:101.0050},
   {code:"HDY",n:"Хатъяй",lat:6.9332,lng:100.3930},
   {code:"KBV",n:"Краби",lat:8.0992,lng:98.9862},
   {code:"USM",n:"Самуи",lat:9.5478,lng:100.0623},
@@ -4467,7 +4467,7 @@ var EXTRA_FLIGHT_PAIRS = [
   "PKC-SVO","UUS-SVO","HTA-SVO","GDX-SVO","ABA-OVB","BAX-OVB","KEJ-OVB",
   "MSQ-SVO","MSQ-LED","EVN-SVO","EVN-LED","TBS-SVO","GYD-SVO","ALA-SVO","NQZ-SVO","TAS-SVO",
   "DXB-SVO","DXB-DME","IST-SVO","AYT-SVO","BKK-SVO","HKT-SVO","PEK-SVO","PVG-SVO",
-  "BKK-HAK","HKT-TFU"
+  "BKK-HAK","HKT-TFU","DME-UTP","SVO-UTP","VKO-UTP"
 ];
 function ensureFlightPairs(){
   if(typeof FLIGHT_PAIRS==="undefined") window.FLIGHT_PAIRS={};
@@ -6413,7 +6413,7 @@ function place(name, code){
   /* partial airport */
   for(i=0;i<AIRPORTS.length;i++){
     a = AIRPORTS[i];
-    if(norm(a.code).indexOf(k)===0 || nameHas(norm(a.n), k))
+    if(norm(a.code).indexOf(k)===0 || nameHas(norm(a.n), k) || (a.alias && nameHas(norm(a.alias), k)))
       return {lat:a.lat,lng:a.lng,label:a.n+" ("+a.code+")"};
   }
   for(i=0;i<STATIONS.length;i++){
@@ -6433,7 +6433,7 @@ var IDX_AIR = null, IDX_ST = null, IDX_CITY = null;
 function buildIdx(){
   if(IDX_AIR) return;
   IDX_AIR = AIRPORTS.map(function(a){
-    return {code:a.code, n:a.n, key:norm(a.code+" "+a.n), lat:a.lat, lng:a.lng};
+    return {code:a.code, n:a.n, key:norm(a.code+" "+a.n+" "+(a.alias||"")), lat:a.lat, lng:a.lng};
   });
   IDX_ST = STATIONS.map(function(s){
     return {n:s.n, key:norm(s.n+" "+s.id), lat:s.lat, lng:s.lng};
