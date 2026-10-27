@@ -110,6 +110,10 @@
     if (e.L === "R" || e.sub === "Россия") return !!markC.RU;
     if (e.L === "C" || e.sub === "Китай") return !!markC.CN;
     if (e.iso && markC[e.iso]) return true;
+    if (e.sub) {
+      var iso = isoOfName(e.sub);
+      if (iso && (markC[iso] || washIso[iso])) return true;
+    }
     return false;
   }
   function showTip(tip, box, e, i) {
@@ -185,13 +189,16 @@
       var lw = 1 / kk; c.lineJoin = "round"; c.lineCap = "round";
       byLayer.W.forEach(function (i) {
         var e = ents[i]; if (!litCountry(e)) return;
-        c.beginPath(); entPath(c, e); c.fillStyle = "rgba(36,112,168,.5)"; c.fill();
-        c.strokeStyle = "rgba(12,64,110,.85)"; c.lineWidth = 1.3 * lw; c.stroke();
+        c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.5)"; c.fill();
+        c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke();
       });
       ["R", "C", "G"].forEach(function (L) {
         byLayer[L].forEach(function (i) {
-          if (!regionMarked(ents[i])) return;
-          c.beginPath(); entPath(c, ents[i]); c.fillStyle = "rgba(196,98,45,.6)"; c.fill();
+          var e = ents[i];
+          if (!regionLayerOpen(e) && !regionMarked(e)) return;
+          c.beginPath(); entPath(c, e);
+          c.fillStyle = regionMarked(e) ? "rgba(196,92,40,.66)" : "rgba(214,168,72,.42)";
+          c.fill();
         });
       });
       if (k >= 2.6) {
@@ -471,13 +478,16 @@
       project(); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
       byLayer.W.forEach(function (i) {
         var e = ents[i]; if (!litCountry(e)) return;
-        ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(36,112,168,.5)"; ctx.fill();
-        ctx.strokeStyle = "rgba(12,64,110,.9)"; ctx.lineWidth = 1.1; ctx.stroke();
+        ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.5)"; ctx.fill();
+        ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke();
       });
       ["R", "C", "G"].forEach(function (L) {
         byLayer[L].forEach(function (i) {
-          if (!regionMarked(ents[i])) return;
-          ctx.beginPath(); fillRings(ents[i]); ctx.fillStyle = "rgba(196,98,45,.6)"; ctx.fill();
+          var e = ents[i];
+          if (!regionLayerOpen(e) && !regionMarked(e)) return;
+          ctx.beginPath(); fillRings(e);
+          ctx.fillStyle = regionMarked(e) ? "rgba(196,92,40,.66)" : "rgba(214,168,72,.42)";
+          ctx.fill();
         });
       });
       [[hoverEnt, "rgba(60,110,85,.55)"], [selEnt, "rgba(196,98,45,.70)"]].forEach(function (h) { if (h[0] < 0) return; ctx.beginPath(); fillRings(ents[h[0]]); ctx.fillStyle = h[1]; ctx.fill("evenodd"); });

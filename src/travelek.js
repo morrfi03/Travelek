@@ -9366,7 +9366,7 @@ function sheetHeights(){
   var topEl=document.querySelector(".top");
   var topBottom=topEl?Math.ceil(topEl.getBoundingClientRect().bottom):52;
   if(topBottom<36) topBottom=52;
-  var full=Math.max(200, vh-topBottom-8);
+  var full=Math.round(vh*0.9);
   var mid=Math.round(Math.min(vh*0.46, full-48));
   if(mid<160) mid=Math.min(160, full);
   return {
@@ -11901,10 +11901,12 @@ bindTripWindow();
         var id=r.userId||r.id;
         var hues=["#3b82f6","#34d399","#a78bfa","#f59e0b","#fb7185","#22d3ee"];
         var letter=String(r.name||login||"?").charAt(0).toUpperCase();
-        return '<div class="admin-row'+(i>2?" extra":"")+'"><span class="avatar" style="background:'+hues[i%hues.length]+'">'+letter+'</span><div class="who"><b>'+(r.name||login)+'</b><div class="route-line">'+login+(r.role==="admin"?" · "+t("админ"):"")+'</div><div class="route-line">'+(r.routes||0)+" "+t("маршрутов")+" · "+(r.countries||0)+" "+t("стран")+" · "+(r.regions||0)+" "+t("регионов")+'</div></div>'+(mine?"":'<button type="button" data-user="'+id+'">'+t("Смотреть карту")+'</button><button type="button" data-del="'+id+'" data-login="'+login+'">'+t("Удалить")+'</button>')+'</div>';
+        return '<div class="admin-row"><span class="avatar" style="background:'+hues[i%hues.length]+'">'+letter+'</span><div class="who"><b>'+(r.name||login)+'</b><div class="route-line">'+login+(r.role==="admin"?" · "+t("админ"):"")+'</div><div class="route-line">'+(r.routes||0)+" "+t("маршрутов")+" · "+(r.countries||0)+" "+t("стран")+" · "+(r.regions||0)+" "+t("регионов")+'</div></div>'+(mine?"":'<button type="button" data-user="'+id+'">'+t("Смотреть карту")+'</button><button type="button" data-del="'+id+'" data-login="'+login+'">'+t("Удалить")+'</button>')+'</div>';
       }).join("");
+      var head=document.querySelector("#accounts-card h3");
+      if(head) head.textContent=t("Аккаунты")+" · "+rows.length;
       var more=document.getElementById("accounts-more");
-      if(more) more.hidden=rows.length<=3;
+      if(more) more.hidden=true;
     }
     var local=[];
     try{ local=JSON.parse(localStorage.getItem("travelek-users")||"[]"); }catch(e){ local=[]; }
