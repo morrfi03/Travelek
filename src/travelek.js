@@ -5837,6 +5837,18 @@ wipeRoutesOnce();
     return d;
   }
   function extraCount(pack){ try{ var a=JSON.parse((pack&&pack["travelek-extra"])||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
+  function packRev(pack){ var n=parseInt(pack&&pack["travelek-rev"],10); return isNaN(n)?0:n; }
+  function markCount(pack){
+    function n(k){ try{ var a=JSON.parse((pack&&pack[k])||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
+    return n("travelek-countries")+n("travelek-regions")+n("travelek-extra");
+  }
+  function preferPack(a, b){
+    if(!a) return b||null;
+    if(!b) return a;
+    var ar=packRev(a), br=packRev(b);
+    if(ar!==br) return ar>br?a:b;
+    return markCount(a)>=markCount(b)?a:b;
+  }
   function copyUser(user){
     var login=String(user.login||user.email||"").replace(/@travelek\.app$/,"").trim();
     return {
@@ -5929,7 +5941,7 @@ wipeRoutesOnce();
       Object.keys(remoteVault).forEach(function(id){ if(merged.deleted.indexOf(id)<0) vaultOut[id]=remoteVault[id]; });
       Object.keys(localVault).forEach(function(id){
         if(merged.deleted.indexOf(id)>=0) return;
-        if(!vaultOut[id] || extraCount(localVault[id])>=extraCount(vaultOut[id])) vaultOut[id]=localVault[id];
+        vaultOut[id]=preferPack(localVault[id], vaultOut[id]);
       });
       try{
         localStorage.setItem(USERS, JSON.stringify(merged.users));
@@ -5984,20 +5996,29 @@ wipeRoutesOnce();
         }
       }
       var vv=vault();
-      Object.keys(vv).forEach(function(id){
-        if(id===owner) return;
-        try{
-          var lr=JSON.parse((vv[id]&&vv[id]["travelek-extra"])||"[]").length;
-          var rr=JSON.parse((data.vault[id]&&data.vault[id]["travelek-extra"])||"[]").length;
-          if(lr>rr) data.vault[id]=vv[id];
-        }catch(e){}
-      });
-      try{ localStorage.setItem(VAULT, JSON.stringify(data.vault)); }catch(e){}
-      if(remoteExtra!=null && remoteExtra!==localExtra && nExtra(remoteExtra)>=nExtra(localExtra)){
+      Object.keys(data.vault).forEach(function(id){ vv[id]=preferPack(vv[id], data.vault[id]); });
+      try{ localStorage.setItem(VAULT, JSON.stringify(vv)); }catch(e){}
+      var localPack={};
+      for(var pi=0;pi<KEYS.length;pi++){
+        var pv=localStorage.getItem(KEYS[pi]);
+        if(pv!=null) localPack[KEYS[pi]]=pv;
+      }
+      if(vv[owner] && vv[owner]["travelek-rev"]) localPack["travelek-rev"]=vv[owner]["travelek-rev"];
+      var chosen=preferPack(localPack, remotePack);
+      var localCountries=localStorage.getItem("travelek-countries")||"";
+      var remoteCountries=remotePack&&remotePack["travelek-countries"]||"";
+      var localRegions=localStorage.getItem("travelek-regions")||"";
+      var remoteRegions=remotePack&&remotePack["travelek-regions"]||"";
+      if(chosen && remotePack && chosen===remotePack && (remoteExtra!==localExtra || remoteCountries!==localCountries || remoteRegions!==localRegions)){
         apply(remotePack);
+        if(vv[owner]) vv[owner]=remotePack;
+        try{ localStorage.setItem(VAULT, JSON.stringify(vv)); }catch(e){}
         ROUTES=assembleRoutes();
-        if(typeof render==="function") render();
-        if(typeof syncVisited==="function"){ syncVisited(); if(typeof drawCountries==="function") drawCountries(); }
+        if(window.__reloadVisited) window.__reloadVisited();
+        else {
+          if(typeof render==="function") render();
+          if(typeof syncVisited==="function"){ syncVisited(); if(typeof drawCountries==="function") drawCountries(); }
+        }
         if(typeof scheduleGlobe==="function" && globeOn) scheduleGlobe();
       }
       var panel=document.getElementById("account-panel");
@@ -6044,7 +6065,7 @@ wipeRoutesOnce();
         var localV=vault();
         Object.keys(localV).forEach(function(id){
           if(merged.deleted.indexOf(id)>=0) return;
-          if(!vaultOut[id] || extraCount(localV[id])>=extraCount(vaultOut[id])) vaultOut[id]=localV[id];
+          vaultOut[id]=preferPack(localV[id], vaultOut[id]);
         });
         try{
           localStorage.setItem(USERS, JSON.stringify(merged.users));
@@ -6202,6 +6223,7 @@ wipeRoutesOnce();
     var prev=vv[me.id];
     function nOf(pack){ try{ var a=JSON.parse((pack&&pack["travelek-extra"])||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
     if(!window.__TRAVELEK_DIARY_READY && nOf(data)<nOf(prev)) return;
+    data["travelek-rev"]=String(Date.now());
     vv[me.id]=data; saveVault(vv);
     scheduleSave();
   };
@@ -10427,7 +10449,7 @@ function saveVisited(list){
 }
 manualCountries=loadArr("travelek-countries");
 offCountries=loadArr("travelek-countries-off");
-manualRegions=loadArr("travelek-regions").map(function(id){
+function canonRegion(id){
   var alias={
     "Карачаево-Черкесская Республика":"Карачаево-Черкесия",
     "Республика Карелия":"Карелия",
@@ -10450,8 +10472,20 @@ manualRegions=loadArr("travelek-regions").map(function(id){
     "Республика Бурятия":"Бурятия"
   };
   return alias[id]||id;
-});
+}
+manualRegions=loadArr("travelek-regions").map(canonRegion);
 offRegions=loadArr("travelek-regions-off");
+function reloadVisited(){
+  manualCountries=loadArr("travelek-countries");
+  offCountries=loadArr("travelek-countries-off");
+  manualRegions=loadArr("travelek-regions").map(canonRegion);
+  offRegions=loadArr("travelek-regions-off");
+  if(typeof syncVisited==="function") syncVisited();
+  if(typeof drawCountries==="function") drawCountries();
+  if(typeof renderCountryUi==="function") renderCountryUi();
+  if(typeof render==="function") render();
+}
+window.__reloadVisited=reloadVisited;
 (function migrateDiaryPlaces(){
   var iso={"FRA":"FR","NOR":"NO","KOS":"RS","XK":"RS","XKX":"RS"};
   var beforeC=manualCountries.join("\n"), beforeO=offCountries.join("\n"), beforeR=manualRegions.join("\n"), beforeRO=offRegions.join("\n");
