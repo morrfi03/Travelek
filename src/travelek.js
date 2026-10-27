@@ -3299,7 +3299,7 @@ var AIRPORTS = [
   {code:"ZKP",n:"Zyryanka Airport",lat:65.7485,lng:150.8889},
   {code:"KXO",n:"Kisoro Airport",lat:-1.2837,lng:29.7197},
   {code:"KHX",n:"Kihihi — Savannah Airstrip",lat:-0.7165,lng:29.6997},
-  {code:"SUI",n:"Sukhumi — Vladislav Ardzinba Sukhum International Airport",lat:42.8582,lng:41.128101},
+  {code:"SUI",n:"Сухум",alias:"Sukhumi Babushara Абхазия",lat:42.8582,lng:41.128101},
   {code:"KPW",n:"Keperveem Airport",lat:67.845001,lng:166.139999},
   {code:"KVM",n:"Markovo Airport",lat:64.665446,lng:170.417626},
   {code:"NGK",n:"Nogliki Airport",lat:51.783955,lng:143.141785},
@@ -4572,6 +4572,15 @@ var STATIONS = [
   {id:"krasnodar",n:"Краснодар",lat:45.0350,lng:38.9750},
   {id:"sochi",n:"Сочи",lat:43.5930,lng:39.7270},
   {id:"adler",n:"Адлер",lat:43.4430,lng:39.9100},
+  {id:"psou",n:"Псоу",lat:43.394,lng:40.011},
+  {id:"gagra",n:"Гагра",lat:43.298,lng:40.259},
+  {id:"pitsunda",n:"Пицунда",lat:43.163,lng:40.339},
+  {id:"gudauta",n:"Гудаута",lat:43.105,lng:40.632},
+  {id:"newathos",n:"Новый Афон",lat:43.087,lng:40.812},
+  {id:"sukhum",n:"Сухум",lat:43.003,lng:41.023},
+  {id:"ochamchira",n:"Очамчыра",lat:42.712,lng:41.468},
+  {id:"tkvarcheli",n:"Ткуарчал",lat:42.855,lng:41.680},
+  {id:"gal",n:"Гал",lat:42.628,lng:41.737},
   {id:"mineral",n:"Минеральные Воды",lat:44.2100,lng:43.1350},
   {id:"stavropol",n:"Ставрополь",lat:45.0440,lng:41.9690},
   {id:"ekb",n:"Екатеринбург",lat:56.8590,lng:60.6050},
@@ -5508,6 +5517,14 @@ var CITIES = [
   {n:"Ереван",lat:40.1792,lng:44.4991},
   {n:"Тбилиси",lat:41.7151,lng:44.8271},
   {n:"Батуми",lat:41.6168,lng:41.6367},
+  {n:"Гагра",lat:43.298,lng:40.259},
+  {n:"Пицунда",lat:43.163,lng:40.339},
+  {n:"Гудаута",lat:43.105,lng:40.632},
+  {n:"Новый Афон",lat:43.087,lng:40.812},
+  {n:"Сухум",lat:43.003,lng:41.023},
+  {n:"Очамчыра",lat:42.712,lng:41.468},
+  {n:"Ткуарчал",lat:42.855,lng:41.680},
+  {n:"Гал",lat:42.628,lng:41.737},
   {n:"Баку",lat:40.4093,lng:49.8671},
   {n:"Кишинёв",lat:47.0105,lng:28.8638},
   {n:"Вышний Волочёк",lat:57.584,lng:34.545},
@@ -6737,6 +6754,15 @@ var RAIL_EDGES = [
   ["rostov","krasnodar"],
   ["krasnodar","sochi"],
   ["sochi","adler"],
+  ["adler","psou"],
+  ["psou","gagra"],
+  ["gagra","pitsunda"],
+  ["pitsunda","gudauta"],
+  ["gudauta","newathos"],
+  ["newathos","sukhum"],
+  ["sukhum","ochamchira"],
+  ["ochamchira","gal"],
+  ["ochamchira","tkvarcheli"],
   ["rostov","mineral"],
   ["mineral","stavropol"],
   ["msk_pav","tambov"],
@@ -7087,6 +7113,27 @@ var CRIMEA_BRIDGE=[
   [45.3160,36.5834],[45.3022,36.6110],[45.2874,36.6418],[45.2716,36.6732],
   [45.2552,36.6990],[45.2386,36.7152],[45.2234,36.7188]
 ];
+function abkhazIndex(p){
+  if(!p) return -1;
+  var line=[[43.585,39.723],[43.443,39.910],[43.394,40.011],[43.298,40.259],[43.163,40.339],[43.105,40.632],[43.087,40.812],[43.003,41.023],[42.858,41.128],[42.712,41.468],[42.628,41.737]];
+  var best=-1, bd=40, i, d;
+  for(i=0;i<line.length;i++){
+    d=hav(p,{lat:line[i][0],lng:line[i][1]});
+    if(d<bd){ bd=d; best=i; }
+  }
+  return best;
+}
+function abkhazPath(a,b){
+  var line=[[43.585,39.723],[43.443,39.910],[43.394,40.011],[43.298,40.259],[43.163,40.339],[43.105,40.632],[43.087,40.812],[43.003,41.023],[42.858,41.128],[42.712,41.468],[42.628,41.737]];
+  var ia=abkhazIndex(a), ib=abkhazIndex(b), coords, i, step;
+  if(ia<0 || ib<0 || ia===ib) return null;
+  coords=[[a.lat,a.lng]];
+  step=ia<ib?1:-1;
+  for(i=ia;i!==ib;i+=step) coords.push(line[i].slice());
+  coords.push(line[ib].slice());
+  coords.push([b.lat,b.lng]);
+  return coords;
+}
 function inCrimea(p){
   return !!(p && p.lat>44.25 && p.lat<46.25 && p.lng>32.4 && p.lng<36.62);
 }
@@ -8087,6 +8134,8 @@ function buildGeoSync(r){
     if(!roadCache[roadKey(via.leave,b)]) hops.push([via.leave,b]);
     return {coords:via.coords, km:pathKm(via.coords), a:a, b:b, needRoad:hops.length>0, hops:hops};
   }
+  var coast=abkhazPath(a,b);
+  if(coast) return {coords:coast, km:pathKm(coast), a:a, b:b, needRoad:false};
   if(map && map.traceNetwork){
     var along=map.traceNetwork("car", a.lat, a.lng, b.lat, b.lng);
     if(along && along.length>=2) return {coords:along, km:pathKm(along), a:a, b:b, needRoad:false};
@@ -10647,7 +10696,8 @@ function regionRecord(id){
 function showMapHover(lat,lng,containerPoint){
   if(map && map._isAtlas) return;
   var cid=countryAt(lat,lng);
-  var rid=cid?regionIn(cid, lat, lng):null;
+  var been=visited && visited.indexOf(cid)>=0;
+  var rid=been && cid ? regionIn(cid, lat, lng) : null;
   var key=(cid||"")+"|"+(rid||"");
   var label=document.getElementById("map-hover-label");
   if(key===hoverKey){
@@ -10683,7 +10733,7 @@ function openVisitPrompt(lat,lng){
   if(!cid) return;
   var been=visited && visited.indexOf(cid)>=0;
   var regs=regionsFor(cid);
-  var rid=regs ? regionIn(cid, lat, lng) : null;
+  var rid=been && regs ? regionIn(cid, lat, lng) : null;
   if(rid && visitedRegions && visitedRegions.indexOf(rid)>=0) return;
   if(!rid && been) return;
   var c=countryRecord(cid), reg=rid?regionRecord(rid):null;
@@ -11199,6 +11249,7 @@ function bootGeo(){
   loadGeo("./geo/countries.json?v=8").then(function(data){
     COUNTRY_LIST=normalizeCountries(data&&data.items);
     finish();
+    if(typeof render==="function") render();
   }).catch(function(){ COUNTRY_LIST=COUNTRY_LIST||[]; finish(); });
   loadGeo("./geo/russia.json?v=8").then(function(data){
     RUSSIA_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||r.n; r.c="RU"; return r; });
@@ -11571,7 +11622,7 @@ function placeRows(tab){
 function modeColor(mode){ return (typeof COLORS!=="undefined" && COLORS[mode]) || "#1d4ed8"; }
 function cmpDate(a, b){ return ((a&&a.date||"")+" "+(a&&a.time||"")).localeCompare((b&&b.date||"")+" "+(b&&b.time||"")); }
 function routeText(r){
-  return '<div class="route-line" style="color:'+modeColor(r.mode)+'">'+
+  return '<div class="route-line" data-route-edit="'+r.id+'" style="color:'+modeColor(r.mode)+'">'+
     '<button type="button" class="route-x" data-route-del="'+r.id+'" title="'+t("Удалить")+'">×</button>'+
     escLabel((r.from||"")+" → "+(r.to||""))+(r.date?" · "+escLabel(r.date):"")+'</div>';
 }
@@ -11649,6 +11700,13 @@ function paintSheetList(el, list){
     return;
   }
   el.innerHTML=html+loose;
+  el.querySelectorAll("[data-route-edit]").forEach(function(line){
+    line.onclick=function(ev){
+      if(ev.target.closest("[data-route-del]")) return;
+      ev.stopPropagation();
+      openEdit(line.getAttribute("data-route-edit"));
+    };
+  });
   el.querySelectorAll("[data-route-del]").forEach(function(btn){
     btn.onclick=function(ev){
       ev.stopPropagation();
@@ -11667,14 +11725,14 @@ function paintSheetList(el, list){
   if(tab==="trips"){
     el.querySelectorAll("[data-card]").forEach(function(card){
       card.onclick=function(ev){
-        if(ev.target.closest("[data-all],[data-show]")) return;
+        if(ev.target.closest("[data-all],[data-show],[data-route-edit],[data-route-del]")) return;
         openTripWindow({tripId:card.getAttribute("data-card")});
       };
     });
   } else {
     el.querySelectorAll("[data-card]").forEach(function(card){
       card.onclick=function(ev){
-        if(ev.target.closest("[data-all],[data-show]")) return;
+        if(ev.target.closest("[data-all],[data-show],[data-route-edit],[data-route-del]")) return;
         var id=card.getAttribute("data-card");
         if(!id || id==="loose") return;
         selectedTripId=selectedTripId===id?null:id;
