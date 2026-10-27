@@ -214,6 +214,7 @@ var AIRPORTS = [
   {code:"IST",n:"Стамбул",lat:41.2753,lng:28.7519},
   {code:"SAW",n:"Стамбул Sabiha",lat:40.8986,lng:29.3092},
   {code:"AYT",n:"Анталья",lat:36.8987,lng:30.8005},
+  {code:"DLM",n:"Даламан",alias:"даляман мугла mugla dalaman",lat:36.7131,lng:28.7925},
   {code:"ESB",n:"Анкара",lat:40.1281,lng:32.9951},
   {code:"BKK",n:"Бангкок Suvarnabhumi",lat:13.6900,lng:100.7501},
   {code:"DMK",n:"Бангкок Don Mueang",lat:13.9126,lng:100.6068},
@@ -4467,6 +4468,7 @@ var EXTRA_FLIGHT_PAIRS = [
   "PKC-SVO","UUS-SVO","HTA-SVO","GDX-SVO","ABA-OVB","BAX-OVB","KEJ-OVB",
   "MSQ-SVO","MSQ-LED","EVN-SVO","EVN-LED","TBS-SVO","GYD-SVO","ALA-SVO","NQZ-SVO","TAS-SVO",
   "DXB-SVO","DXB-DME","IST-SVO","AYT-SVO","BKK-SVO","HKT-SVO","PEK-SVO","PVG-SVO",
+  "DLM-SVO","DLM-DME","DLM-VKO","DLM-LED","DLM-AER","DLM-KZN","DLM-SVX","DLM-OVB","DLM-KRR","DLM-ROV","DLM-UFA","DLM-MRV","DLM-IST","DLM-SAW","DLM-AYT",
   "BKK-HAK","HKT-TFU","DME-UTP","SVO-UTP","VKO-UTP"
 ];
 function ensureFlightPairs(){
