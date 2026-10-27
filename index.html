@@ -1266,14 +1266,15 @@ body.globe-on #globe-hint{display:block}
   #country-list button,#region-list button,.country-row .grow,.country-row .tick{min-height:48px;font-size:15px}
 }
 @media (min-width: 980px){
-  .handle-wrap,.cover,.sheet-actions{display:none!important}
+  .handle-wrap,.cover{display:none!important}
+  .sheet-actions{display:block!important}
   .sheet{
-    left:14px;right:auto;top:96px;bottom:16px;width:340px;
+    left:14px;right:auto;top:88px;bottom:16px;width:380px;
     height:auto!important;max-height:none;border-radius:18px;
     border:1px solid var(--line);
   }
   .stats{
-    position:fixed;left:370px;right:16px;bottom:14px;z-index:30;margin:0;padding:8px 10px;
+    position:fixed;left:410px;right:16px;bottom:14px;z-index:30;margin:0;padding:8px 10px;
     background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
     border:1px solid var(--line);border-radius:16px;
     box-shadow:0 8px 28px rgba(0,0,0,.25);
@@ -1522,6 +1523,21 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 [data-theme="light"] .row .title,
 [data-theme="light"] .stat,
 [data-theme="light"] .year{color:#0c1b33}
+@media (min-width:980px){
+  .trip-window.on{
+    inset:auto;left:50%;top:50%;transform:translate(-50%,-50%);
+    width:min(520px,calc(100vw - 430px));height:min(88dvh,860px);
+    border-radius:20px;border:1px solid var(--line);
+    box-shadow:0 24px 70px rgba(0,0,0,.45);
+  }
+  .trip-window header{padding-top:12px}
+  #settings-panel.on,#countries-panel.on,#users-panel.on,#account-panel.on{
+    left:50%;right:auto;bottom:auto;top:50%;transform:translate(-50%,-50%);
+    width:min(480px,92vw);max-height:86dvh;border-radius:20px;border:1px solid var(--line);
+  }
+  #modal.modal.on{align-items:center}
+  .modal-card{width:min(480px,92vw);max-height:86dvh;border-radius:20px}
+}
 </style>
 <div id="file-login">
   <form id="file-login-form">
