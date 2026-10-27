@@ -5927,14 +5927,10 @@ wipeRoutesOnce();
       if(Array.isArray(data.users)){
         var merged=mergeUsers(data.users, Array.isArray(data.deleted)?data.deleted:[]);
         merged.users.forEach(function(ru){ if(ru) ru.role=nickIsAdmin(ru)?"admin":"user"; });
-        var hasAdmin=false, ui;
-        for(ui=0;ui<merged.users.length;ui++) if(merged.users[ui] && (merged.users[ui].role==="admin" || nickIsAdmin(merged.users[ui]))) hasAdmin=true;
-        if(!hasAdmin && me){
-          for(ui=0;ui<merged.users.length;ui++) if(merged.users[ui] && merged.users[ui].id===me.id) merged.users[ui].role="admin";
-        }
         try{ localStorage.setItem(USERS, JSON.stringify(merged.users)); }catch(e){}
         if(merged.users.length>(data.users||[]).length) scheduleSave();
         if(window.__TRAVELEK_ME){
+          var ui;
           for(ui=0;ui<merged.users.length;ui++) if(merged.users[ui] && merged.users[ui].id===window.__TRAVELEK_ME.id) window.__TRAVELEK_ME.role=merged.users[ui].role;
         }
       }
@@ -6017,8 +6013,7 @@ wipeRoutesOnce();
   function nickIsAdmin(u){
     if(!u) return false;
     var login=String(u.login||u.email||"").toLowerCase().replace(/@travelek\.app$/,"").trim();
-    var name=String(u.name||"").toLowerCase().trim();
-    return login==="admin" || name==="admin";
+    return login==="admin";
   }
   function grantNamedAdmin(list){
     var changed=false, n;
@@ -10489,7 +10484,7 @@ function regionsFor(code){
 function regionIn(code, lat, lng){
   var list=regionsFor(code);
   if(!list) return null;
-  return regionAtList(list, lat, lng, 0.11);
+  return regionAtList(list, lat, lng, 0.2);
 }
 
 var hoverLayer=null, hoverKey="", pendingVisit=null;

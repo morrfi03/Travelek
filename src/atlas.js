@@ -188,8 +188,15 @@
       stampIso();
       for (var r = 0; r < NR; r++) RV[r] = (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1 || (rbx1[r] - rbx0[r] < px1 && rby1[r] - rby0[r] < px1)) ? 0 : 1;
       var lw = 1 / kk; c.lineJoin = "round"; c.lineCap = "round";
+      function showSmall(e){
+        for (var r = e.r0; r < e.r1; r++){
+          if (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1) continue;
+          RV[r] = 1;
+        }
+      }
       byLayer.W.forEach(function (i) {
         var e = ents[i]; if (!litCountry(e)) return;
+        showSmall(e);
         c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.62)"; c.fill();
         c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke();
       });
@@ -197,6 +204,7 @@
         byLayer[L].forEach(function (i) {
           var e = ents[i];
           if (!regionLayerOpen(e) && !regionMarked(e)) return;
+          showSmall(e);
           c.beginPath(); entPath(c, e);
           c.fillStyle = regionMarked(e) ? "rgba(196,92,40,.7)" : "rgba(214,168,72,.5)";
           c.fill();
