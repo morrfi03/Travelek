@@ -203,10 +203,10 @@
       ["R", "C", "G"].forEach(function (L) {
         byLayer[L].forEach(function (i) {
           var e = ents[i];
-          if (!regionLayerOpen(e) && !regionMarked(e)) return;
+          if (!regionMarked(e)) return;
           showSmall(e);
           c.beginPath(); entPath(c, e);
-          c.fillStyle = regionMarked(e) ? "rgba(196,92,40,.7)" : "rgba(214,168,72,.5)";
+          c.fillStyle = "rgba(196,92,40,.7)";
           c.fill();
         });
       });
@@ -493,9 +493,9 @@
       ["R", "C", "G"].forEach(function (L) {
         byLayer[L].forEach(function (i) {
           var e = ents[i];
-          if (!regionLayerOpen(e) && !regionMarked(e)) return;
+          if (!regionMarked(e)) return;
           ctx.beginPath(); fillRings(e);
-          ctx.fillStyle = regionMarked(e) ? "rgba(196,92,40,.7)" : "rgba(214,168,72,.5)";
+          ctx.fillStyle = "rgba(196,92,40,.7)";
           ctx.fill();
         });
       });
