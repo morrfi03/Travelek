@@ -11815,6 +11815,8 @@ var tw={id:null, title:"", routes:[], countries:[], regions:[], focus:""};
 function closeTripWindow(){
   var w=document.getElementById("trip-window");
   if(w) w.classList.remove("on");
+  var adsbBox=document.getElementById("tw-adsb");
+  if(adsbBox){ adsbBox.hidden=true; adsbBox.innerHTML=""; }
   if(selectedTripId){ selectedTripId=null; if(typeof render==="function") render(); }
 }
 function openTripWindow(seed){
@@ -11931,6 +11933,167 @@ function absorbRoute(r){
     if(typeof renderCountryUi==="function") renderCountryUi();
   }
 }
+function adsbShift(date, days){
+  var p=String(date||"").split("-");
+  var t=new Date(Date.UTC(+p[0], (+p[1]||1)-1, (+p[2]||1)+days));
+  var m=t.getUTCMonth()+1, d=t.getUTCDate();
+  return t.getUTCFullYear()+"-"+(m<10?"0":"")+m+"-"+(d<10?"0":"")+d;
+}
+function adsbNote(text){
+  var box=document.getElementById("tw-adsb");
+  if(!box) return;
+  box.hidden=!text;
+  box.innerHTML=text?'<p class="more-link">'+text+"</p>":"";
+}
+function adsbFetch(url, opt){
+  var ctrl=typeof AbortController!=="undefined"?new AbortController():null;
+  var timer=setTimeout(function(){ if(ctrl) ctrl.abort(); }, 12000);
+  var o=opt||{};
+  if(ctrl) o.signal=ctrl.signal;
+  return fetch(url, o).then(function(r){
+    clearTimeout(timer);
+    if(!r.ok) throw new Error("adsb");
+    return r.json();
+  }, function(e){ clearTimeout(timer); throw e; });
+}
+function adsbWanted(trip){
+  if(!trip || trip.mode!=="plane" || !trip.date || trip.date<"2025-01-01") return false;
+  var now=new Date();
+  var today=now.getFullYear()+"-"+(now.getMonth()<9?"0":"")+(now.getMonth()+1)+"-"+(now.getDate()<10?"0":"")+now.getDate();
+  return trip.date<=today;
+}
+function adsbSearch(a, b, date){
+  var body={
+    match:{and:[
+      {endpoint_within:{mode:"start", geometry:{type:"Circle", coordinates:[a.lng, a.lat], radius:20000}}},
+      {endpoint_within:{mode:"end", geometry:{type:"Circle", coordinates:[b.lng, b.lat], radius:20000}}}
+    ]},
+    start_from:adsbShift(date,-1)+"T00:00:00Z",
+    end_date:adsbShift(date,2)+"T00:00:00Z",
+    window_days:3,
+    limit:15,
+    include_path:false
+  };
+  return adsbFetch("https://adsb.aero/api/v1/query", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(body)
+  }).then(function(data){
+    var list=(data&&data.flights)||[];
+    var exact=list.filter(function(f){ return String(f.start_ts||"").slice(0,10)===date; });
+    if(exact.length) return exact;
+    var prev=adsbShift(date,-1), next=adsbShift(date,1);
+    return list.filter(function(f){
+      var d=String(f.start_ts||"").slice(0,10);
+      return d===prev || d===next;
+    });
+  });
+}
+function adsbMins(ts){
+  var m=String(ts||"").match(/T(\d{2}):(\d{2})/);
+  return m?(+m[1])*60+(+m[2]):null;
+}
+function adsbPath(path){
+  var segs=path&&path.coordinates, pts=[], i, j, p, last;
+  if(!segs) return null;
+  for(i=0;i<segs.length;i++){
+    for(j=0;j<(segs[i]||[]).length;j++){
+      p=segs[i][j];
+      if(!p || p.length<2 || isNaN(p[0]) || isNaN(p[1])) continue;
+      if(last && Math.abs(last[0]-p[1])<0.01 && Math.abs(last[1]-p[0])<0.01) continue;
+      last=[p[1], p[0]];
+      pts.push(last);
+    }
+  }
+  if(pts.length<2) return null;
+  if(pts.length>100){
+    var step=Math.ceil(pts.length/100), slim=[pts[0]], k;
+    for(k=step;k<pts.length-1;k+=step) slim.push(pts[k]);
+    slim.push(pts[pts.length-1]);
+    pts=slim;
+  }
+  return pts;
+}
+function adsbApply(trip, flight){
+  if(!flight) return Promise.resolve(trip);
+  if(flight.callsign) trip.flight=String(flight.callsign).trim();
+  var tm=String(flight.start_ts||"").slice(11,16);
+  if(tm && !trip.time) trip.time=tm;
+  if(flight.start_ts && flight.end_ts){
+    var ms=Date.parse(flight.end_ts)-Date.parse(flight.start_ts);
+    if(ms>0){
+      var mins=Math.round(ms/60000);
+      trip.duration=Math.floor(mins/60)+"ч "+(mins%60)+"м";
+    }
+  }
+  if(!flight.flight_id) return Promise.resolve(trip);
+  return adsbFetch("https://adsb.aero/api/v1/flights/"+encodeURI(flight.flight_id)).then(function(full){
+    var body=(full&&full.flight)||full||{};
+    var coords=adsbPath(body.path||full.path);
+    if(coords) trip.coords=coords;
+    return trip;
+  }).catch(function(){ return trip; });
+}
+function adsbChoose(list, time){
+  if(!list.length) return Promise.resolve(null);
+  var best=null, bestD=1e9, i, tm, d, want;
+  if(list.length===1) return Promise.resolve(list[0]);
+  if(time){
+    want=time.split(":");
+    want=(+want[0])*60+(+want[1]||0);
+    for(i=0;i<list.length;i++){
+      tm=adsbMins(list[i].start_ts);
+      if(tm==null) continue;
+      d=Math.abs(tm-want);
+      if(d>720) d=1440-d;
+      if(d<bestD){ bestD=d; best=list[i]; }
+    }
+    if(best && bestD<=180) return Promise.resolve(best);
+  }
+  var box=document.getElementById("tw-adsb");
+  if(!box) return Promise.resolve(list[0]);
+  return new Promise(function(resolve){
+    var html="<p class=\"more-link\">Несколько рейсов. Выберите свой или оставьте свой маршрут.</p>";
+    list.slice(0,8).forEach(function(f, n){
+      var when=String(f.start_ts||"").slice(11,16);
+      html+='<button type="button" data-adsb="'+n+'">'+escLabel(f.callsign||"Рейс")+(when?" · "+when+" UTC":"")+"</button>";
+    });
+    html+='<button type="button" data-adsb="mine">Оставить как я указал</button>';
+    box.innerHTML=html;
+    box.hidden=false;
+    box.onclick=function(e){
+      var b=e.target.closest&&e.target.closest("[data-adsb]");
+      if(!b || !box.contains(b)) return;
+      var key=b.getAttribute("data-adsb");
+      box.onclick=null;
+      box.hidden=true;
+      box.innerHTML="";
+      resolve(key==="mine"?null:list[+key]||null);
+    };
+  });
+}
+function enrichFlight(trip){
+  if(!adsbWanted(trip)) return Promise.resolve(trip);
+  var a=place(trip.from, trip.fromCode), b=place(trip.to, trip.toCode);
+  if(!a||!b) return Promise.resolve(trip);
+  var btn=document.getElementById("tw-add-route");
+  var old=btn?btn.textContent:"";
+  if(btn){ btn.disabled=true; btn.textContent="Ищем рейс…"; }
+  return adsbSearch(a, b, trip.date).catch(function(){ return []; }).then(function(list){
+    if(btn){ btn.disabled=false; btn.textContent=old||"Добавить маршрут"; }
+    if(!list || !list.length){
+      adsbNote("В архиве такого рейса нет — оставлен ваш маршрут");
+      return trip;
+    }
+    return adsbChoose(list, trip.time).then(function(flight){
+      if(!flight){ adsbNote("Оставлен ваш маршрут"); return trip; }
+      return adsbApply(trip, flight).then(function(done){
+        adsbNote("Взят рейс "+(done.flight||""));
+        return done;
+      });
+    });
+  });
+}
 function bindTripWindow(){
   var w=document.getElementById("trip-window");
   if(!w || w._bound) return;
@@ -11978,7 +12141,7 @@ function bindTripWindow(){
     var from=fromEl?fromEl.value.trim():"", to=toEl?toEl.value.trim():"";
     var dateEl=document.getElementById("tw-date");
     var date=dateEl?dateEl.value:"";
-    if(!from && !to && !date) return true;
+    if(!from && !to && !date) return Promise.resolve(true);
     editingId=null;
     fMode.value=document.getElementById("tw-mode").value;
     fFrom.value=from;
@@ -11987,30 +12150,33 @@ function bindTripWindow(){
     document.getElementById("f-time").value=document.getElementById("tw-time").value;
     document.getElementById("f-flight").value="";
     var made=buildRouteFromForm();
-    if(!made) return false;
+    if(!made) return Promise.resolve(false);
     var both=document.getElementById("tw-both");
     var backDateEl=document.getElementById("tw-date-back");
-    if(both && both.checked){
-      var backDate=backDateEl?backDateEl.value:"";
-      if(!backDate){ alert("Укажите дату обратно"); return false; }
+    if(both && both.checked && !(backDateEl && backDateEl.value)){
+      alert("Укажите дату обратно");
+      return Promise.resolve(false);
     }
-    tw.routes.push(made);
-    absorbRoute(made);
-    if(both && both.checked){
-      var back={id:"u"+(Date.now()+1), mode:made.mode, flight:made.flight, from:made.to, to:made.from, date:backDateEl.value};
-      if(made.time) back.time=made.time;
-      if(made.toCode) back.fromCode=made.toCode;
-      if(made.fromCode) back.toCode=made.fromCode;
-      if(made.coords) back.coords=made.coords.slice().reverse();
-      tw.routes.push(back);
-      absorbRoute(back);
+    function pushOne(m){ tw.routes.push(m); absorbRoute(m); }
+    function clearFields(){
+      if(fromEl) fromEl.value="";
+      if(toEl) toEl.value="";
     }
-    if(fromEl) fromEl.value="";
-    if(toEl) toEl.value="";
-    return true;
+    return enrichFlight(made).then(function(out){
+      pushOne(out);
+      if(!(both && both.checked)){ clearFields(); return true; }
+      var back={id:"u"+(Date.now()+1), mode:out.mode, flight:out.mode==="plane"?"Flight":out.flight, from:out.to, to:out.from, date:backDateEl.value};
+      if(out.toCode) back.fromCode=out.toCode;
+      if(out.fromCode) back.toCode=out.fromCode;
+      return enrichFlight(back).then(function(ret){
+        pushOne(ret);
+        clearFields();
+        return true;
+      });
+    });
   }
   document.getElementById("tw-add-route").onclick=function(){
-    if(addDraftRoute()) paintTripWindow();
+    addDraftRoute().then(function(ok){ if(ok) paintTripWindow(); });
   };
   w.addEventListener("click", function(e){
     var take=e.target.closest&&e.target.closest("[data-take]");
@@ -12049,7 +12215,8 @@ function bindTripWindow(){
   var freeMore=document.getElementById("tw-free-more");
   if(freeMore) freeMore.onclick=function(){ tw.freeAll=true; paintTripWindow(); };
   document.getElementById("tw-save").onclick=function(){
-    if(!addDraftRoute()) return;
+    addDraftRoute().then(function(ok){
+    if(!ok) return;
     if(!tw.routes.length && !tw.countries.length && !tw.regions.length){
       alert(t("Отметьте страну, регион или маршрут"));
       return;
@@ -12080,6 +12247,7 @@ function bindTripWindow(){
     document.querySelectorAll(".tab").forEach(function(tab){ tab.classList.toggle("on", tab.getAttribute("data-tab")==="trips"); });
     closeTripWindow();
     render();
+    });
   };
   document.getElementById("tw-delete").onclick=function(){
     if(!tw.id) return;
