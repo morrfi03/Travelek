@@ -6245,7 +6245,7 @@ wipeRoutesOnce();
   };
   window.__cloudCreate=function(login, password, name){
     return new Promise(function(resolve, reject){
-      if(me.role!=="admin" && String(me.login||"").toLowerCase()!=="admin" && String(me.name||"").toLowerCase()!=="admin") return reject(new Error("Только администратор может создавать аккаунты"));
+      if(!nickIsAdmin(me) && me.role!=="admin") return reject(new Error("Только администратор может создавать аккаунты"));
       login=String(login||"").trim().toLowerCase().replace(/@travelek\.app$/,"");
       name=String(name||"").trim();
       if(login.length<2) return reject(new Error("Логин слишком короткий"));
@@ -6952,6 +6952,7 @@ function trainPlan(from, to){
     p={lat:pts[i-1][0], lng:pts[i-1][1]};
     q={lat:pts[i][0], lng:pts[i][1]};
     d=hav(p,q);
+    if(needsBridge(p,q)){ append(stitchBridge(p,q).coords); continue; }
     key=roadKey(p,q);
     var traced=map && map.traceNetwork && map.traceNetwork("train", p.lat, p.lng, q.lat, q.lng);
     if(traced && traced.length>=2){ append(traced); continue; }
@@ -6970,6 +6971,43 @@ function trainPlan(from, to){
 function trainCoords(from,to){
   var plan=trainPlan(from,to);
   return plan?plan.coords:null;
+}
+var CRIMEA_BRIDGE=[
+  [45.3602,36.4904],[45.3510,36.5082],[45.3404,36.5308],[45.3286,36.5562],
+  [45.3160,36.5834],[45.3022,36.6110],[45.2874,36.6418],[45.2716,36.6732],
+  [45.2552,36.6990],[45.2386,36.7152],[45.2234,36.7188]
+];
+function inCrimea(p){
+  return !!(p && p.lat>44.25 && p.lat<46.25 && p.lng>32.4 && p.lng<36.62);
+}
+function needsBridge(a,b){
+  if(!a||!b) return false;
+  return (inCrimea(a)&&!inCrimea(b)) || (inCrimea(b)&&!inCrimea(a));
+}
+function bridgeLine(a,b){
+  var line=CRIMEA_BRIDGE.slice();
+  if(a && b && a.lng>b.lng) line.reverse();
+  return line;
+}
+function stitchBridge(a,b,leg){
+  var line=bridgeLine(a,b);
+  var enter={lat:line[0][0],lng:line[0][1]};
+  var leave={lat:line[line.length-1][0],lng:line[line.length-1][1]};
+  var coords=[], i;
+  function add(part){
+    if(!part) return;
+    for(i=0;i<part.length;i++){
+      if(coords.length){
+        var last=coords[coords.length-1];
+        if(Math.abs(last[0]-part[i][0])<1e-4 && Math.abs(last[1]-part[i][1])<1e-4) continue;
+      }
+      coords.push(part[i]);
+    }
+  }
+  add(leg?leg(a,enter):[[a.lat,a.lng],[enter.lat,enter.lng]]);
+  add(line);
+  add(leg?leg(leave,b):[[leave.lat,leave.lng],[b.lat,b.lng]]);
+  return {coords:coords, enter:enter, leave:leave};
 }
 function railCandidates(pt){
   var out=[], k, xy, d;
@@ -7927,6 +7965,18 @@ function buildGeoSync(r){
     return {coords:coords, km:pathKm(coords), a:a, b:b, needRoad:false};
   }
   var key=roadKey(a,b);
+  if(needsBridge(a,b)){
+    function land(p,q){
+      var k=roadKey(p,q), cachedLeg=roadCache[k];
+      if(cachedLeg && cachedLeg!=="fail" && cachedLeg!=="pending") return cachedLeg;
+      return densify([[p.lat,p.lng],[q.lat,q.lng]], 16);
+    }
+    var via=stitchBridge(a,b,land);
+    var hops=[];
+    if(!roadCache[roadKey(a,via.enter)]) hops.push([a,via.enter]);
+    if(!roadCache[roadKey(via.leave,b)]) hops.push([via.leave,b]);
+    return {coords:via.coords, km:pathKm(via.coords), a:a, b:b, needRoad:hops.length>0, hops:hops};
+  }
   if(map && map.traceNetwork){
     var along=map.traceNetwork("car", a.lat, a.lng, b.lat, b.lng);
     if(along && along.length>=2) return {coords:along, km:pathKm(along), a:a, b:b, needRoad:false};
@@ -11930,22 +11980,26 @@ bindTripWindow();
     if(window.__ensureOwner) window.__ensureOwner();
     var me=window.__TRAVELEK_ME||{};
     var loginNow=String(me.login||me.email||me.name||"").toLowerCase().replace(/@travelek\.app$/,"");
-    var adminOk=me.role==="admin" || loginNow==="admin";
+    var adminOk=me.role==="admin" || loginNow==="admin" || String(me.name||"").toLowerCase()==="admin";
     if(!adminOk){
       try{
         var stored=JSON.parse(localStorage.getItem("travelek-users")||"[]");
         for(var si=0;si<stored.length;si++){
-          if(!stored[si] || stored[si].id!==me.id) continue;
-          if(stored[si].role==="admin" || String(stored[si].login||"").toLowerCase()==="admin") adminOk=true;
+          if(!stored[si]) continue;
+          var storedLogin=String(stored[si].login||stored[si].email||"").toLowerCase().replace(/@travelek\.app$/,"");
+          var same=stored[si].id===me.id || storedLogin===loginNow;
+          if(same && (stored[si].role==="admin" || storedLogin==="admin")) adminOk=true;
         }
       }catch(e){}
     }
     var usersBox=document.getElementById("users-box");
-    if(usersBox) usersBox.style.display=adminOk?"block":"none";
+    if(usersBox) usersBox.style.display="block";
     var accountsCard=document.getElementById("accounts-card");
-    if(accountsCard) accountsCard.style.display=adminOk?"block":"none";
+    if(accountsCard) accountsCard.style.display="block";
     var openAcc=document.getElementById("open-accounts");
-    if(openAcc) openAcc.style.display=adminOk?"flex":"none";
+    if(openAcc) openAcc.style.display="flex";
+    var err=document.getElementById("acct-err");
+    if(err && !adminOk) err.textContent="";
     var who=document.getElementById("account-who");
     if(who) who.textContent=(me.role==="admin"?t("Администратор"):t("Пользователь"))+(me.email?(" · "+String(me.email).replace(/@travelek\.app$/,"")):"");
     paintAccounts();
@@ -12046,7 +12100,12 @@ bindTripWindow();
       document.getElementById("new-pass2").value="";
       alert(t("Аккаунт создан. Теперь по этому логину можно войти с любого телефона."));
       fillAccount();
-    }).catch(function(e){ alert(e && e.message ? t(e.message) : t("Не удалось создать")); });
+    }).catch(function(e){
+      var msg=e && e.message ? t(e.message) : t("Не удалось создать");
+      var err=document.getElementById("acct-err");
+      if(err) err.textContent=msg;
+      alert(msg);
+    });
   };
   var out=document.getElementById("account-logout");
   if(out) out.onclick=function(){ if(window.__signOut) window.__signOut(); };

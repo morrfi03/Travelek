@@ -185,11 +185,12 @@
       c.save(); c.translate(tx, ty); c.scale(kk, kk);
       var vx0 = -tx / kk, vx1 = (cw - tx) / kk, vy0 = -ty / kk, vy1 = (ch - ty) / kk, px1 = 1.4 / kk;
       c.imageSmoothingEnabled = true; if (texF.complete && texF.naturalWidth) c.drawImage(texF, 0, 0, WID, HF);
+      stampIso();
       for (var r = 0; r < NR; r++) RV[r] = (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1 || (rbx1[r] - rbx0[r] < px1 && rby1[r] - rby0[r] < px1)) ? 0 : 1;
       var lw = 1 / kk; c.lineJoin = "round"; c.lineCap = "round";
       byLayer.W.forEach(function (i) {
         var e = ents[i]; if (!litCountry(e)) return;
-        c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.5)"; c.fill();
+        c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.62)"; c.fill();
         c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke();
       });
       ["R", "C", "G"].forEach(function (L) {
@@ -197,7 +198,7 @@
           var e = ents[i];
           if (!regionLayerOpen(e) && !regionMarked(e)) return;
           c.beginPath(); entPath(c, e);
-          c.fillStyle = regionMarked(e) ? "rgba(196,92,40,.66)" : "rgba(214,168,72,.42)";
+          c.fillStyle = regionMarked(e) ? "rgba(196,92,40,.7)" : "rgba(214,168,72,.5)";
           c.fill();
         });
       });
@@ -475,10 +476,10 @@
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R * 1.08, 0, 2 * PI); ctx.fill();
       if (!tex) { ctx.fillStyle = "#96b8d0"; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.fill(); return; }
       relief(q); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; ctx.drawImage(rbuf, 0, 0, cw, ch); ctx.restore();
-      project(); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
+      project(); stampIso(); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
       byLayer.W.forEach(function (i) {
         var e = ents[i]; if (!litCountry(e)) return;
-        ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.5)"; ctx.fill();
+        ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill();
         ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke();
       });
       ["R", "C", "G"].forEach(function (L) {
@@ -486,7 +487,7 @@
           var e = ents[i];
           if (!regionLayerOpen(e) && !regionMarked(e)) return;
           ctx.beginPath(); fillRings(e);
-          ctx.fillStyle = regionMarked(e) ? "rgba(196,92,40,.66)" : "rgba(214,168,72,.42)";
+          ctx.fillStyle = regionMarked(e) ? "rgba(196,92,40,.7)" : "rgba(214,168,72,.5)";
           ctx.fill();
         });
       });
@@ -638,7 +639,7 @@
       var s0 = rStart[e.r0], n = rLen[e.r0], step = Math.max(1, Math.floor(n / 6)), t;
       for (t = 0; t < n && !iso; t += step) probe(LY[s0 + t] / 100, LX[s0 + t] / 100);
     }
-    e.lat = lat; e.lng = lng; if (iso) e.iso = iso; if (rid) e.rid = rid; if (e.iso) e._tag = 1;
+    if (iso && !e.iso) e.iso = iso; if (rid) e.rid = rid; if (e.iso) e._tag = 1;
   }
   function regionMarked(e) {
     if (!e) return false;
@@ -660,26 +661,34 @@
   }
   function stampIso() {
     var list = (typeof COUNTRY_LIST !== "undefined") ? COUNTRY_LIST : null;
-    if (!list || !list.length) return 0;
     var by = {
       "россия": "RU", "российская федерация": "RU",
       "китай": "CN", "китайская народная республика": "CN",
       "соединенные штаты": "US", "соединенные штаты америки": "US", "сша": "US",
-      "великобритания": "GB", "соединенное королевство": "GB"
-    }, i, n, added = 0;
-    for (i = 0; i < list.length; i++) {
-      n = String(list[i].n || "").toLowerCase().replace(/ё/g, "е");
-      if (n && list[i].i) by[n] = list[i].i;
-    }
-    byLayer.W.forEach(function (idx) {
-      var e = ents[idx];
-      if (e.iso) return;
-      var name = String(e.name || "").toLowerCase().replace(/ё/g, "е");
-      if (by[name]) { e.iso = by[name]; added++; return; }
-      var k;
-      for (k in by) {
-        if (k.length > 4 && (name.indexOf(k) >= 0 || k.indexOf(name) >= 0)) { e.iso = by[k]; added++; break; }
+      "великобритания": "GB", "соединенное королевство": "GB",
+      "беларусь": "BY", "казахстан": "KZ", "турция": "TR", "таиланд": "TH",
+      "франция": "FR", "германия": "DE", "италия": "IT", "испания": "ES",
+      "польша": "PL", "япония": "JP", "индия": "IN", "вьетнам": "VN",
+      "египет": "EG", "литва": "LT", "армения": "AM", "болгария": "BG",
+      "словения": "SI", "оаэ": "AE", "объединенные арабские эмираты": "AE",
+      "индонезия": "ID", "малайзия": "MY", "иран": "IR", "бразилия": "BR",
+      "канада": "CA", "австралия": "AU", "аргентина": "AR", "мексика": "MX"
+    }, i, n, added = 0, k;
+    if (list && list.length) {
+      for (i = 0; i < list.length; i++) {
+        n = String(list[i].n || "").toLowerCase().replace(/ё/g, "е");
+        if (n && list[i].i) by[n] = list[i].i;
       }
+    }
+    ents.forEach(function (e) {
+      var label = String((e.L === "W" ? e.name : (e.sub || e.name)) || "").toLowerCase().replace(/ё/g, "е");
+      var iso = by[label] || "";
+      if (!iso && label) {
+        for (k in by) if (k.length > 4 && (label.indexOf(k) >= 0 || k.indexOf(label) >= 0)) { iso = by[k]; break; }
+      }
+      if (e.L === "R" || label === "россия") iso = "RU";
+      if (e.L === "C" || label.indexOf("китай") === 0) iso = "CN";
+      if (iso && e.iso !== iso) { e.iso = iso; added++; }
     });
     nameIso = by;
     return added;
@@ -706,7 +715,11 @@
     }
     visitSig = sig;
     markC = {}; markR = {}; markRev++;
-    (countries || []).forEach(function (id) { if (id) markC[id] = 1; });
+    (countries || []).forEach(function (id) {
+      if (!id) return;
+      markC[id] = 1;
+      markC[String(id).toUpperCase()] = 1;
+    });
     (regions || []).forEach(function (id) {
       if (!id) return;
       markR[id] = 1;
