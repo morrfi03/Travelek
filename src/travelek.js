@@ -6436,13 +6436,6 @@ wipeRoutesOnce();
     var err=document.getElementById("file-login-err");
     if(err) err.textContent="";
     var legal=document.getElementById("file-login-legal");
-    try{
-      if(localStorage.getItem("travelek-legal-read")!=="2"){
-        if(err) err.textContent=t("Сначала прочитайте соглашение и политику");
-        if(window.openLegal) openLegal("terms", true);
-        return;
-      }
-    }catch(e2){}
     if(legal && !legal.checked){
       if(err) err.textContent=t("Нужно принять соглашение и политику");
       return;
@@ -10614,14 +10607,6 @@ if(legalOk) legalOk.onclick=function(){
   if(box) box.dispatchEvent(new Event("change"));
   document.getElementById("legal-panel").classList.remove("on");
 };
-(function armFirstRead(){
-  var gate=document.getElementById("file-login");
-  var box=document.getElementById("file-login-legal");
-  if(!gate || gate.style.display!=="flex") return;
-  if(legalRead()) return;
-  if(box){ box.disabled=true; box.checked=false; }
-  openLegal("terms", true);
-})();
 var countriesOpen=document.getElementById("countries-open");
 if(countriesOpen) countriesOpen.onclick=function(e){
   e.stopPropagation();
