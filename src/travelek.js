@@ -5806,7 +5806,41 @@ function drawNavZones(){
   try{ navZoneLayer.bringToBack && map.getPane && null; }catch(e){}
 }
 
-function loadExtra(){ try{return JSON.parse(localStorage.getItem("travelek-extra")||"[]");}catch(e){return[];} }
+function parseDiary(raw){
+  try{ var a=JSON.parse(raw||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; }
+}
+function unionDiary(a, b){
+  var by={}, out=[], i, id, item;
+  function put(arr){
+    for(i=0;i<(arr||[]).length;i++){
+      item=arr[i];
+      if(item && typeof item==="object"){
+        id=item.id;
+        if(!id) continue;
+        by[id]=item;
+      } else if(typeof item==="string" && item && !by["s:"+item]){
+        by["s:"+item]=item;
+      }
+    }
+  }
+  put(a); put(b);
+  for(id in by) if(Object.prototype.hasOwnProperty.call(by, id)) out.push(by[id]);
+  return out;
+}
+function readDiary(key){
+  var list=parseDiary(typeof localStorage!=="undefined"?localStorage.getItem(key):"[]");
+  try{
+    var sid=localStorage.getItem("travelek-session")||"";
+    var view="";
+    try{ view=sessionStorage.getItem("travelek-view")||""; }catch(e){}
+    var vault=JSON.parse(localStorage.getItem("travelek-vault")||"{}");
+    var pack=vault && vault[view||sid];
+    if(pack && typeof pack[key]==="string") list=unionDiary(list, parseDiary(pack[key]));
+  }catch(e){}
+  if(window.__TRAVELEK_CLOUD_PACK && typeof window.__TRAVELEK_CLOUD_PACK[key]==="string") list=unionDiary(list, parseDiary(window.__TRAVELEK_CLOUD_PACK[key]));
+  return list;
+}
+function loadExtra(){ return readDiary("travelek-extra"); }
 function loadDeleted(){ try{return JSON.parse(localStorage.getItem("travelek-del")||"[]");}catch(e){return[];} }
 function wipeRoutesOnce(){
   if(localStorage.getItem("travelek-wipe")==="2") return;
@@ -6161,11 +6195,18 @@ wipeRoutesOnce();
     return storePromise;
   }
   function apply(pack){
-    var i,k;
+    var keep=["travelek-extra","travelek-trips","travelek-countries","travelek-regions"];
+    var prev={}, i, k, merged;
+    for(i=0;i<keep.length;i++) prev[keep[i]]=localStorage.getItem(keep[i]);
     for(i=0;i<KEYS.length;i++){
       k=KEYS[i];
       if(pack && typeof pack[k]==="string") localStorage.setItem(k, pack[k]);
       else localStorage.removeItem(k);
+    }
+    for(i=0;i<keep.length;i++){
+      k=keep[i];
+      merged=unionDiary(parseDiary(prev[k]), parseDiary(localStorage.getItem(k)));
+      if(merged.length) localStorage.setItem(k, JSON.stringify(merged));
     }
   }
   function kmOf(text){ var m=String(text||"").replace(/\s/g,"").match(/([\d.]+)км/i); return m?Number(m[1])||0:0; }
@@ -10798,10 +10839,7 @@ window.__packStats=function(pack){
 
 
 
-function loadTrips(){
-  try{ var a=JSON.parse(localStorage.getItem("travelek-trips")||"[]"); return Array.isArray(a)?a:[]; }
-  catch(e){ return []; }
-}
+function loadTrips(){ return readDiary("travelek-trips"); }
 function saveTrips(list){
   if(typeof safeSetItem==="function") safeSetItem("travelek-trips", JSON.stringify(list||[]));
   else try{ localStorage.setItem("travelek-trips", JSON.stringify(list||[])); }catch(e){}
@@ -11684,16 +11722,24 @@ setTimeout(function(){
     try{ view=sessionStorage.getItem("travelek-view")||""; }catch(e){}
     var pack=data&&data.vault&&data.vault[view||sid];
     if(!pack) return;
-    function n(raw){ try{ var a=JSON.parse(raw||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
-    var remoteTrips=n(pack["travelek-trips"]), localTrips=n(localStorage.getItem("travelek-trips"));
-    var remoteRoutes=n(pack["travelek-extra"]), localRoutes=n(localStorage.getItem("travelek-extra"));
-    if(remoteTrips<=localTrips && remoteRoutes<=localRoutes) return;
-    ["travelek-extra","travelek-trips","travelek-countries","travelek-regions","travelek-countries-off","travelek-regions-off","travelek-del"].forEach(function(k){
-      if(typeof pack[k]==="string") localStorage.setItem(k, pack[k]);
+    window.__TRAVELEK_CLOUD_PACK=pack;
+    ["travelek-extra","travelek-trips","travelek-countries","travelek-regions"].forEach(function(k){
+      if(typeof pack[k]!=="string") return;
+      var merged=unionDiary(parseDiary(localStorage.getItem(k)), parseDiary(pack[k]));
+      if(merged.length) localStorage.setItem(k, JSON.stringify(merged));
     });
+    try{
+      var vault=JSON.parse(localStorage.getItem("travelek-vault")||"{}");
+      var id=view||sid;
+      vault[id]=vault[id]||{};
+      ["travelek-extra","travelek-trips","travelek-countries","travelek-regions"].forEach(function(k){
+        if(localStorage.getItem(k)!=null) vault[id][k]=localStorage.getItem(k);
+      });
+      localStorage.setItem("travelek-vault", JSON.stringify(vault));
+    }catch(e){}
     if(typeof assembleRoutes==="function") ROUTES=assembleRoutes();
     if(typeof reloadVisited==="function") reloadVisited();
     else if(typeof render==="function") render();
   }).catch(function(){});
-}, 600);
+}, 300);
 
