@@ -5863,21 +5863,43 @@ wipeRoutesOnce();
     var t=pack && pack["travelek-trips"];
     return typeof t==="string"?t:"";
   }
-  function withTrips(chosen, other){
-    if(!chosen) return chosen;
-    var t=tripRaw(chosen), o=tripRaw(other);
-    if((!t || t==="[]") && o && o!=="[]"){
-      chosen=Object.assign({}, chosen);
-      chosen["travelek-trips"]=o;
+  function listOf(pack, key){
+    try{ var a=JSON.parse((pack&&pack[key])||"[]"); return Array.isArray(a)?a:[]; }catch(e){ return []; }
+  }
+  function unionById(x, y, gone){
+    var map={}, i, id;
+    function put(arr){
+      for(i=0;i<(arr||[]).length;i++){
+        id=arr[i]&&arr[i].id;
+        if(!id || (gone && gone[id])) continue;
+        map[id]=arr[i];
+      }
     }
-    return chosen;
+    put(x); put(y);
+    var out=[], k;
+    for(k in map) if(map.hasOwnProperty(k)) out.push(map[k]);
+    return out;
+  }
+  function unionStr(x, y){
+    var seen={}, out=[], i, id;
+    for(i=0;i<(x||[]).length;i++){ id=x[i]; if(id && !seen[id]){ seen[id]=1; out.push(id); } }
+    for(i=0;i<(y||[]).length;i++){ id=y[i]; if(id && !seen[id]){ seen[id]=1; out.push(id); } }
+    return out;
   }
   function preferPack(a, b){
     if(!a) return b||null;
     if(!b) return a;
-    var ar=packRev(a), br=packRev(b);
-    var win=ar!==br?(ar>br?a:b):(markCount(a)>=markCount(b)?a:b);
-    return withTrips(win, win===a?b:a);
+    var base=packRev(a)>=packRev(b)?a:b;
+    var other=base===a?b:a;
+    var gone={}, dels=listOf(base,"travelek-del").concat(listOf(other,"travelek-del")), i;
+    for(i=0;i<dels.length;i++) if(dels[i]) gone[dels[i]]=1;
+    var out=Object.assign({}, base);
+    out["travelek-extra"]=JSON.stringify(unionById(listOf(base,"travelek-extra"), listOf(other,"travelek-extra"), gone));
+    out["travelek-trips"]=JSON.stringify(unionById(listOf(base,"travelek-trips"), listOf(other,"travelek-trips"), null));
+    out["travelek-countries"]=JSON.stringify(unionStr(listOf(base,"travelek-countries"), listOf(other,"travelek-countries")));
+    out["travelek-regions"]=JSON.stringify(unionStr(listOf(base,"travelek-regions"), listOf(other,"travelek-regions")));
+    out["travelek-del"]=JSON.stringify(Object.keys(gone));
+    return out;
   }
   function copyUser(user){
     var login=String(user.login||user.email||"").replace(/@travelek\.app$/,"").trim();
@@ -8112,9 +8134,14 @@ function registerOfflineSW(){
 
 
 function isFuture(r){
-  var end=r.arrDate||r.date, t=r.arrTime||r.time||"23:59";
+  var end=r&&(r.arrDate||r.date);
   if(!end) return false;
-  return new Date(end+"T"+t) > new Date();
+  var p=String(end).split("-");
+  if(p.length<3) return false;
+  var hm=String((r.arrTime||r.time||"23:59")).split(":");
+  var when=new Date(Number(p[0]), Number(p[1])-1, Number(p[2]), Number(hm[0]||23), Number(hm[1]||59), Number(hm[2]||0));
+  if(isNaN(when.getTime())) return false;
+  return when.getTime()>Date.now();
 }
 
 function pathKm(coords){
