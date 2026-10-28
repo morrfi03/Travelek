@@ -1483,8 +1483,8 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 .sheet-actions button,#add-btn-2,.btn-save,#tw-save,.visit-yes,#set-save,#new-user,#file-login-go,#acc-name-save,#acc-pass-save,#must-pass-save{
   background:#2f7cf6!important;color:#fff!important;border:0!important;border-radius:14px!important;font-weight:650;
 }
-.tabs{display:flex;gap:8px}
-.tab{border:1px solid var(--line);border-radius:999px;padding:8px 14px;color:var(--muted);background:transparent}
+.sheet .tabs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;width:auto}
+.sheet .tab{min-width:0;width:100%;padding:8px 4px;text-align:center;border:1px solid var(--line);border-radius:999px;color:var(--muted);background:transparent}
 .tab.on{background:#2f7cf6;color:#fff;box-shadow:none}
 .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .stat{background:var(--chip);border:1px solid var(--line);border-radius:14px;padding:10px 8px}
