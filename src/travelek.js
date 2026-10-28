@@ -6045,6 +6045,11 @@ wipeRoutesOnce();
         if(vv[owner]) vv[owner]=chosen;
         try{ localStorage.setItem(VAULT, JSON.stringify(vv)); }catch(e){}
         ROUTES=assembleRoutes();
+        if(typeof activeTab!=="undefined" && activeTab==="future" && ROUTES.length && typeof isFuture==="function" && !ROUTES.some(isFuture)){
+          activeTab="past";
+          var pastTabs=document.querySelectorAll(".tab"), pti;
+          for(pti=0;pti<pastTabs.length;pti++) pastTabs[pti].classList.toggle("on", pastTabs[pti].getAttribute("data-tab")==="past");
+        }
         if(window.__reloadVisited) window.__reloadVisited();
         else {
           if(typeof render==="function") render();
@@ -6109,14 +6114,25 @@ wipeRoutesOnce();
       });
     }).catch(function(){}).then(function(){
       window.__TRAVELEK_STORE_READY=true;
-      if(me && !window.__TRAVELEK_READONLY){
-        var pack=vault()[me.id];
-        if(pack && tripRaw(pack)!==(localStorage.getItem("travelek-trips")||"")){
-          apply(pack);
-          try{ ROUTES=assembleRoutes(); }catch(e){}
-          if(window.__reloadVisited) window.__reloadVisited();
-          else if(typeof render==="function") render();
-        }
+      var viewId="";
+      try{ viewId=sessionStorage.getItem("travelek-view")||""; }catch(e){}
+      var owner=(viewId && me && me.role==="admin" && viewId!==me.id)?viewId:(me&&me.id);
+      var pack=owner && vault()[owner];
+      var changed=false;
+      if(pack && ((pack["travelek-extra"]||"")!==(localStorage.getItem("travelek-extra")||"") || (pack["travelek-countries"]||"")!==(localStorage.getItem("travelek-countries")||"") || tripRaw(pack)!==(localStorage.getItem("travelek-trips")||""))){
+        apply(pack);
+        try{ ROUTES=assembleRoutes(); }catch(e2){}
+        changed=true;
+      }
+      if(typeof activeTab!=="undefined" && activeTab==="future" && typeof ROUTES!=="undefined" && ROUTES.length && typeof isFuture==="function" && !ROUTES.some(isFuture)){
+        activeTab="past";
+        var tabs=document.querySelectorAll(".tab"), ti;
+        for(ti=0;ti<tabs.length;ti++) tabs[ti].classList.toggle("on", tabs[ti].getAttribute("data-tab")==="past");
+        changed=true;
+      }
+      if(changed){
+        if(window.__reloadVisited) window.__reloadVisited();
+        else if(typeof render==="function") render();
       }
       if(!window.__TRAVELEK_POLL) window.__TRAVELEK_POLL=setInterval(pullRemote, 8000);
     });
