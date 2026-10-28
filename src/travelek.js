@@ -5859,12 +5859,25 @@ wipeRoutesOnce();
     function n(k){ try{ var a=JSON.parse((pack&&pack[k])||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
     return n("travelek-countries")+n("travelek-regions")+n("travelek-extra");
   }
+  function tripRaw(pack){
+    var t=pack && pack["travelek-trips"];
+    return typeof t==="string"?t:"";
+  }
+  function withTrips(chosen, other){
+    if(!chosen) return chosen;
+    var t=tripRaw(chosen), o=tripRaw(other);
+    if((!t || t==="[]") && o && o!=="[]"){
+      chosen=Object.assign({}, chosen);
+      chosen["travelek-trips"]=o;
+    }
+    return chosen;
+  }
   function preferPack(a, b){
     if(!a) return b||null;
     if(!b) return a;
     var ar=packRev(a), br=packRev(b);
-    if(ar!==br) return ar>br?a:b;
-    return markCount(a)>=markCount(b)?a:b;
+    var win=ar!==br?(ar>br?a:b):(markCount(a)>=markCount(b)?a:b);
+    return withTrips(win, win===a?b:a);
   }
   function copyUser(user){
     var login=String(user.login||user.email||"").replace(/@travelek\.app$/,"").trim();
@@ -6026,9 +6039,10 @@ wipeRoutesOnce();
       var remoteCountries=remotePack&&remotePack["travelek-countries"]||"";
       var localRegions=localStorage.getItem("travelek-regions")||"";
       var remoteRegions=remotePack&&remotePack["travelek-regions"]||"";
-      if(chosen && remotePack && chosen===remotePack && (remoteExtra!==localExtra || remoteCountries!==localCountries || remoteRegions!==localRegions)){
-        apply(remotePack);
-        if(vv[owner]) vv[owner]=remotePack;
+      var localTrips=localStorage.getItem("travelek-trips")||"";
+      if(chosen && (remoteExtra!==localExtra || remoteCountries!==localCountries || remoteRegions!==localRegions || tripRaw(chosen)!==localTrips)){
+        apply(chosen);
+        if(vv[owner]) vv[owner]=chosen;
         try{ localStorage.setItem(VAULT, JSON.stringify(vv)); }catch(e){}
         ROUTES=assembleRoutes();
         if(window.__reloadVisited) window.__reloadVisited();
@@ -6093,7 +6107,19 @@ wipeRoutesOnce();
         window.__TRAVELEK_STORE_CHANGED=after!==before;
         if(needSave || repaired) return saveStoreNow();
       });
-    }).catch(function(){}).then(function(){ window.__TRAVELEK_STORE_READY=true; if(!window.__TRAVELEK_POLL) window.__TRAVELEK_POLL=setInterval(pullRemote, 8000); });
+    }).catch(function(){}).then(function(){
+      window.__TRAVELEK_STORE_READY=true;
+      if(me && !window.__TRAVELEK_READONLY){
+        var pack=vault()[me.id];
+        if(pack && tripRaw(pack)!==(localStorage.getItem("travelek-trips")||"")){
+          apply(pack);
+          try{ ROUTES=assembleRoutes(); }catch(e){}
+          if(window.__reloadVisited) window.__reloadVisited();
+          else if(typeof render==="function") render();
+        }
+      }
+      if(!window.__TRAVELEK_POLL) window.__TRAVELEK_POLL=setInterval(pullRemote, 8000);
+    });
     return storePromise;
   }
   function apply(pack){
@@ -6240,6 +6266,7 @@ wipeRoutesOnce();
     var prev=vv[me.id];
     function nOf(pack){ try{ var a=JSON.parse((pack&&pack["travelek-extra"])||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
     if(!window.__TRAVELEK_DIARY_READY && nOf(data)<nOf(prev)) return;
+    if((data["travelek-trips"]==null) && prev && typeof prev["travelek-trips"]==="string") data["travelek-trips"]=prev["travelek-trips"];
     data["travelek-rev"]=String(Date.now());
     vv[me.id]=data; saveVault(vv);
     scheduleSave();
