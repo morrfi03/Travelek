@@ -8133,15 +8133,20 @@ function registerOfflineSW(){
 /* Кэш тайлов на лету через плагин Leaflet (перехват img) */
 
 
+function todayStr(){
+  var d=new Date(), m=d.getMonth()+1, day=d.getDate();
+  return d.getFullYear()+"-"+(m<10?"0":"")+m+"-"+(day<10?"0":"")+day;
+}
 function isFuture(r){
-  var end=r&&(r.arrDate||r.date);
-  if(!end) return false;
-  var p=String(end).split("-");
-  if(p.length<3) return false;
-  var hm=String((r.arrTime||r.time||"23:59")).split(":");
-  var when=new Date(Number(p[0]), Number(p[1])-1, Number(p[2]), Number(hm[0]||23), Number(hm[1]||59), Number(hm[2]||0));
-  if(isNaN(when.getTime())) return false;
-  return when.getTime()>Date.now();
+  var s=String((r&&(r.arrDate||r.date))||"").slice(0,10);
+  if(s.length<10) return false;
+  if(s>todayStr()) return true;
+  if(s<todayStr()) return false;
+  var hm=String((r&&(r.arrTime||r.time))||"");
+  if(hm.length<4) return false;
+  var d=new Date();
+  var now=(d.getHours()<10?"0":"")+d.getHours()+":"+(d.getMinutes()<10?"0":"")+d.getMinutes();
+  return hm>now;
 }
 
 function pathKm(coords){
@@ -11009,7 +11014,10 @@ function paintSheetList(el, list){
   if(!el) return;
   var tab=activeTab;
   var nowY=String(new Date().getFullYear());
-  var trips=loadTrips().filter(function(tp){ return tab==="trips" || tripInTab(tp, tab); });
+  var trips=loadTrips().filter(function(tp){
+    if(tab==="trips") return true;
+    return tripInTab(tp, tab);
+  });
   var groups={}, order=[], html="", i, tp, y;
   for(i=0;i<trips.length;i++){
     tp=trips[i];
@@ -11666,4 +11674,26 @@ bindTripWindow();
 
 
 })();
+
+setTimeout(function(){
+  var url=window.__TRAVELEK_STORE_URL;
+  if(!url || window.__TRAVELEK_READONLY) return;
+  fetch(url+"?t="+Date.now(),{cache:"no-store"}).then(function(r){ return r.json(); }).then(function(data){
+    var sid=localStorage.getItem("travelek-session")||"";
+    var view="";
+    try{ view=sessionStorage.getItem("travelek-view")||""; }catch(e){}
+    var pack=data&&data.vault&&data.vault[view||sid];
+    if(!pack) return;
+    function n(raw){ try{ var a=JSON.parse(raw||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
+    var remoteTrips=n(pack["travelek-trips"]), localTrips=n(localStorage.getItem("travelek-trips"));
+    var remoteRoutes=n(pack["travelek-extra"]), localRoutes=n(localStorage.getItem("travelek-extra"));
+    if(remoteTrips<=localTrips && remoteRoutes<=localRoutes) return;
+    ["travelek-extra","travelek-trips","travelek-countries","travelek-regions","travelek-countries-off","travelek-regions-off","travelek-del"].forEach(function(k){
+      if(typeof pack[k]==="string") localStorage.setItem(k, pack[k]);
+    });
+    if(typeof assembleRoutes==="function") ROUTES=assembleRoutes();
+    if(typeof reloadVisited==="function") reloadVisited();
+    else if(typeof render==="function") render();
+  }).catch(function(){});
+}, 600);
 
