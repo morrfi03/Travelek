@@ -53,6 +53,15 @@
     var panel=document.getElementById("legal-panel");
     if(panel) panel.classList.remove("on");
   });
+  document.addEventListener("click", function(e){
+    var tab=e.target && e.target.closest ? e.target.closest(".tab[data-tab]") : null;
+    if(!tab) return;
+    var name=tab.getAttribute("data-tab");
+    var all=document.querySelectorAll(".tab");
+    for(var i=0;i<all.length;i++) all[i].classList.toggle("on", all[i]===tab);
+    try{ activeTab=name; }catch(err){}
+    if(typeof render==="function"){ try{ render(); }catch(err){} }
+  }, true);
   allow();
   form.addEventListener("submit", function(e){
     e.preventDefault();

@@ -8195,7 +8195,7 @@ function geoOf(r){
   if(!r) return null;
   var key=roadGen+"|"+(r.mode||"")+"|"+(r.from||"")+"|"+(r.to||"")+"|"+(r.date||"")+"|"+(r.coords?r.coords.length:0);
   if(r._geoKey===key) return r._geo;
-  r._geo=buildGeoSync(r);
+  try{ r._geo=buildGeoSync(r); }catch(e){ r._geo=null; }
   r._geoKey=key;
   return r._geo;
 }
@@ -9435,7 +9435,11 @@ function routeRepeatKey(r){
   return [a,b].sort().join(" ⇄ ");
 }
 function render(){
-  layer.clearLayers();
+  var list=[];
+  try{ list=filtered(); }catch(e){ list=[]; }
+  try{ paintSheetList(document.getElementById("list"), list); }catch(e){}
+  if(!layer) return;
+  try{ layer.clearLayers(); }catch(e){ return; }
   if(typeof collectLabelPts==="function") collectLabelPts(typeof filtered==="function"?filtered():ROUTES);
   var list=filtered(), kmP=0, kmT=0, kmC=0, bounds=[];
   var kmW=0,kmB=0,kmS=0,nP=0,nT=0,nC=0,nW=0,nB=0,nS=0;
