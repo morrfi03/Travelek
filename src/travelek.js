@@ -5740,7 +5740,11 @@ function scheduleCloudSave(){
     try{ window.__cloudPush(pack); }catch(e){}
   }, 500);
 }
-function saveExtra(list){ safeSetItem("travelek-extra", JSON.stringify(list||[])); }
+function saveExtra(list){
+  var del=loadDeleted();
+  var merged=unionDiary(readDiary("travelek-extra"), list||[]).filter(function(r){ return r && del.indexOf(r.id)<0; });
+  safeSetItem("travelek-extra", JSON.stringify(merged));
+}
 function saveDeleted(list){ safeSetItem("travelek-del", JSON.stringify(list||[])); }
 function loadAppSettings(){ try{ return JSON.parse(localStorage.getItem("travelek-app-settings")||"{}"); }catch(e){ return {}; } }
 function saveAppSettings(s){ safeSetItem("travelek-app-settings", JSON.stringify(s||{})); }
@@ -5839,6 +5843,23 @@ function readDiary(key){
   }catch(e){}
   if(window.__TRAVELEK_CLOUD_PACK && typeof window.__TRAVELEK_CLOUD_PACK[key]==="string") list=unionDiary(list, parseDiary(window.__TRAVELEK_CLOUD_PACK[key]));
   return list;
+}
+function mergePack(prev, data){
+  prev=prev||{}; data=data||{};
+  var gone={}, i, dels=parseDiary(prev["travelek-del"]).concat(parseDiary(data["travelek-del"]));
+  for(i=0;i<dels.length;i++) if(dels[i]) gone[dels[i]]=1;
+  var out={}, k;
+  for(k in prev) if(Object.prototype.hasOwnProperty.call(prev, k)) out[k]=prev[k];
+  for(k in data) if(Object.prototype.hasOwnProperty.call(data, k) && data[k]!=null) out[k]=data[k];
+  function keep(key){
+    return unionDiary(parseDiary(prev[key]), parseDiary(data[key])).filter(function(item){ return item && !gone[item.id]; });
+  }
+  out["travelek-extra"]=JSON.stringify(keep("travelek-extra"));
+  out["travelek-trips"]=JSON.stringify(keep("travelek-trips"));
+  out["travelek-countries"]=JSON.stringify(unionDiary(parseDiary(prev["travelek-countries"]), parseDiary(data["travelek-countries"])));
+  out["travelek-regions"]=JSON.stringify(unionDiary(parseDiary(prev["travelek-regions"]), parseDiary(data["travelek-regions"])));
+  out["travelek-del"]=JSON.stringify(Object.keys(gone));
+  return out;
 }
 function loadExtra(){ return readDiary("travelek-extra"); }
 function loadDeleted(){ try{return JSON.parse(localStorage.getItem("travelek-del")||"[]");}catch(e){return[];} }
@@ -6174,6 +6195,7 @@ wipeRoutesOnce();
       try{ viewId=sessionStorage.getItem("travelek-view")||""; }catch(e){}
       var owner=(viewId && me && me.role==="admin" && viewId!==me.id)?viewId:(me&&me.id);
       var pack=owner && vault()[owner];
+      if(pack) window.__TRAVELEK_CLOUD_PACK=pack;
       var changed=false;
       if(pack && ((pack["travelek-extra"]||"")!==(localStorage.getItem("travelek-extra")||"") || (pack["travelek-countries"]||"")!==(localStorage.getItem("travelek-countries")||"") || tripRaw(pack)!==(localStorage.getItem("travelek-trips")||""))){
         apply(pack);
@@ -6342,12 +6364,18 @@ wipeRoutesOnce();
   window.__cloudPush=function(data){
     if(window.__TRAVELEK_READONLY) return;
     var vv=vault();
-    var prev=vv[me.id];
-    function nOf(pack){ try{ var a=JSON.parse((pack&&pack["travelek-extra"])||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
-    if(!window.__TRAVELEK_DIARY_READY && nOf(data)<nOf(prev)) return;
-    if((data["travelek-trips"]==null) && prev && typeof prev["travelek-trips"]==="string") data["travelek-trips"]=prev["travelek-trips"];
-    data["travelek-rev"]=String(Date.now());
-    vv[me.id]=data; saveVault(vv);
+    var merged=mergePack(vv[me.id], data||{});
+    merged["travelek-rev"]=String(Date.now());
+    vv[me.id]=merged;
+    saveVault(vv);
+    ["travelek-extra","travelek-trips","travelek-countries","travelek-regions","travelek-del"].forEach(function(k){
+      if(typeof merged[k]==="string") localStorage.setItem(k, merged[k]);
+    });
+    var thin=parseDiary(data&&data["travelek-trips"]).length;
+    var full=parseDiary(merged["travelek-trips"]).length;
+    if(full>thin){
+      try{ ROUTES=assembleRoutes(); if(typeof render==="function") render(); }catch(e){}
+    }
     scheduleSave();
   };
   setTimeout(function(){ window.__TRAVELEK_DIARY_READY=true; }, 2500);
@@ -10841,8 +10869,10 @@ window.__packStats=function(pack){
 
 function loadTrips(){ return readDiary("travelek-trips"); }
 function saveTrips(list){
-  if(typeof safeSetItem==="function") safeSetItem("travelek-trips", JSON.stringify(list||[]));
-  else try{ localStorage.setItem("travelek-trips", JSON.stringify(list||[])); }catch(e){}
+  var del=typeof loadDeleted==="function"?loadDeleted():[];
+  var merged=unionDiary(readDiary("travelek-trips"), list||[]).filter(function(tp){ return tp && del.indexOf(tp.id)<0; });
+  if(typeof safeSetItem==="function") safeSetItem("travelek-trips", JSON.stringify(merged));
+  else try{ localStorage.setItem("travelek-trips", JSON.stringify(merged)); }catch(e){}
 }
 function countryOfRid(rid){
   var rec=typeof regionRecord==="function"?regionRecord(rid):null;
@@ -11702,6 +11732,7 @@ function bindTripWindow(){
   document.getElementById("tw-delete").onclick=function(){
     if(!tw.id) return;
     if(!confirm(t("Удалить поездку")+"?")) return;
+    if(typeof deleted!=="undefined" && deleted.indexOf(tw.id)<0){ deleted.push(tw.id); saveDeleted(deleted); }
     saveTrips(loadTrips().filter(function(tp){ return tp.id!==tw.id; }));
     if(selectedTripId===tw.id) selectedTripId=null;
     closeTripWindow();
