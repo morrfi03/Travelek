@@ -7284,7 +7284,6 @@ function fetchRoad(a,b,cb){
   function finish(coords){
     var ok=coords&&coords.length>=2;
     roadCache[key]=ok?coords:"fail";
-    roadGen++;
     var waits=roadWait[key]||[];
     delete roadWait[key];
     waits.forEach(function(fn){ try{ fn(ok?coords:null); }catch(e){} });
@@ -8190,11 +8189,10 @@ function buildGeoSync(r){
   else coords=densify([[a.lat,a.lng],[b.lat,b.lng]],15);
   return {coords:coords, km:pathKm(coords), a:a, b:b, needRoad:cached==null, hops:cached==null?[[a,b]]:[]};
 }
-var roadGen=0;
 function geoOf(r){
   if(!r) return null;
-  var key=roadGen+"|"+(r.mode||"")+"|"+(r.from||"")+"|"+(r.to||"")+"|"+(r.date||"")+"|"+(r.coords?r.coords.length:0);
-  if(r._geoKey===key) return r._geo;
+  var key=(r.mode||"")+"|"+(r.from||"")+"|"+(r.to||"")+"|"+(r.date||"")+"|"+(r.coords?r.coords.length:0);
+  if(r._geoKey===key && r._geo && !r._geo.needRoad) return r._geo;
   try{ r._geo=buildGeoSync(r); }catch(e){ r._geo=null; }
   r._geoKey=key;
   return r._geo;
@@ -10868,7 +10866,8 @@ function endpointBag(r){
           var list=typeof regionsFor==="function"?regionsFor(cid):null, ri, rn, want=String(h.name).toLowerCase().replace(/ё/g,"е");
           if(list) for(ri=0;ri<list.length;ri++){
             rn=String(list[ri].n||"").toLowerCase().replace(/ё/g,"е");
-            if(rn===want || rn.indexOf(want)>=0 || want.indexOf(rn)>=0){ rid=list[ri].id; break; }
+            var idn=String(list[ri].id||"").toLowerCase().replace(/ё/g,"е");
+            if(rn===want || idn===want || idn===(String(cid).toLowerCase()+":"+want)){ rid=list[ri].id; break; }
           }
         }
       }
@@ -11165,6 +11164,9 @@ function countriesBlock(countries, regions, expanded){
 function tripCard(tp, tab){
   var routes=tripRoutesFor(tp, tab).slice().sort(cmpDate);
   var places=tripPlaces(tp, routes, tab==="past" || tab==="future");
+  if(tp && !(places.countries||[]).length && (tp.countries||[]).length){
+    places={countries:(tp.countries||[]).slice(), regions:(tp.regions||[]).slice()};
+  }
   var ready=typeof COUNTRY_LIST!=="undefined" && !!COUNTRY_LIST;
   var block=ready?countriesBlock(places.countries, places.regions, !!cardMore[tp.id]):{html:"", n:"…"};
   return '<article class="f-card'+(selectedTripId===tp.id?" on":"")+'" data-card="'+tp.id+'"><h4>'+escLabel(tp.title||t("Поездка"))+'</h4>'+routes.map(routeText).join("")+statRow(kmOf(routes))+'<div class="f-count">'+block.n+" "+t("стран")+'</div>'+block.html+'<button type="button" class="more-link" data-show="'+tp.id+'">'+t("Показать")+'</button></article>';
