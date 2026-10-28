@@ -1219,12 +1219,12 @@ body.globe-on #globe-hint{display:block}
 }
 #legal-panel.on{display:flex}
 #legal-panel .card{
-  width:min(560px,100%);max-height:min(78dvh,640px);overflow:hidden;
+  width:min(560px,100%);height:min(78dvh,640px);max-height:min(78dvh,640px);overflow:hidden;
   display:flex;flex-direction:column;
   background:var(--panel-solid);color:var(--text);border:1px solid var(--line);
   border-radius:20px;padding:16px 16px 14px;
 }
-#legal-scroll{overflow:auto;flex:1;min-height:120px;-webkit-overflow-scrolling:touch}
+#legal-scroll{overflow:auto;flex:1 1 auto;min-height:0;-webkit-overflow-scrolling:touch}
 #legal-hint{margin:8px 0 0;font-size:12px;color:var(--muted)}
 #legal-ok:disabled{opacity:.4}
 #legal-panel h2{font-size:18px;margin:0 0 8px}
@@ -1398,8 +1398,8 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 .net-toggle button{min-height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--glass);color:var(--text);font-size:12px;font-weight:750;backdrop-filter:blur(16px);box-shadow:0 2px 12px rgba(0,0,0,.2)}
 .net-toggle button.on{background:#1f4f97;color:#fff;border-color:transparent}
 @media (min-width:980px){.net-toggle{top:auto;bottom:214px;right:18px}}
-#legal-panel{z-index:240;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px))}
-#legal-panel .card{width:min(480px,100%);max-height:min(86dvh,680px);margin:0 auto}
+#legal-panel{z-index:2000;padding:12px 12px calc(12px + env(safe-area-inset-bottom,0px))}
+#legal-panel .card{width:min(480px,100%);height:min(86dvh,680px);max-height:min(86dvh,680px);margin:0 auto}
 #legal-panel .row2{position:sticky;bottom:0;background:var(--panel-solid);padding-top:10px}
 
 .trip-window{position:fixed;inset:0;z-index:90;display:none;flex-direction:column;background:var(--panel-solid);color:var(--text)}
@@ -1859,7 +1859,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     </div>
   </div>
 </div>
-<script src="src/gate.js?v=452"></script>
+<script src="src/gate.js?v=453"></script>
 <script src="vendor/leaflet.js"></script>
 <script src="vendor/d3-array.min.js"></script>
 <script src="vendor/d3-geo.min.js"></script>
@@ -1867,6 +1867,6 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 <script src="geo/atlas-data.js"></script>
 <script src="src/atlas.js?v=446"></script>
 <script src="src/places.js?v=450"></script>
-<script src="src/travelek.js?v=452"></script>
+<script src="src/travelek.js?v=453"></script>
 <script src="src/accounts.js?v=450"></script>
 </body></html>

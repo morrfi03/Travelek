@@ -10522,88 +10522,43 @@ if(mapSwitch) mapSwitch.onclick=function(e){
   setMapView(b.getAttribute("data-view")==="globe");
 };
 syncMapSwitch();
-var LEGAL_VER="2";
-function legalRead(){
-  try{ return localStorage.getItem("travelek-legal-read")===LEGAL_VER; }catch(e){ return false; }
-}
-function markLegal(){
-  try{ localStorage.setItem("travelek-legal-read", LEGAL_VER); }catch(e){}
-}
-var legalMust=false, legalStep="terms";
-function legalScroller(){ return document.getElementById("legal-scroll"); }
-function legalAtEnd(){
-  var box=legalScroller();
-  if(!box) return true;
-  return box.scrollTop+box.clientHeight>=box.scrollHeight-28;
-}
-function syncLegalBtn(){
-  var ok=document.getElementById("legal-ok");
-  var hint=document.getElementById("legal-hint");
-  var close=document.getElementById("legal-close");
-  if(close) close.hidden=!!legalMust;
-  if(!legalMust){
-    if(ok){ ok.disabled=false; ok.textContent=t("Принимаю"); }
-    if(hint) hint.hidden=true;
-    return;
-  }
-  var end=legalAtEnd();
-  if(ok){
-    ok.disabled=!end;
-    ok.textContent=legalStep==="terms"?"Дальше":"Прочитал";
-  }
-  if(hint){
-    hint.hidden=false;
-    hint.textContent=end?"Можно продолжать":"Прокрутите текст до конца";
-  }
-}
-function openLegal(which, must){
+function openLegal(which){
   var panel=document.getElementById("legal-panel");
   if(!panel) return;
-  if(must!==undefined) legalMust=!!must;
-  legalStep=which==="privacy"?"privacy":"terms";
   var terms=document.getElementById("legal-terms");
   var privacy=document.getElementById("legal-privacy");
-  if(terms) terms.hidden=legalStep==="privacy";
-  if(privacy) privacy.hidden=legalStep!=="privacy";
+  var step=which==="privacy"?"privacy":"terms";
+  if(terms) terms.hidden=step==="privacy";
+  if(privacy) privacy.hidden=step!=="privacy";
   var title=document.getElementById("legal-title");
-  if(title) title.textContent=legalStep==="privacy"?t("Обработка данных"):t("Пользовательское соглашение");
+  if(title) title.textContent=step==="privacy"?t("Обработка данных"):t("Пользовательское соглашение");
+  var hint=document.getElementById("legal-hint");
+  if(hint) hint.hidden=true;
+  var ok=document.getElementById("legal-ok");
+  if(ok){ ok.disabled=false; ok.textContent=t("Принимаю"); }
+  var close=document.getElementById("legal-close");
+  if(close) close.hidden=false;
   panel.classList.add("on");
-  var box=legalScroller();
+  var box=document.getElementById("legal-scroll");
   if(box) box.scrollTop=0;
-  setTimeout(syncLegalBtn, 40);
 }
 window.openLegal=openLegal;
 document.querySelectorAll("[data-legal]").forEach(function(btn){
   btn.addEventListener("click", function(e){
     e.preventDefault();
     e.stopPropagation();
-    if(legalMust) return;
-    openLegal(btn.getAttribute("data-legal"), false);
+    openLegal(btn.getAttribute("data-legal"));
   });
 });
-var legalScroll=legalScroller();
-if(legalScroll) legalScroll.addEventListener("scroll", syncLegalBtn);
 var legalClose=document.getElementById("legal-close");
 if(legalClose) legalClose.onclick=function(){
-  if(legalMust) return;
   document.getElementById("legal-panel").classList.remove("on");
 };
 var legalOk=document.getElementById("legal-ok");
 if(legalOk) legalOk.onclick=function(){
-  if(legalMust && !legalAtEnd()) return;
-  if(legalMust && legalStep==="terms"){
-    openLegal("privacy", true);
-    return;
-  }
   var box=document.getElementById("file-login-legal");
   var gate=document.getElementById("file-login");
-  if(legalMust){
-    markLegal();
-    legalMust=false;
-    if(box){ box.disabled=false; box.checked=true; }
-  } else if(box && gate && gate.style.display==="flex"){
-    box.checked=true;
-  }
+  if(box && gate && gate.style.display==="flex") box.checked=true;
   if(box) box.dispatchEvent(new Event("change"));
   document.getElementById("legal-panel").classList.remove("on");
 };
