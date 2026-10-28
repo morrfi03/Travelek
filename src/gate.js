@@ -31,37 +31,6 @@
   var goBtn=document.getElementById("file-login-go");
   function allow(){ if(goBtn) goBtn.disabled=!(legal && legal.checked); }
   if(legal) legal.addEventListener("change", allow);
-  document.addEventListener("click", function(e){
-    var btn=e.target && e.target.closest ? e.target.closest("[data-legal]") : null;
-    if(!btn) return;
-    var which=btn.getAttribute("data-legal")==="privacy"?"privacy":"terms";
-    var panel=document.getElementById("legal-panel");
-    if(!panel) return;
-    e.preventDefault();
-    var terms=document.getElementById("legal-terms");
-    var privacy=document.getElementById("legal-privacy");
-    if(terms) terms.hidden=which==="privacy";
-    if(privacy) privacy.hidden=which!=="privacy";
-    var title=document.getElementById("legal-title");
-    if(title) title.textContent=which==="privacy"?"Обработка данных":"Пользовательское соглашение";
-    panel.classList.add("on");
-    var sc=document.getElementById("legal-scroll");
-    if(sc) sc.scrollTop=0;
-  }, true);
-  var legalClose=document.getElementById("legal-close");
-  if(legalClose) legalClose.addEventListener("click", function(){
-    var panel=document.getElementById("legal-panel");
-    if(panel) panel.classList.remove("on");
-  });
-  document.addEventListener("click", function(e){
-    var tab=e.target && e.target.closest ? e.target.closest(".tab[data-tab]") : null;
-    if(!tab) return;
-    var name=tab.getAttribute("data-tab");
-    var all=document.querySelectorAll(".tab");
-    for(var i=0;i<all.length;i++) all[i].classList.toggle("on", all[i]===tab);
-    try{ activeTab=name; }catch(err){}
-    if(typeof render==="function"){ try{ render(); }catch(err){} }
-  }, true);
   allow();
   form.addEventListener("submit", function(e){
     e.preventDefault();
