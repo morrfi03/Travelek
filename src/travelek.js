@@ -11254,7 +11254,7 @@ function bootGeo(){
   if(!countryLayer && typeof L!=="undefined" && typeof map!=="undefined") countryLayer=L.layerGroup().addTo(map);
   ensureHoverLayer();
   globeLand=null;
-  loadGeo("./geo/countries.json?v=9").then(function(data){
+  loadGeo("./geo/countries.json?v=10").then(function(data){
     COUNTRY_LIST=normalizeCountries(data&&data.items);
     finish();
     if(typeof render==="function") render();

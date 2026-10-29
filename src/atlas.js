@@ -114,9 +114,25 @@
     }
     return c;
   }
+  function geoCovers(lo, la) {
+    var rings = countryRings("UA");
+    if (!rings.length) return true;
+    var x = lo / 100, y = la / 100, r, i, j, ring, inn;
+    for (r = 0; r < rings.length; r++) {
+      ring = rings[r]; inn = false; j = ring.length - 1;
+      for (i = 0; i < ring.length; i++) {
+        var xi = ring[i][0], yi = ring[i][1], xj = ring[j][0], yj = ring[j][1];
+        if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / ((yj - yi) || 1e-12) + xi) inn = !inn;
+        j = i;
+      }
+      if (inn) return true;
+    }
+    return false;
+  }
   function pickLL(lo, la) {
     var country = -1, i, L = byLayer.W;
     for (i = 0; i < L.length; i++) if (inside(ents[L[i]], lo, la)) { country = L[i]; break; }
+    if (country >= 0 && ents[country].name === "Украина" && !geoCovers(lo, la)) country = -1;
     var host = country >= 0 ? ents[country] : null;
     var list = regionsOf(host ? entityIso(host) : "");
     var best = -1, bestA = Infinity, r, area;
@@ -305,7 +321,14 @@
       if (!settled) return;
       var kk = cw / WID * k; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.save(); ctx.translate(tx, ty); ctx.scale(kk, kk); ctx.lineJoin = "round";
       [[hoverEnt, "rgba(60,100,80,.38)"], [selEnt, "rgba(196,98,45,.65)"]].forEach(function (h) {
-        if (h[0] < 0) return; var e = ents[h[0]]; ctx.beginPath(); entPathFull(ctx, e); ctx.fillStyle = h[1]; ctx.fill("evenodd");
+        if (h[0] < 0) return;
+        var e = ents[h[0]];
+        if (e.name === "Украина" && traceFlat(ctx, "UA")) {
+          ctx.fillStyle = h[1]; ctx.fill("evenodd");
+          ctx.strokeStyle = h[0] === selEnt ? "rgba(120,50,15,.9)" : "rgba(30,60,45,.7)"; ctx.lineWidth = 1.2 / kk; ctx.stroke();
+          return;
+        }
+        ctx.beginPath(); entPathFull(ctx, e); ctx.fillStyle = h[1]; ctx.fill("evenodd");
         ctx.strokeStyle = h[0] === selEnt ? "rgba(120,50,15,.9)" : "rgba(30,60,45,.7)"; ctx.lineWidth = 1.2 / kk; ctx.stroke();
       });
       if (k >= 2.2 && hoverEnt >= 0) {
@@ -584,7 +607,11 @@
           ctx.fill();
         });
       });
-      [[hoverEnt, "rgba(60,110,85,.55)"], [selEnt, "rgba(196,98,45,.70)"]].forEach(function (h) { if (h[0] < 0) return; ctx.beginPath(); fillRings(ents[h[0]]); ctx.fillStyle = h[1]; ctx.fill("evenodd"); });
+      [[hoverEnt, "rgba(60,110,85,.55)"], [selEnt, "rgba(196,98,45,.70)"]].forEach(function (h) {
+        if (h[0] < 0) return;
+        if (ents[h[0]].name === "Украина" && fillGeo("UA")) { ctx.fillStyle = h[1]; ctx.fill("evenodd"); return; }
+        ctx.beginPath(); fillRings(ents[h[0]]); ctx.fillStyle = h[1]; ctx.fill("evenodd");
+      });
       if (!moving && zoom >= 1.6 && hoverEnt >= 0) {
         var hIso = entityIso(ents[hoverEnt]), regs = regionsOf(hIso), hi;
         if (regs.length) {
