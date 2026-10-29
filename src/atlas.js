@@ -142,6 +142,19 @@
       area = Math.max(0, r.bb[2] - r.bb[0]) * Math.max(0, r.bb[3] - r.bb[1]);
       if (area < bestA) { bestA = area; best = list[i]; }
     }
+    if (best >= 0) return best;
+    if (country < 0) {
+      var order = ["R", "C", "G"], k;
+      for (k = 0; k < order.length; k++) {
+        L = byLayer[order[k]] || [];
+        for (i = 0; i < L.length; i++) {
+          r = ents[L[i]];
+          if (!inside(r, lo, la)) continue;
+          area = Math.max(0, r.bb[2] - r.bb[0]) * Math.max(0, r.bb[3] - r.bb[1]);
+          if (area < bestA) { bestA = area; best = L[i]; }
+        }
+      }
+    }
     return best >= 0 ? best : country;
   }
   function entityIso(e) {
