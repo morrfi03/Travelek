@@ -1,6 +1,7 @@
 
 (function(){
 "use strict";
+try{ if(window.__bootDone) window.__bootDone(); }catch(e){}
 if(window.__travelekMap){
   try{ window.__travelekMap.remove(); }catch(e){}
   window.__travelekMap=null;
@@ -9619,9 +9620,9 @@ if(themeBtnInit) themeBtnInit.onclick=function(){
   var cur=document.documentElement.getAttribute("data-theme")||"dark";
   applyTheme(cur==="dark"?"light":"dark");
 };
-document.getElementById("z-in").onclick=function(){map.zoomIn();};
-document.getElementById("z-out").onclick=function(){map.zoomOut();};
-document.getElementById("z-fit").onclick=function(){ fitAll(); render(); };
+document.getElementById("z-in")&&(document.getElementById("z-in").onclick=function(){map.zoomIn();});
+document.getElementById("z-out")&&(document.getElementById("z-out").onclick=function(){map.zoomOut();});
+document.getElementById("z-fit")&&(document.getElementById("z-fit").onclick=function(){ fitAll(); render(); });
 map.on("zoomend",drawCityLabels);
 map.on("moveend",function(){ if(pickModeLabels||map.getZoom()>=3.4) drawCityLabels(); });
 map.on("mousemove",function(e){
@@ -10012,13 +10013,13 @@ function finishPick(latlng){
   updateLabels();
   syncWpPanel();
 }
-document.getElementById("pick-from").onclick=function(){ startPick("from"); };
-document.getElementById("pick-to").onclick=function(){ startPick("to"); };
-document.getElementById("wp-add").onclick=function(){
+var pickFromBtn=document.getElementById("pick-from"); if(pickFromBtn) pickFromBtn.onclick=function(){ startPick("from"); };
+var pickToBtn=document.getElementById("pick-to"); if(pickToBtn) pickToBtn.onclick=function(){ startPick("to"); };
+var wpAddBtn=document.getElementById("wp-add"); if(wpAddBtn) wpAddBtn.onclick=function(){
   document.getElementById("f-car-path").value="offroad";
   startPick("wp");
 };
-document.getElementById("wp-clear").onclick=function(){
+var wpClearBtn=document.getElementById("wp-clear"); if(wpClearBtn) wpClearBtn.onclick=function(){
   carWaypoints=[];
   clearPickMarkers();
   syncWpPanel();
@@ -10057,11 +10058,11 @@ fFrom.addEventListener("change", function(){
 function openForm(){ updateLabels(); modal.classList.add("on"); }
 function closeForm(){ modal.classList.remove("on"); }
 var addTop=document.getElementById("add-btn"); if(addTop) addTop.onclick=function(){ openTripWindow(); };
-document.getElementById("add-btn-2").onclick=function(){ openTripWindow(); };
-document.getElementById("f-cancel").onclick=closeForm;
+var addBtn2=document.getElementById("add-btn-2"); if(addBtn2) addBtn2.onclick=function(){ openTripWindow(); };
+var cancelBtn=document.getElementById("f-cancel"); if(cancelBtn) cancelBtn.onclick=closeForm;
 modal.addEventListener("click",function(e){ if(e.target===modal) closeForm(); });
 
-document.getElementById("f-save").onclick=function(){ saveCurrentForm(); };
+var saveBtn=document.getElementById("f-save"); if(saveBtn) saveBtn.onclick=function(){ saveCurrentForm(); };
 function buildRouteFromForm(){
   var mode=fMode.value;
   var from=fFrom.value.trim(), to=fTo.value.trim();
@@ -10306,10 +10307,10 @@ function openSettings(){
 }
 var settingsBtn=document.getElementById("settings-btn"); if(settingsBtn) settingsBtn.onclick=openSettings;
 var accountSettings=document.getElementById("account-settings"); if(accountSettings) accountSettings.onclick=openSettings;
-document.getElementById("set-close").onclick=function(){
+var setClose=document.getElementById("set-close"); if(setClose) setClose.onclick=function(){
   document.getElementById("settings-panel").classList.remove("on");
 };
-document.getElementById("set-save").onclick=function(){
+var setSave=document.getElementById("set-save"); if(setSave) setSave.onclick=function(){
   var minEl=document.getElementById("set-min-dist");
   var maxEl=document.getElementById("set-max-acc");
   var hiEl=document.getElementById("set-hi-acc");
@@ -10527,8 +10528,8 @@ if(ROUTES.length && !ROUTES.some(isFuture)){
   }
 }
 loadMapPrefs();
-setSheet("mid");
-render();
+try{ setSheet("mid"); }catch(e){}
+try{ render(); }catch(e){}
 if(typeof applyGlobeEffect==="function") applyGlobeEffect();
 if(typeof drawNavZones==="function") drawNavZones();
 setInterval(render,60000);

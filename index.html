@@ -883,10 +883,10 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   .modal-card{width:min(480px,92vw);max-height:86dvh;border-radius:20px}
 }
 #boot-loader{
-  position:fixed;inset:0;z-index:240;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:18px;
+  position:fixed;inset:0;z-index:4;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:18px;pointer-events:none;
   background:radial-gradient(120% 80% at 50% 12%, #1b446e 0%, #071426 58%, #050d18 100%);
-  color:#e7f0fb;transition:opacity .4s ease;
+  color:#e7f0fb;transition:opacity .25s ease;
 }
 #boot-loader.off{opacity:0;pointer-events:none}
 .boot-stage{position:relative;width:min(92vw,560px);height:280px}
@@ -927,6 +927,14 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   if(!root||!cv) return;
   var ctx=cv.getContext("2d");
   var raf=0, t0=0, dpr=1, W=1, H=1;
+  window.__bootDone=function(){
+    if(!root||root.dataset.done) return;
+    root.dataset.done="1";
+    root.classList.add("off");
+    if(raf) cancelAnimationFrame(raf);
+    setTimeout(function(){ if(root.parentNode) root.parentNode.removeChild(root); }, 280);
+  };
+  setTimeout(window.__bootDone, 1200);
   function size(){
     var r=cv.parentElement.getBoundingClientRect();
     dpr=Math.min(2, window.devicePixelRatio||1);
@@ -1018,14 +1026,6 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   }
   size();
   raf=requestAnimationFrame(frame);
-  window.__bootDone=function(){
-    if(!root||root.dataset.done) return;
-    root.dataset.done="1";
-    root.classList.add("off");
-    if(raf) cancelAnimationFrame(raf);
-    setTimeout(function(){ if(root.parentNode) root.parentNode.removeChild(root); }, 420);
-  };
-  setTimeout(window.__bootDone, 5000);
 })();
 </script>
 <div id="file-login">
@@ -1337,7 +1337,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 <script src="vendor/d3-array.min.js"></script>
 <script src="vendor/d3-geo.min.js"></script>
 <script src="geo/atlas-data.js"></script>
-<script src="src/atlas.js?v=450"></script>
-<script src="src/travelek.js?v=455"></script>
+<script src="src/atlas.js?v=451"></script>
+<script src="src/travelek.js?v=456"></script>
 <script src="src/accounts.js?v=441"></script>
 </body></html>
