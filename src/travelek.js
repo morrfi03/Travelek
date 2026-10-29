@@ -4512,6 +4512,17 @@ var RAIL_NOTES = {
   west:"Запад: Москва — Смоленск — Минск"
 };
 
+var AIR_BY=null;
+function airByCode(code){
+  var j;
+  if(!AIR_BY && typeof AIRPORTS!=="undefined"){
+    AIR_BY={};
+    for(j=0;j<AIRPORTS.length;j++) if(AIRPORTS[j].code) AIR_BY[AIRPORTS[j].code]=AIRPORTS[j];
+  }
+  if(AIR_BY && AIR_BY[code]) return AIR_BY[code];
+  if(typeof WORLD!=="undefined" && WORLD.byCode && WORLD.byCode[code]) return WORLD.byCode[code];
+  return null;
+}
 function flightAllowed(codeA, codeB){
   if(!codeA||!codeB) return false;
   codeA=String(codeA).toUpperCase(); codeB=String(codeB).toUpperCase();
@@ -4540,22 +4551,10 @@ function flightAllowed(codeA, codeB){
     if(g.indexOf(codeA)>=0 && g.indexOf(codeB)>=0) return false;
   }
   var k=[codeA,codeB].sort().join("-");
-  var inCatalog=0, j;
-  if(typeof AIRPORTS!=="undefined"){
-    for(j=0;j<AIRPORTS.length;j++){
-      if(AIRPORTS[j].code===codeA || AIRPORTS[j].code===codeB) inCatalog++;
-    }
-  }
-  if(!FLIGHT_PAIRS[k] && inCatalog<2) return false;
+  var A=airByCode(codeA), B=airByCode(codeB);
+  if(!FLIGHT_PAIRS[k] && (!A||!B)) return false;
   /* слишком короткое плечо (<90 км) — почти наверняка не авиа */
-  if(typeof AIRPORTS!=="undefined"){
-    var A=null,B=null,j;
-    for(j=0;j<AIRPORTS.length;j++){
-      if(AIRPORTS[j].code===codeA) A=AIRPORTS[j];
-      if(AIRPORTS[j].code===codeB) B=AIRPORTS[j];
-    }
-    if(A&&B && typeof hav==="function" && hav(A,B)<90) return false;
-  }
+  if(A&&B && typeof hav==="function" && hav(A,B)<90) return false;
   return true;
 }
 
@@ -6548,6 +6547,8 @@ function place(name, code){
     c = CITIES[i];
     if(nameHas(norm(c.n), k)) return {lat:c.lat,lng:c.lng,label:c.n};
   }
+  var worldHit=worldPlace(name, code);
+  if(worldHit) return worldHit;
   return null;
 }
 
@@ -6603,6 +6604,7 @@ function searchCatalog(mode, q, fromHint){
       if(norm(it.code).indexOf(q)===0) continue;
       if(it.key.indexOf(q)>=0) push(airportLabel(it)+" ("+it.code+")", airportLabel(it)+" ("+it.code+")", it.code);
     }
+    if(out.length<12 && q.length>=2) fillWorldAir(q, fromCode, out, push);
   } else if(mode==="train"){
     /* ——— Поезд: только станции; «Куда» — есть путь по графу ЖД ——— */
     var fromRail=null;
@@ -6664,10 +6666,188 @@ function searchCatalog(mode, q, fromHint){
       if(it.key.indexOf(q)>=0){ seenCity[it.key]=1; rest.push(it); }
     }
     exact.concat(rest).forEach(function(it){ push(it.n, it.n); });
+    if(out.length<12 && q.length>=2) fillWorldCities(q, out, push);
   }
   return out;
 }
 
+/* Мировой справочник: грузится после карты и ищется по первым буквам, без перебора на старте. */
+var WORLD={ready:false, loading:false, byCode:{}, ab:{}, cb:{}, air:null, cities:null};
+function foldQ(s){ return norm(s).replace(/ё/g,"е"); }
+function worldBucket(map, key, idx){
+  var b=map[key];
+  if(!b) map[key]=[idx];
+  else b.push(idx);
+}
+function indexWorldAir(row, idx){
+  var rec={code:row[0], n:row[1], lat:row[2], lng:row[3]};
+  WORLD.byCode[rec.code]=rec;
+  var keys={}, f=foldQ(rec.code), parts, i;
+  if(f.length>=2) keys[f.slice(0,2)]=1;
+  f=foldQ(rec.n);
+  if(f.length>=2) keys[f.slice(0,2)]=1;
+  parts=f.split(" ");
+  if(parts[0] && parts[0].length>=2) keys[parts[0].slice(0,2)]=1;
+  for(i in keys) if(i.length>=2) worldBucket(WORLD.ab, i, idx);
+}
+function indexWorldCity(row, idx){
+  var names=[row[0]], i, f, key, seen={};
+  if(row[3]) names=names.concat(String(row[3]).split("|"));
+  for(i=0;i<names.length;i++){
+    f=foldQ(names[i]);
+    if(f.length<2) continue;
+    key=f.slice(0,2);
+    if(seen[key]) continue;
+    seen[key]=1;
+    worldBucket(WORLD.cb, key, idx);
+  }
+}
+function worldCityLabel(row, q){
+  var names=[row[0]], i, f, best=null, bestRank=1e9, rank;
+  if(row[3]) names=names.concat(String(row[3]).split("|"));
+  for(i=0;i<names.length;i++){
+    if(!names[i]) continue;
+    f=foldQ(names[i]);
+    if(f!==q && f.indexOf(q)!==0) continue;
+    rank=(f===q?0:100)+names[i].length+(/[ёЁ]/.test(names[i])?1:0)+i*0.001;
+    if(rank<bestRank){ bestRank=rank; best=names[i]; }
+  }
+  return best;
+}
+function fillWorldAir(q, fromCode, out, push){
+  if(!WORLD.ready) return;
+  var fq=foldQ(q);
+  if(fq.length<2) return;
+  var ids=WORLD.ab[fq.slice(0,2)];
+  if(!ids) return;
+  var seen={}, i, row, rec, label;
+  function take(codeOnly){
+    for(i=0;i<ids.length;i++){
+      if(out.length>=12) return;
+      if(seen[ids[i]]) continue;
+      row=WORLD.air[ids[i]];
+      rec=WORLD.byCode[row[0]];
+      if(!rec) continue;
+      if(fromCode && rec.code===fromCode) continue;
+      if(fromCode && !flightAllowed(fromCode, rec.code)) continue;
+      var codeHit=foldQ(rec.code).indexOf(fq)===0;
+      var nameHit=foldQ(rec.n).indexOf(fq)===0;
+      if(codeOnly){ if(!codeHit) continue; }
+      else if(codeHit || !nameHit) continue;
+      seen[ids[i]]=1;
+      label=airportLabel(rec)+" ("+rec.code+")";
+      push(label, label, rec.code);
+    }
+  }
+  take(true);
+  take(false);
+}
+function fillWorldCities(q, out, push){
+  if(!WORLD.ready) return;
+  var fq=foldQ(q);
+  if(fq.length<2) return;
+  var ids=WORLD.cb[fq.slice(0,2)];
+  if(!ids) return;
+  var seen={}, i, row, label;
+  for(i=0;i<ids.length;i++){
+    if(out.length>=12) return;
+    if(seen[ids[i]]) continue;
+    seen[ids[i]]=1;
+    row=WORLD.cities[ids[i]];
+    label=worldCityLabel(row, fq);
+    if(!label) continue;
+    push(label, label);
+  }
+}
+function worldPlace(name, code){
+  if(!WORLD.ready) return null;
+  var up=code?String(code).toUpperCase():"";
+  var rec, raw, im, q, ids, i, row, label, best, cm, cc;
+  if(up && WORLD.byCode[up]){
+    rec=WORLD.byCode[up];
+    return {lat:rec.lat,lng:rec.lng,label:rec.n+" ("+rec.code+")"};
+  }
+  raw=String(name||"");
+  im=raw.match(/\(([A-Za-z]{3})\)/);
+  if(im && WORLD.byCode[im[1].toUpperCase()]){
+    rec=WORLD.byCode[im[1].toUpperCase()];
+    return {lat:rec.lat,lng:rec.lng,label:rec.n+" ("+rec.code+")"};
+  }
+  cc=null;
+  cm=raw.trim().match(/,\s*([A-Za-z]{2})$/);
+  if(cm){ cc=cm[1].toUpperCase(); raw=raw.trim().slice(0, cm.index).trim(); }
+  q=foldQ(raw);
+  if(/^[a-z]{3}$/.test(q) && WORLD.byCode[q.toUpperCase()]){
+    rec=WORLD.byCode[q.toUpperCase()];
+    return {lat:rec.lat,lng:rec.lng,label:rec.n+" ("+rec.code+")"};
+  }
+  if(q.length<2) return null;
+  ids=WORLD.cb[q.slice(0,2)];
+  best=null;
+  if(ids){
+    for(i=0;i<ids.length;i++){
+      row=WORLD.cities[ids[i]];
+      if(cc && row[4]!==cc) continue;
+      label=worldCityLabel(row, q);
+      if(!label) continue;
+      best={lat:row[1],lng:row[2],label:label};
+      if(foldQ(label)===q) break;
+    }
+  }
+  if(best && foldQ(best.label)===q) return best;
+  ids=WORLD.ab[q.slice(0,2)];
+  if(ids){
+    for(i=0;i<ids.length;i++){
+      row=WORLD.air[ids[i]];
+      if(foldQ(row[1])===q || foldQ(row[0])===q) return {lat:row[2],lng:row[3],label:row[1]+" ("+row[0]+")"};
+    }
+  }
+  return best;
+}
+var _wrmQ=null, _wrm=null;
+function worldRegionMap(q){
+  var fq=foldQ(q);
+  if(_wrm && _wrmQ===fq) return _wrm;
+  _wrmQ=fq;
+  _wrm={};
+  if(!WORLD.ready || fq.length<2) return _wrm;
+  var ids=WORLD.cb[fq.slice(0,2)];
+  if(!ids) return _wrm;
+  var i, row, label, n=0, cid, rid, seen={};
+  for(i=0;i<ids.length && n<24;i++){
+    if(seen[ids[i]]) continue;
+    row=WORLD.cities[ids[i]];
+    label=worldCityLabel(row, fq);
+    if(!label) continue;
+    seen[ids[i]]=1;
+    n++;
+    if(typeof countryAt!=="function") continue;
+    cid=countryAt(row[1], row[2]);
+    rid=cid && typeof regionIn==="function"?regionIn(cid, row[1], row[2]):null;
+    if(rid && !_wrm[rid]) _wrm[rid]=label;
+  }
+  return _wrm;
+}
+function loadWorldPlaces(){
+  if(WORLD.loading || WORLD.ready) return;
+  WORLD.loading=true;
+  fetch("./geo/places.json?v=1").then(function(r){
+    if(!r.ok) throw new Error("places");
+    return r.json();
+  }).then(function(data){
+    WORLD.air=data.a||[];
+    WORLD.cities=data.c||[];
+    var ai=0, ci=0;
+    function step(){
+      var t0=Date.now();
+      while(ai<WORLD.air.length && Date.now()-t0<12){ indexWorldAir(WORLD.air[ai], ai); ai++; }
+      while(ai>=WORLD.air.length && ci<WORLD.cities.length && Date.now()-t0<12){ indexWorldCity(WORLD.cities[ci], ci); ci++; }
+      if(ai<WORLD.air.length || ci<WORLD.cities.length) setTimeout(step, 0);
+      else WORLD.ready=true;
+    }
+    setTimeout(step, 0);
+  }).catch(function(){ WORLD.loading=false; });
+}
 
 /* geometry */
 function hav(a,b){
@@ -11012,7 +11192,12 @@ function regionMatches(r, q){
     if(name===q || name.indexOf(q)===0) return cs[i];
     if(!loose) loose=cs[i];
   }
-  return loose;
+  if(loose) return loose;
+  if(q.length>=2){
+    var wm=worldRegionMap(q);
+    if(wm && wm[r.id]) return wm[r.id];
+  }
+  return null;
 }
 function pctOf(got, total){
   if(!total) return "0%";
@@ -11346,6 +11531,7 @@ function bootGeo(){
   }).catch(function(){ PLACE_LABELS=[]; finish(); });
 }
 bootGeo();
+setTimeout(loadWorldPlaces, 800);
 function syncMapSwitch(){
   var sw=document.getElementById("map-switch");
   if(!sw) return;
