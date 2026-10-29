@@ -5,3 +5,4 @@ dist
 *.log
 *.zip
 .DS_Store
+.layero/
