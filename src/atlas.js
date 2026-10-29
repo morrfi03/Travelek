@@ -773,11 +773,16 @@
       });
     });
   }
-  var visitSig = "";
+  var visitSig = "", entsTagged = false, tagJob = 0;
+  function atlasReady(){
+    window.__TRAVELEK_ATLAS_READY = true;
+    if(window.__onAtlasReady){ var fn=window.__onAtlasReady; window.__onAtlasReady=null; try{ fn(); }catch(err){} }
+  }
   function setVisited(countries, regions) {
     var sig = (countries || []).join("\n") + "|" + (regions || []).join("\n");
     if (sig === visitSig) {
       if (stampIso()) { rebuildWash(); markRev++; views.flat.draw(); if (mode === "globe") views.globe.draw(); }
+      if (entsTagged) atlasReady();
       return;
     }
     visitSig = sig;
@@ -796,13 +801,24 @@
     stampIso();
     rebuildWash();
     views.flat.draw();
-    if (typeof countryAt !== "function") { if (mode === "globe") views.globe.draw(); return; }
-    var i = 0;
+    if (entsTagged || typeof countryAt !== "function") {
+      if (mode === "globe") views.globe.draw();
+      if (entsTagged) atlasReady();
+      return;
+    }
+    var job = ++tagJob, i = 0;
     (function chunk() {
-      var end = Math.min(ents.length, i + 60);
+      if (job !== tagJob) return;
+      var end = Math.min(ents.length, i + 80);
       for (; i < end; i++) tagOne(ents[i]);
       if (i < ents.length) setTimeout(chunk, 16);
-      else { markRev++; views.flat.draw(); if (mode === "globe") views.globe.draw(); }
+      else {
+        entsTagged = true;
+        markRev++;
+        views.flat.draw();
+        if (mode === "globe") views.globe.draw();
+        atlasReady();
+      }
     })();
   }
   function buildFacade() {
