@@ -6449,15 +6449,11 @@ wipeRoutesOnce();
   };
 })();
 function assembleRoutes(){
-  diaryRev++;
-  visitPackCache={};
   var del=loadDeleted();
   var extra=loadExtra();
   return extra.filter(function(r){ return del.indexOf(r.id)<0; });
 }
 var deleted = loadDeleted();
-var diaryRev=0;
-var visitPackCache={};
 var ROUTES = assembleRoutes();
 
 /* place lookup */
@@ -7604,194 +7600,80 @@ function paintVehicle(cv, mode, heading){
 }
 function drawPlaneIcon(ctx){
   ctx.save();
-  ctx.scale(1.05, 1.05);
-  ctx.translate(2, 0);
-  ctx.save();
-  ctx.translate(0, 5);
-  ctx.fillStyle="rgba(40,50,62,.28)";
+  ctx.fillStyle="#f4f7fb";
+  ctx.strokeStyle="#243044";
+  ctx.lineWidth=1.4;
   ctx.beginPath();
-  ctx.moveTo(16,0);
-  ctx.lineTo(-6,-20); ctx.lineTo(-22,-48); ctx.lineTo(-36,-43); ctx.lineTo(-12,-8);
-  ctx.lineTo(-12,8); ctx.lineTo(-36,43); ctx.lineTo(-22,48); ctx.lineTo(-6,20);
+  ctx.moveTo(46,0);
+  ctx.quadraticCurveTo(18,-7,-28,-6.5);
+  ctx.lineTo(-40,-5);
+  ctx.lineTo(-34,0);
+  ctx.lineTo(-40,5);
+  ctx.lineTo(-28,6.5);
+  ctx.quadraticCurveTo(18,7,46,0);
   ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-  var wingG=ctx.createLinearGradient(0,-50,0,50);
-  wingG.addColorStop(0,"#c5d0dc");
-  wingG.addColorStop(0.45,"#f4f7fb");
-  wingG.addColorStop(1,"#8ea0b3");
-  ctx.fillStyle=wingG;
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle="#1f4f97";
   ctx.beginPath();
-  ctx.moveTo(16,0);
-  ctx.lineTo(-4,-18);
-  ctx.lineTo(-20,-50);
-  ctx.lineTo(-34,-45);
-  ctx.lineTo(-10,-7);
-  ctx.lineTo(-10,7);
-  ctx.lineTo(-34,45);
-  ctx.lineTo(-20,50);
-  ctx.lineTo(-4,18);
-  ctx.closePath();
+  ctx.moveTo(8,0); ctx.lineTo(-6,-34); ctx.lineTo(-16,-30); ctx.lineTo(-4,0); ctx.lineTo(-16,30); ctx.lineTo(-6,34); ctx.closePath();
   ctx.fill();
-  ctx.strokeStyle="rgba(70,86,104,.55)";
-  ctx.lineWidth=1;
-  ctx.stroke();
-  function nacelle(x,y,len,th){
-    ctx.save();
-    ctx.translate(x,y);
-    ctx.fillStyle="#6d7c8c";
-    ctx.beginPath(); ctx.ellipse(-1, 2.2, len*0.48, th*0.55, -0.15, 0, Math.PI*2); ctx.fill();
-    var g=ctx.createLinearGradient(0,-th,0,th);
-    g.addColorStop(0,"#f7fafc");
-    g.addColorStop(0.55,"#d5dee8");
-    g.addColorStop(1,"#7e8d9e");
-    ctx.fillStyle=g;
-    ctx.beginPath(); ctx.ellipse(0, 0, len*0.5, th*0.5, -0.12, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle="#1c2833";
-    ctx.beginPath(); ctx.ellipse(len*0.28, 0, th*0.34, th*0.3, 0, 0, Math.PI*2); ctx.fill();
-    ctx.fillStyle="rgba(255,255,255,.55)";
-    ctx.beginPath(); ctx.ellipse(-len*0.12, -th*0.16, len*0.22, th*0.12, 0, 0, Math.PI*2); ctx.fill();
-    ctx.restore();
-  }
-  nacelle(8,-16,18,7.2);
-  nacelle(8,16,18,7.2);
-  nacelle(-4,-32,16,6.4);
-  nacelle(-4,32,16,6.4);
-  ctx.fillStyle="#9aa8b6";
-  ctx.beginPath();
-  ctx.moveTo(-26,0); ctx.lineTo(-40,-18); ctx.lineTo(-48,-14); ctx.lineTo(-36,0);
-  ctx.lineTo(-48,14); ctx.lineTo(-40,18); ctx.closePath();
-  ctx.fill();
-  ctx.save();
-  ctx.translate(0,4);
-  ctx.fillStyle="#8ea0b0";
-  ctx.beginPath();
-  ctx.moveTo(48,0);
-  ctx.bezierCurveTo(36,-9,16,-11,-22,-8);
-  ctx.quadraticCurveTo(-42,-5,-46,0);
-  ctx.quadraticCurveTo(-42,5,-22,8);
-  ctx.bezierCurveTo(16,11,36,9,48,0);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-  var body=ctx.createLinearGradient(0,-12,0,12);
-  body.addColorStop(0,"#ffffff");
-  body.addColorStop(0.42,"#e7eef5");
-  body.addColorStop(1,"#b7c3d0");
-  ctx.fillStyle=body;
-  ctx.beginPath();
-  ctx.moveTo(50,0);
-  ctx.bezierCurveTo(38,-10,18,-11.5,-20,-8.4);
-  ctx.quadraticCurveTo(-40,-6,-46,-1.2);
-  ctx.lineTo(-42,0);
-  ctx.lineTo(-46,1.2);
-  ctx.quadraticCurveTo(-40,6,-20,8.4);
-  ctx.bezierCurveTo(18,11.5,38,10,50,0);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle="#1d4e89";
-  ctx.fillRect(-30,-2.15,58,4.3);
   ctx.fillStyle="#c8102e";
-  ctx.fillRect(-30,2.15,58,1.35);
-  ctx.fillStyle="#16324f";
-  ctx.beginPath(); ctx.ellipse(30,0,9,3.5,0,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle="rgba(186,224,245,.8)";
-  ctx.beginPath(); ctx.ellipse(32,-1.1,4.2,1.3,0,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle="#1a3148";
-  for(var wx=-16; wx<=16; wx+=5.2){
-    ctx.beginPath(); ctx.ellipse(wx,-5.5,1.15,0.7,0,0,Math.PI*2); ctx.fill();
-    ctx.beginPath(); ctx.ellipse(wx,5.5,1.15,0.7,0,0,Math.PI*2); ctx.fill();
-  }
-  ctx.fillStyle="#1d4e89";
   ctx.beginPath();
-  ctx.moveTo(-22,0); ctx.lineTo(-44,-2.4); ctx.lineTo(-44,2.4); ctx.closePath();
+  ctx.moveTo(-30,0); ctx.lineTo(-42,-16); ctx.lineTo(-24,-5); ctx.lineTo(-24,5); ctx.lineTo(-42,16); ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle="#d7e4f2";
+  ctx.beginPath();
+  ctx.ellipse(16,0,8,3.2,0,0,Math.PI*2);
   ctx.fill();
   ctx.restore();
 }
 function drawTrainIcon(ctx){
   ctx.save();
-  function coach(x, w, nose){
-    ctx.fillStyle="#8d8678";
-    roundRect(ctx, x, -9, w, 26, nose?14:7);
-    ctx.fill();
-    var g=ctx.createLinearGradient(0,-16,0,16);
-    g.addColorStop(0,"#fffdf8");
-    g.addColorStop(0.55,"#e7e0d2");
-    g.addColorStop(1,"#c2baab");
-    ctx.fillStyle=g;
-    roundRect(ctx, x, -14, w, 24, nose?13:6);
-    ctx.fill();
-    ctx.fillStyle="#1f6f4a";
-    ctx.fillRect(x+(nose?12:5), -2.4, w-(nose?18:10), 4.6);
-    ctx.fillStyle="#243044";
-    var i, n=Math.max(1, Math.floor((w-12)/15));
-    for(i=0;i<n;i++){
-      roundRect(ctx, x+8+i*14, -10, 8, 5.5, 1.6);
-      ctx.fill();
-    }
-  }
-  coach(-58, 36, false);
-  coach(-20, 38, false);
-  coach(20, 42, true);
-  ctx.fillStyle="#a39886";
-  ctx.fillRect(-22,-5,4,8);
-  ctx.fillRect(18,-5,4,8);
+  ctx.fillStyle="#e10600";
+  roundRect(ctx,-46,-16,92,32,12);
+  ctx.fill();
+  ctx.fillStyle="#f4f7fb";
+  roundRect(ctx,-40,-10,34,14,5);
+  ctx.fill();
+  ctx.fillStyle="#9ec9ee";
+  roundRect(ctx,2,-9,28,12,4);
+  ctx.fill();
   ctx.fillStyle="#1c2430";
-  [-46,-28,-8,10,34,50].forEach(function(x){
-    ctx.beginPath(); ctx.ellipse(x, 12.5, 4.4, 2.4, 0, 0, Math.PI*2); ctx.fill();
-  });
-  ctx.fillStyle="#f6e7a8";
-  ctx.beginPath(); ctx.ellipse(56, -1, 3.3, 2.2, 0, 0, Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-24,16,6,0,Math.PI*2); ctx.arc(22,16,6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle="#f6e27a";
+  ctx.beginPath(); ctx.arc(40,0,4,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle="rgba(255,255,255,.85)";
+  ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(-46,-4); ctx.lineTo(36,-4); ctx.stroke();
   ctx.restore();
 }
 function drawCarIcon(ctx){
   ctx.save();
-  ctx.fillStyle="#8d8678";
+  ctx.fillStyle="#f7f4ee";
+  ctx.strokeStyle="#2a3038";
+  ctx.lineWidth=1.3;
   ctx.beginPath();
-  ctx.moveTo(-40,10);
-  ctx.quadraticCurveTo(-38,2,-26,0);
-  ctx.lineTo(18,0);
-  ctx.quadraticCurveTo(36,2,42,10);
-  ctx.lineTo(40,16);
-  ctx.lineTo(-38,16);
+  ctx.moveTo(-34,8);
+  ctx.lineTo(-28,-2);
+  ctx.quadraticCurveTo(-10,-4, -6,-14);
+  ctx.lineTo(16,-14);
+  ctx.quadraticCurveTo(28,-12, 34,-2);
+  ctx.lineTo(40,8);
+  ctx.quadraticCurveTo(40,16, 30,16);
+  ctx.lineTo(-24,16);
+  ctx.quadraticCurveTo(-40,16, -34,8);
   ctx.closePath();
-  ctx.fill();
-  var g=ctx.createLinearGradient(0,-18,0,16);
-  g.addColorStop(0,"#fffdf8");
-  g.addColorStop(0.5,"#e8e1d3");
-  g.addColorStop(1,"#c9c1b2");
-  ctx.fillStyle=g;
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle="#9ecff0";
   ctx.beginPath();
-  ctx.moveTo(-42,7);
-  ctx.quadraticCurveTo(-40,-1,-28,-5);
-  ctx.lineTo(-8,-6);
-  ctx.quadraticCurveTo(2,-20,18,-18);
-  ctx.quadraticCurveTo(34,-16,40,-3);
-  ctx.lineTo(44,7);
-  ctx.quadraticCurveTo(44,15,34,15);
-  ctx.lineTo(-32,15);
-  ctx.quadraticCurveTo(-46,15,-42,7);
-  ctx.closePath();
+  ctx.moveTo(-4,-4); ctx.lineTo(2,-11); ctx.lineTo(18,-11); ctx.lineTo(26,-4); ctx.closePath();
   ctx.fill();
-  ctx.fillStyle="#16383f";
-  ctx.beginPath();
-  ctx.moveTo(-4,-5);
-  ctx.quadraticCurveTo(6,-16,17,-15);
-  ctx.quadraticCurveTo(28,-13,33,-4);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle="rgba(255,255,255,.5)";
-  ctx.beginPath();
-  ctx.moveTo(2,-12); ctx.lineTo(14,-13.2); ctx.lineTo(18,-7); ctx.lineTo(4,-7); ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle="#1f6f4a";
-  ctx.fillRect(-30,5,66,3.2);
+  ctx.fillStyle="#c8102e";
+  ctx.fillRect(-30,6,58,3);
   ctx.fillStyle="#1c2430";
-  ctx.beginPath(); ctx.ellipse(-22,14,7.2,4.2,0,0,Math.PI*2); ctx.ellipse(24,14,7.2,4.2,0,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle="#e4e9ef";
-  ctx.beginPath(); ctx.ellipse(-22,14,2.7,1.6,0,0,Math.PI*2); ctx.ellipse(24,14,2.7,1.6,0,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle="#f6e7a8";
-  ctx.beginPath(); ctx.ellipse(40,3,2.6,1.8,0,0,Math.PI*2); ctx.fill();
+  ctx.beginPath(); ctx.arc(-18,16,6.5,0,Math.PI*2); ctx.arc(20,16,6.5,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle="#d9dee6";
+  ctx.beginPath(); ctx.arc(-18,16,2.4,0,Math.PI*2); ctx.arc(20,16,2.4,0,Math.PI*2); ctx.fill();
   ctx.restore();
 }
 function drawShipIcon(ctx){
@@ -8199,7 +8081,7 @@ function pathKm(coords){
   return km;
 }
 
-function buildGeoSyncUncached(r){
+function buildGeoSync(r){
   /* GPS-трек: готовые координаты */
   if(r.coords && r.coords.length>=2){
     var km=pathKm(r.coords);
@@ -8263,19 +8145,6 @@ function buildGeoSyncUncached(r){
   if(cached && cached!=="fail" && cached!=="pending") coords=cached;
   else coords=densify([[a.lat,a.lng],[b.lat,b.lng]],15);
   return {coords:coords, km:pathKm(coords), a:a, b:b, needRoad:cached==null, hops:cached==null?[[a,b]]:[]};
-}
-var geoMemo={};
-function geoMemoKey(r){
-  if(!r) return "";
-  return [r.id,r.mode,r.from,r.to,r.fromCode,r.toCode,r.carPath,(r.coords&&r.coords.length)||0,(r.waypoints&&r.waypoints.length)||0].join("|");
-}
-function buildGeoSync(r){
-  var key=geoMemoKey(r);
-  var hit=key && geoMemo[key];
-  if(hit && hit.final) return hit;
-  var g=buildGeoSyncUncached(r);
-  if(g && key && !g.needRoad){ g.final=1; geoMemo[key]=g; }
-  return g;
 }
 
 var COLORS={plane:"#1d4ed8",train:"#15803d",car:"#c2410c",walk:"#7c3aed",bike:"#0f766e",ship:"#0369a1",future:"#6d28d9"};
@@ -8905,10 +8774,10 @@ function drawGlobe(){
     try{ geo(line); }catch(err){ return; }
     ctx.lineCap="round";
     ctx.lineJoin="round";
-    ctx.lineWidth=r.mode==="plane"?1.7:1.9;
+    ctx.lineWidth=r.mode==="plane"?3.4:3.8;
     ctx.strokeStyle="rgba(255,255,255,.96)";
     ctx.stroke();
-    ctx.lineWidth=r.mode==="plane"?0.85:1.05;
+    ctx.lineWidth=r.mode==="plane"?1.7:2.1;
     ctx.strokeStyle=(typeof COLORS!=="undefined"&&COLORS[r.mode])?COLORS[r.mode]:"#101820";
     ctx.stroke();
   });
@@ -9556,9 +9425,9 @@ function render(){
     var theme=document.documentElement.getAttribute("data-theme")||"dark";
     var casing=theme==="light"?"#ffffff":"#f4f8fc";
     var repeats=routeCounts[routeRepeatKey(r)]||1;
-    var w=repeats>1?2.6:1.08;
-    if(selectedId===r.id) w+=0.6;
-    L.polyline(g.coords,{pane:"routePane",color:casing,weight:w+(repeats>1?1.4:0.75),opacity:.94,lineJoin:"round",lineCap:"round",interactive:false,smoothFactor:0}).addTo(layer);
+    var w=repeats>1?5.2:2.15;
+    if(selectedId===r.id) w+=1.2;
+    L.polyline(g.coords,{pane:"routePane",color:casing,weight:w+(repeats>1?2.8:1.5),opacity:.94,lineJoin:"round",lineCap:"round",interactive:false,smoothFactor:0}).addTo(layer);
     L.polyline(g.coords,{pane:"routePane",color:col,weight:w,opacity:1,dashArray:fut?"7 6":null,lineJoin:"round",lineCap:"round",interactive:false,smoothFactor:0}).addTo(layer);
     [g.coords[0],g.coords[g.coords.length-1]].forEach(function(p){
       L.circleMarker(p,{pane:"routePane",radius:5,color:casing,fillColor:col,fillOpacity:1,weight:2.5}).addTo(layer);
@@ -10611,8 +10480,6 @@ function loadArr(key){
   catch(e){ return []; }
 }
 function saveSets(){
-  diaryRev++;
-  visitPackCache={};
   var pack=function(key, list){
     var s=JSON.stringify(list);
     if(typeof safeSetItem==="function") safeSetItem(key, s);
@@ -10712,7 +10579,7 @@ function polyHas(poly, lat, lng){
   if(!poly||!poly.length||!ringHas(poly[0], lat, lng)) return false;
   return true;
 }
-function countryAtScan(lat, lng){
+function countryAt(lat, lng){
   if(!COUNTRY_LIST) return null;
   var i, c, k, polys, region;
   region=regionAtList(RUSSIA_REGIONS, lat, lng, 0.08);
@@ -10738,15 +10605,6 @@ function countryAtScan(lat, lng){
     if(dlt<nearD){ nearD=dlt; near=c.i; }
   }
   return near;
-}
-var countryHitCache={};
-function countryAt(lat, lng){
-  if(lat==null || lng==null || isNaN(lat) || isNaN(lng)) return null;
-  var ck=((+lat*100)|0)+":"+((+lng*100)|0);
-  if(Object.prototype.hasOwnProperty.call(countryHitCache, ck)) return countryHitCache[ck];
-  var id=countryAtScan(lat, lng);
-  if(COUNTRY_LIST && COUNTRY_LIST.length) countryHitCache[ck]=id;
-  return id;
 }
 function regionEdgeDist(reg, lat, lng){
   var polys=polysOf(reg), best=1e9, k, ring, i, a, b, dx, dy, den, t, d;
@@ -10811,14 +10669,9 @@ function regionsFor(code){
   return (typeof REGIONS_BY!=="undefined" && REGIONS_BY && REGIONS_BY[code]) || null;
 }
 function regionIn(code, lat, lng){
-  if(!code || lat==null || lng==null || isNaN(lat) || isNaN(lng)) return null;
-  var ck=code+"|"+((+lat*100)|0)+":"+((+lng*100)|0);
-  if(!regionIn._c) regionIn._c={};
-  if(Object.prototype.hasOwnProperty.call(regionIn._c, ck)) return regionIn._c[ck];
   var list=regionsFor(code);
-  var id=list?regionAtList(list, lat, lng, 0.2):null;
-  if(list) regionIn._c[ck]=id;
-  return id;
+  if(!list) return null;
+  return regionAtList(list, lat, lng, 0.2);
 }
 
 var hoverLayer=null, hoverKey="", pendingVisit=null;
@@ -10916,15 +10769,6 @@ function confirmVisitedPlace(){
 }
 function syncVisited(){
   if(!COUNTRY_LIST) return;
-  var vkey=activeTab+"|"+(selectedTripId||"")+"|"+diaryRev;
-  var pack=visitPackCache[vkey];
-  if(pack){
-    visited=pack.c.slice();
-    visitedRegions=pack.r.slice();
-    autoCountries=pack.autoC;
-    autoRegions=pack.autoR;
-    return;
-  }
   var autoC={}, autoR={};
   function regionIdByName(code, name){
     if(!code || !name) return null;
@@ -11042,7 +10886,6 @@ function syncVisited(){
   visitedRegions=nextR;
   autoCountries=autoC;
   autoRegions=autoR;
-  visitPackCache[vkey]={c:visited.slice(), r:visitedRegions.slice(), autoC:autoC, autoR:autoR};
 }
 function paintPoly(poly, style){
   if(!poly||!poly[0]) return;
@@ -11379,33 +11222,6 @@ function indexRegions(){
   add(CHINA_REGIONS, "CN");
   add(WORLD_REGIONS, "");
 }
-function warmDiary(done){
-  var savedTab=activeTab, savedTrip=selectedTripId, i=0;
-  function geos(){
-    var end=Math.min(ROUTES.length, i+5);
-    for(; i<end; i++){
-      try{ buildGeoSync(ROUTES[i]); }catch(e){}
-      try{ endpointBag(ROUTES[i]); }catch(e){}
-    }
-    if(i<ROUTES.length){ setTimeout(geos, 0); return; }
-    var tabs=["future","past","trips"], ti=0;
-    function nextTab(){
-      if(ti>=tabs.length){
-        activeTab=savedTab;
-        selectedTripId=savedTrip;
-        try{ syncVisited(); }catch(e){}
-        if(done) done();
-        return;
-      }
-      activeTab=tabs[ti++];
-      selectedTripId=null;
-      try{ syncVisited(); }catch(e){}
-      setTimeout(nextTab, 0);
-    }
-    nextTab();
-  }
-  setTimeout(geos, 0);
-}
 function bootGeo(){
   var left=5;
   function finish(){
@@ -11426,12 +11242,6 @@ function bootGeo(){
     if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
     if(typeof scheduleNet==="function") scheduleNet();
     if(window.__fillAccount && document.getElementById("account-panel") && document.getElementById("account-panel").classList.contains("on")) window.__fillAccount();
-    warmDiary(function(){
-      try{ if(typeof render==="function") render(); }catch(e){}
-      function hideBoot(){ if(window.__bootDone) window.__bootDone(); }
-      if(window.__TRAVELEK_ATLAS_READY || !(map && map.setVisited)) hideBoot();
-      else window.__onAtlasReady=hideBoot;
-    });
   }
   if(!countryLayer && typeof L!=="undefined" && typeof map!=="undefined") countryLayer=L.layerGroup().addTo(map);
   ensureHoverLayer();
@@ -11439,6 +11249,7 @@ function bootGeo(){
   loadGeo("./geo/countries.json?v=8").then(function(data){
     COUNTRY_LIST=normalizeCountries(data&&data.items);
     finish();
+    if(typeof render==="function") render();
   }).catch(function(){ COUNTRY_LIST=COUNTRY_LIST||[]; finish(); });
   loadGeo("./geo/russia.json?v=8").then(function(data){
     RUSSIA_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||r.n; r.c="RU"; return r; });
@@ -11717,16 +11528,6 @@ function futurePlaces(){
   return {countries:countries, regions:regions};
 }
 function endpointBag(r){
-  var key=r&&r.id?String(r.id)+"|"+(r.mode||"")+"|"+(r.from||"")+"|"+(r.to||"")+"|"+(r.fromCode||"")+"|"+(r.toCode||""):"";
-  if(key && endpointBag._m && endpointBag._m[key]) return endpointBag._m[key];
-  var bag=endpointBagRaw(r);
-  if(key && typeof COUNTRY_LIST!=="undefined" && COUNTRY_LIST && COUNTRY_LIST.length){
-    if(!endpointBag._m) endpointBag._m={};
-    endpointBag._m[key]=bag;
-  }
-  return bag;
-}
-function endpointBagRaw(r){
   var countries=[], regions=[], sc={}, sr={};
   function hit(lat, lng){
     if(lat==null || lng==null || isNaN(lat) || isNaN(lng) || typeof countryAt!=="function") return;
