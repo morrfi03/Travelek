@@ -272,7 +272,9 @@
         var e = ents[i];
         if (e.name === "Украина") {
           if (!(litCountry(e) || markC.UA || washIso.UA)) return;
-          if (traceFlat(c, "UA")) { c.fillStyle = "rgba(214,168,72,.62)"; c.fill(); c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke(); }
+          showSmall(e);
+          c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.62)"; c.fill();
+          c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke();
           return;
         }
         if (!litCountry(e)) return;
@@ -603,7 +605,8 @@
         var e = ents[i];
         if (e.name === "Украина") {
           if (!(litCountry(e) || markC.UA || washIso.UA)) return;
-          if (fillGeo("UA")) { ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill(); ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke(); }
+          ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill();
+          ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke();
           return;
         }
         if (!litCountry(e)) return;
@@ -804,7 +807,7 @@
   function stampIso() {
     var list = (typeof COUNTRY_LIST !== "undefined") ? COUNTRY_LIST : null;
     var by = {
-      "россия": "RU", "российская федерация": "RU",
+      "россия": "RU", "российская федерация": "RU", "украина": "UA",
       "китай": "CN", "китайская народная республика": "CN",
       "соединенные штаты": "US", "соединенные штаты америки": "US", "сша": "US",
       "великобритания": "GB", "соединенное королевство": "GB",

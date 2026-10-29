@@ -10582,6 +10582,12 @@ function polyHas(poly, lat, lng){
 function countryAt(lat, lng){
   if(!COUNTRY_LIST) return null;
   var i, c, k, polys, region;
+  for(i=0;i<COUNTRY_LIST.length;i++){
+    c=COUNTRY_LIST[i];
+    if(c.i!=="UA") continue;
+    polys=polysOf(c);
+    for(k=0;k<polys.length;k++){ if(polyHas(polys[k], lat, lng)) return "UA"; }
+  }
   region=regionAtList(RUSSIA_REGIONS, lat, lng, 0.08);
   if(region) return "RU";
   for(i=0;i<COUNTRY_LIST.length;i++){
@@ -10730,6 +10736,16 @@ function showMapHover(lat,lng,containerPoint){
 function openVisitPrompt(lat,lng){
   if(pickTarget || !COUNTRY_LIST || !COUNTRY_LIST.length) return;
   var cid=countryAt(lat,lng);
+  var hit=map && map.regionAt ? map.regionAt(lat,lng) : null;
+  if(hit && hit.layer==="W"){
+    var atlasId=hit.iso||"";
+    if(hit.name==="Украина") atlasId="UA";
+    if(!atlasId && hit.name){
+      var ci;
+      for(ci=0;ci<COUNTRY_LIST.length;ci++) if(COUNTRY_LIST[ci].n===hit.name){ atlasId=COUNTRY_LIST[ci].i; break; }
+    }
+    if(atlasId==="UA" || (!cid && atlasId)) cid=atlasId;
+  }
   if(!cid) return;
   var been=visited && visited.indexOf(cid)>=0;
   var regs=regionsFor(cid);
@@ -10852,6 +10868,14 @@ function syncVisited(){
     return "RU";
   }
   Object.keys(autoC).forEach(addC);
+  if(activeTab!=="past"){
+    manualCountries.forEach(addC);
+    manualRegions.forEach(function(id){
+      addR(id);
+      var c=countryOfRegion(id);
+      if(c) addC(c);
+    });
+  }
   if(activeTab==="past"){
     var futC={}, futR={};
     (ROUTES||[]).forEach(function(r){
