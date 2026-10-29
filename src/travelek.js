@@ -10709,29 +10709,25 @@ function polyHas(poly, lat, lng){
 function countryAtScan(lat, lng){
   if(!COUNTRY_LIST) return null;
   var i, c, k, polys, region;
-  region=regionAtList(RUSSIA_REGIONS, lat, lng, 0.08);
-  if(region) return "RU";
+  if(lat>41 && lat<82 && lng>-10 && lng<190 && RUSSIA_REGIONS){
+    region=regionAtList(RUSSIA_REGIONS, lat, lng, 0);
+    if(region) return "RU";
+  }
   for(i=0;i<COUNTRY_LIST.length;i++){
     c=COUNTRY_LIST[i];
     if(c.i!=="RU") continue;
+    if(c.b && (lat<c.b[0]||lat>c.b[2]||lng<c.b[1]||lng>c.b[3])) continue;
     polys=polysOf(c);
     for(k=0;k<polys.length;k++){ if(polyHas(polys[k], lat, lng)) return "RU"; }
   }
   for(i=0;i<COUNTRY_LIST.length;i++){
     c=COUNTRY_LIST[i];
     if(c.i==="RU") continue;
+    if(c.b && (lat<c.b[0]||lat>c.b[2]||lng<c.b[1]||lng>c.b[3])) continue;
     polys=polysOf(c);
     for(k=0;k<polys.length;k++){ if(polyHas(polys[k], lat, lng)) return c.i; }
   }
-  var near=null, nearD=0.06;
-  for(i=0;i<COUNTRY_LIST.length;i++){
-    c=COUNTRY_LIST[i];
-    if(c.i==="RU") continue;
-    if(c.b && (lat<c.b[0]-nearD || lat>c.b[2]+nearD || lng<c.b[1]-nearD || lng>c.b[3]+nearD)) continue;
-    var dlt=regionEdgeDist(c, lat, lng);
-    if(dlt<nearD){ nearD=dlt; near=c.i; }
-  }
-  return near;
+  return null;
 }
 var countryHitCache={};
 function countryAt(lat, lng){
@@ -10883,7 +10879,8 @@ function openVisitPrompt(lat,lng){
     }
   }
   if(!cid) return;
-  if(!rid){
+  if(cid==="UA") rid=null;
+  else if(!rid){
     var regs=regionsFor(cid);
     rid=regs ? regionIn(cid, lat, lng) : null;
   }
@@ -11387,69 +11384,65 @@ function indexRegions(){
   add(CHINA_REGIONS, "CN");
   add(WORLD_REGIONS, "");
 }
-function warmDiary(done){
-  var savedTab=activeTab, savedTrip=selectedTripId;
-  var tabs=["future","past","trips"], ti=0;
-  function nextTab(){
-    if(ti>=tabs.length){
-      activeTab=savedTab;
-      selectedTripId=savedTrip;
-      if(done) done();
-      return;
-    }
-    activeTab=tabs[ti++];
-    selectedTripId=null;
-    try{ syncVisited(); }catch(e){}
-    setTimeout(nextTab, 80);
-  }
-  setTimeout(nextTab, 80);
-}
 function bootGeo(){
-  var left=5;
-  function finish(){
-    if(--left>0) return;
-    if(window.__bootDone) window.__bootDone();
-    indexRegions();
-    bindRegionCities();
-    syncVisited();
-    if(typeof drawWorld==="function") drawWorld();
-    drawCountries();
-    renderCountryUi();
-    if(typeof drawCityLabels==="function") drawCityLabels();
-    if(typeof absorbRoute==="function" && tw && document.getElementById("trip-window") && document.getElementById("trip-window").classList.contains("on")){
-      if(tw.routes) tw.routes.forEach(function(r){ absorbRoute(routeById(r.id)||r); });
-      if(typeof previewTripPlaces==="function") previewTripPlaces();
-      else if(typeof paintTripWindow==="function") paintTripWindow();
-    }
-    globeLand=null;
-    if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
-    if(typeof scheduleNet==="function") scheduleNet();
-    if(window.__fillAccount && document.getElementById("account-panel") && document.getElementById("account-panel").classList.contains("on")) window.__fillAccount();
-    warmDiary(function(){});
+  if(window.__bootDone) window.__bootDone();
+  function rememberUkraine(){
+    var i, c, ring;
+    if(!COUNTRY_LIST) return;
+    for(i=0;i<COUNTRY_LIST.length;i++) if(COUNTRY_LIST[i].i==="UA"){ c=COUNTRY_LIST[i]; break; }
+    if(!c||!c.p||!c.p[0]) return;
+    ring=c.p[0];
+    if(ring[0] && typeof ring[0][0]!=="number") ring=ring[0];
+    window.__UA_RING=ring;
+  }
+  function paintSeen(){
+    try{
+      syncVisited();
+      if(typeof drawCountries==="function") drawCountries();
+      if(typeof renderCountryUi==="function") renderCountryUi();
+      if(typeof render==="function") render();
+    }catch(e){}
   }
   if(!countryLayer && typeof L!=="undefined" && typeof map!=="undefined") countryLayer=L.layerGroup().addTo(map);
   ensureHoverLayer();
   globeLand=null;
-  loadGeo("./geo/countries.json?v=8").then(function(data){
+  loadGeo("./geo/countries.json?v=9").then(function(data){
     COUNTRY_LIST=normalizeCountries(data&&data.items);
-    finish();
-  }).catch(function(){ COUNTRY_LIST=COUNTRY_LIST||[]; finish(); });
-  loadGeo("./geo/russia.json?v=8").then(function(data){
-    RUSSIA_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||r.n; r.c="RU"; return r; });
-    finish();
-  }).catch(function(){ RUSSIA_REGIONS=[]; finish(); });
-  loadGeo("./geo/china.json?v=8").then(function(data){
-    CHINA_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||("CN:"+r.n); r.c="CN"; return r; });
-    finish();
-  }).catch(function(){ CHINA_REGIONS=[]; finish(); });
-  loadGeo("./geo/regions.json?v=8").then(function(data){
-    WORLD_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||((r.c||"")+" "+r.n); return r; });
-    finish();
-  }).catch(function(){ WORLD_REGIONS=[]; finish(); });
-  loadGeo("./geo/labels.json?v=1").then(function(data){
-    PLACE_LABELS=Array.isArray(data)?data:((data&&data.items)||[]);
-    finish();
-  }).catch(function(){ PLACE_LABELS=[]; finish(); });
+    rememberUkraine();
+    setTimeout(paintSeen, 0);
+    var left=4;
+    function tail(){
+      if(--left>0) return;
+      setTimeout(function(){
+        try{
+          indexRegions();
+          bindRegionCities();
+          syncVisited();
+          if(typeof drawCountries==="function") drawCountries();
+          if(typeof renderCountryUi==="function") renderCountryUi();
+        }catch(e){}
+      }, 40);
+    }
+    loadGeo("./geo/russia.json?v=9").then(function(data){
+      RUSSIA_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||r.n; r.c="RU"; return r; });
+      tail();
+    }).catch(function(){ RUSSIA_REGIONS=[]; tail(); });
+    loadGeo("./geo/china.json?v=9").then(function(data){
+      CHINA_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||("CN:"+r.n); r.c="CN"; return r; });
+      tail();
+    }).catch(function(){ CHINA_REGIONS=[]; tail(); });
+    loadGeo("./geo/regions.json?v=9").then(function(data){
+      WORLD_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||((r.c||"")+" "+r.n); return r; });
+      tail();
+    }).catch(function(){ WORLD_REGIONS=[]; tail(); });
+    loadGeo("./geo/labels.json?v=2").then(function(data){
+      PLACE_LABELS=Array.isArray(data)?data:((data&&data.items)||[]);
+      tail();
+    }).catch(function(){ PLACE_LABELS=[]; tail(); });
+  }).catch(function(){
+    COUNTRY_LIST=COUNTRY_LIST||[];
+    if(window.__bootDone) window.__bootDone();
+  });
 }
 bootGeo();
 function syncMapSwitch(){

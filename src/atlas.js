@@ -114,25 +114,37 @@
     }
     return c;
   }
+  function ukraineHit(lat, lng){
+    if (lat < 45.18 || lat > 52.34 || lng < 22.07 || lng > 38.16) return false;
+    var ring = window.__UA_RING;
+    if (!ring || typeof ringHas !== "function") return false;
+    return ringHas(ring, lat, lng);
+  }
   function pickLL(lo, la) {
-    var country = -1, i, L = byLayer.W, e;
+    var country = -1, i, L = byLayer.W, e, lat = la / 100, lng = lo / 100;
     for (i = 0; i < L.length; i++) {
       e = ents[L[i]];
+      if (e.name === "Украина") {
+        if (ukraineHit(lat, lng)) { country = L[i]; break; }
+        continue;
+      }
       if (!inside(e, lo, la)) continue;
-      if (e.name === "Украина" && typeof countryAt === "function" && countryAt(la / 100, lo / 100) !== "UA") continue;
       country = L[i];
       break;
     }
     var host = country >= 0 ? ents[country] : null;
+    if (host && host.name === "Украина") return country;
     var hostIso = host ? (host.iso || isoOfName(host.name)) : "";
-    if (host && host.name === "Украина") hostIso = "UA";
     var order = ["R", "C", "G"], k, r, best = -1, bestArea = 1e18, area, bb, riso;
     for (k = 0; k < order.length; k++) {
       L = byLayer[order[k]];
       for (i = 0; i < L.length; i++) {
         r = ents[L[i]];
+        if (r.sub === "Украина" || r.name === "Украина") continue;
         riso = r.iso || isoOfName(r.sub || "");
+        if (riso === "UA") continue;
         if (hostIso && riso && riso !== hostIso) continue;
+        if (!hostIso && riso) continue;
         if (!inside(r, lo, la)) continue;
         bb = r.bb; area = Math.max(0, bb[2] - bb[0]) * Math.max(0, bb[3] - bb[1]);
         if (area < bestArea) { bestArea = area; best = L[i]; }
@@ -142,6 +154,7 @@
   }
   function regionLayerOpen(e) {
     if (!e) return false;
+    if (e.iso === "UA" || e.sub === "Украина" || e.name === "Украина") return false;
     if (e.L === "R" || e.sub === "Россия") return !!markC.RU;
     if (e.L === "C" || e.sub === "Китай") return !!markC.CN;
     if (e.iso && markC[e.iso]) return true;
