@@ -804,8 +804,11 @@
     if (iso && !e.iso) e.iso = iso;
     return !!(iso && washIso[iso]);
   }
+  var isoStampKey = "";
   function stampIso() {
     var list = (typeof COUNTRY_LIST !== "undefined") ? COUNTRY_LIST : null;
+    var key = (list && list.length && ents.length) ? (list.length + ":" + ents.length) : "";
+    if (key && key === isoStampKey) return 0;
     var by = {
       "россия": "RU", "российская федерация": "RU", "украина": "UA",
       "китай": "CN", "китайская народная республика": "CN",
@@ -836,6 +839,7 @@
       if (iso && e.iso !== iso) { e.iso = iso; added++; }
     });
     nameIso = by;
+    if (key) isoStampKey = key;
     return added;
   }
   function rebuildWash() {
@@ -874,15 +878,25 @@
     stampIso();
     rebuildWash();
     views.flat.draw();
+    var tagGen = ++setVisited.gen;
     if (typeof countryAt !== "function") { if (mode === "globe") views.globe.draw(); return; }
-    var i = 0;
+    var i = 0, grew = 0;
     (function chunk() {
-      var end = Math.min(ents.length, i + 60);
-      for (; i < end; i++) tagOne(ents[i]);
+      if (tagGen !== setVisited.gen) return;
+      var end = Math.min(ents.length, i + 80), before;
+      for (; i < end; i++) {
+        before = ents[i]._tag;
+        tagOne(ents[i]);
+        if (!before && ents[i]._tag) grew++;
+      }
       if (i < ents.length) setTimeout(chunk, 16);
-      else { markRev++; views.flat.draw(); if (mode === "globe") views.globe.draw(); }
+      else {
+        if (grew) { markRev++; rebuildWash(); views.flat.draw(); }
+        if (mode === "globe") views.globe.draw();
+      }
     })();
   }
+  setVisited.gen = 0;
   function buildFacade() {
     var pane = document.getElementById("atlas-html");
     var facade = { _isAtlas: true, _groups: [], _extras: [], _on: {}, _airports: null };

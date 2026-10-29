@@ -6448,6 +6448,7 @@ wipeRoutesOnce();
   };
 })();
 function assembleRoutes(){
+  if(typeof dropRouteMemo==="function") dropRouteMemo();
   var del=loadDeleted();
   var extra=loadExtra();
   return extra.filter(function(r){ return del.indexOf(r.id)<0; });
@@ -7362,6 +7363,8 @@ var roadCache={};
 var roadWait={};
 var roadQueue=[];
 var roadActive=0;
+var roadRev=0;
+var geoMemo={};
 function roadKey(a,b){ return a.lat.toFixed(3)+","+a.lng.toFixed(3)+";"+b.lat.toFixed(3)+","+b.lng.toFixed(3); }
 function osrmUrls(a,b){
   var path=a.lng+","+a.lat+";"+b.lng+","+b.lat;
@@ -7421,6 +7424,7 @@ function fetchRoad(a,b,cb){
   function finish(coords){
     var ok=coords&&coords.length>=2;
     roadCache[key]=ok?coords:"fail";
+    roadRev++;
     var waits=roadWait[key]||[];
     delete roadWait[key];
     waits.forEach(function(fn){ try{ fn(ok?coords:null); }catch(e){} });
@@ -8261,7 +8265,34 @@ function pathKm(coords){
   return km;
 }
 
+function geoKey(r){
+  if(!r) return "";
+  return [roadRev, r.id||"", r.mode||"", r.from||"", r.to||"", r.fromCode||"", r.toCode||"", r.carPath||"", r.coords?r.coords.length:0, r.waypoints?r.waypoints.length:0].join("|");
+}
+function geoWaiting(r, g){
+  if(!r || !g) return false;
+  if(r.carPath==="offroad" || (r.waypoints && r.waypoints.length)) return false;
+  if(r.mode!=="car" && r.mode!=="train") return false;
+  function bad(p, q){
+    if(!p || !q) return false;
+    var v=roadCache[roadKey(p, q)];
+    return v==null || v==="pending";
+  }
+  if(g.hops && g.hops.length){
+    var i;
+    for(i=0;i<g.hops.length;i++) if(bad(g.hops[i][0], g.hops[i][1])) return true;
+    return false;
+  }
+  return r.mode==="car" && bad(g.a, g.b);
+}
 function buildGeoSync(r){
+  var gk=geoKey(r);
+  if(gk && geoMemo[gk]) return geoMemo[gk];
+  var g=buildGeoSyncUncached(r);
+  if(gk && g && !g.needRoad && g.coords && g.coords.length>1 && !geoWaiting(r, g)) geoMemo[gk]=g;
+  return g;
+}
+function buildGeoSyncUncached(r){
   /* GPS-трек: готовые координаты */
   if(r.coords && r.coords.length>=2){
     var km=pathKm(r.coords);
@@ -9143,6 +9174,7 @@ function nearAnyRoute(lat,lng,maxKm){
 }
 
 var layer=L.layerGroup().addTo(map);
+var lineHold={};
 try{window.__travelekMapRoutesLayer=layer;}catch(e){}
 var labelsLayer=L.layerGroup().addTo(map);
 var selectedId=null, activeTab="future", sheetState="mid", selectedTripId=null, sheetMore={on:false}, cardMore={};
@@ -9562,9 +9594,37 @@ function routeRepeatKey(r){
   return [a,b].sort().join(" ⇄ ");
 }
 function render(){
-  layer.clearLayers();
-  if(typeof collectLabelPts==="function") collectLabelPts(typeof filtered==="function"?filtered():ROUTES);
-  var list=filtered(), kmP=0, kmT=0, kmC=0, bounds=[];
+  var list=filtered();
+  if(typeof collectLabelPts==="function") collectLabelPts(list);
+  var themeNow=document.documentElement.getAttribute("data-theme")||"dark";
+  var holdKey=activeTab+"|"+(activeTab==="trips"?(selectedTripId||""):(typeof yearFilter!=="undefined"?yearFilter:"all"));
+  var holdSig=themeNow+"#"+roadRev, hi, hr, hold, reuse, lk;
+  for(hi=0;hi<list.length;hi++){
+    hr=list[hi];
+    holdSig+=";"+hr.id+"|"+(hr.mode||"")+"|"+(hr.from||"")+"|"+(hr.to||"")+"|"+(hr.fromCode||"")+"|"+(hr.toCode||"")+"|"+(hr.carPath||"")+"|"+(hr.coords?hr.coords.length:0)+"|"+(hr.waypoints?hr.waypoints.length:0)+"|"+(selectedId===hr.id?"1":"0")+"|"+(isFuture(hr)?"f":"");
+  }
+  hold=lineHold[holdKey];
+  reuse=!!(hold && hold.sig===holdSig && hold.group);
+  if(!reuse){
+    if(hold && hold.group && typeof map!=="undefined" && map && map.hasLayer(hold.group)){
+      try{ map.removeLayer(hold.group); }catch(e){}
+    }
+    hold={sig:holdSig, group:L.layerGroup()};
+    lineHold[holdKey]=hold;
+  }
+  if(typeof map!=="undefined" && map){
+    for(lk in lineHold){
+      if(!lineHold[lk] || !lineHold[lk].group) continue;
+      if(lk===holdKey){ if(!map.hasLayer(lineHold[lk].group)) lineHold[lk].group.addTo(map); }
+      else if(map.hasLayer(lineHold[lk].group)) map.removeLayer(lineHold[lk].group);
+    }
+    if(layer && layer!==hold.group && map.hasLayer(layer)){
+      try{ map.removeLayer(layer); }catch(e){}
+    }
+  }
+  layer=hold.group;
+  try{ window.__travelekMapRoutesLayer=layer; }catch(e){}
+  var kmP=0, kmT=0, kmC=0, bounds=[];
   var kmW=0,kmB=0,kmS=0,nP=0,nT=0,nC=0,nW=0,nB=0,nS=0;
   /* статистика только по текущей вкладке */
   list.forEach(function(r){
@@ -9599,6 +9659,10 @@ function render(){
 
   list.forEach(function(r){
     var g=buildGeoSync(r); if(!g||!g.coords) return;
+    if(reuse){
+      g.coords.forEach(function(c){ bounds.push(c); });
+      return;
+    }
     var fut=isFuture(r);
     var col=COLORS[r.mode]||COLORS.plane;
     if(fut&&r.mode==="plane") col=COLORS.future;
@@ -10660,6 +10724,7 @@ function loadArr(key){
   catch(e){ return []; }
 }
 function saveSets(){
+  if(typeof dropVisitMemo==="function") dropVisitMemo();
   var pack=function(key, list){
     var s=JSON.stringify(list);
     if(typeof safeSetItem==="function") safeSetItem(key, s);
@@ -10994,8 +11059,35 @@ function confirmVisitedPlace(){
   if(typeof renderCountryUi==="function") renderCountryUi();
   if(typeof render==="function") render();
 }
+var visitRev=1, visitMemo={}, bagMemo={};
+function dropVisitMemo(){
+  visitRev++;
+  visitMemo={};
+  bagMemo={};
+}
+function dropRouteMemo(){
+  dropVisitMemo();
+  geoMemo={};
+  var k;
+  if(typeof lineHold==="undefined" || !lineHold) return;
+  for(k in lineHold){
+    try{
+      if(typeof map!=="undefined" && map && lineHold[k] && lineHold[k].group && map.hasLayer(lineHold[k].group)) map.removeLayer(lineHold[k].group);
+    }catch(e){}
+  }
+  lineHold={};
+}
 function syncVisited(){
   if(!COUNTRY_LIST) return;
+  var vkey=visitRev+"|"+activeTab+"|"+(activeTab==="trips"?(selectedTripId||"*"):"");
+  var vhit=visitMemo[vkey];
+  if(vhit){
+    visited=vhit.visited.slice();
+    visitedRegions=vhit.regions.slice();
+    autoCountries=vhit.autoC;
+    autoRegions=vhit.autoR;
+    return;
+  }
   var autoC={}, autoR={};
   function regionIdByName(code, name){
     if(!code || !name) return null;
@@ -11121,6 +11213,7 @@ function syncVisited(){
   visitedRegions=nextR;
   autoCountries=autoC;
   autoRegions=autoR;
+  visitMemo[vkey]={visited:visited.slice(), regions:visitedRegions.slice(), autoC:autoCountries, autoR:autoRegions};
 }
 function paintPoly(poly, style){
   if(!poly||!poly[0]) return;
@@ -11771,6 +11864,7 @@ function loadTrips(){
   catch(e){ return []; }
 }
 function saveTrips(list){
+  if(typeof dropVisitMemo==="function") dropVisitMemo();
   if(typeof safeSetItem==="function") safeSetItem("travelek-trips", JSON.stringify(list||[]));
   else try{ localStorage.setItem("travelek-trips", JSON.stringify(list||[])); }catch(e){}
 }
@@ -11791,6 +11885,8 @@ function futurePlaces(){
   return {countries:countries, regions:regions};
 }
 function endpointBag(r){
+  var bkey=r?[(r.id||""),(r.from||""),(r.to||""),(r.fromCode||""),(r.toCode||""),(r.coords?r.coords.length:0)].join("|"):"";
+  if(bkey && bagMemo[bkey]) return bagMemo[bkey];
   var countries=[], regions=[], sc={}, sr={};
   function hit(lat, lng){
     if(lat==null || lng==null || isNaN(lat) || isNaN(lng) || typeof countryAt!=="function") return;
@@ -11843,7 +11939,9 @@ function endpointBag(r){
     hitPt(place(r.from, r.fromCode));
     hitPt(place(r.to, r.toCode));
   }
-  return {countries:countries, regions:regions};
+  var bag={countries:countries, regions:regions};
+  if(bkey && typeof COUNTRY_LIST!=="undefined" && COUNTRY_LIST) bagMemo[bkey]=bag;
+  return bag;
 }
 function placeRows(tab){
   var rows=[], seen={};
