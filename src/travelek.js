@@ -10876,15 +10876,32 @@ function showMapHover(lat,lng,containerPoint){
 }
 function openVisitPrompt(lat,lng){
   if(pickTarget || !COUNTRY_LIST || !COUNTRY_LIST.length) return;
-  var cid=countryAt(lat,lng);
+  var hit=map && map.regionAt ? map.regionAt(lat, lng) : null;
+  var cid=hit && hit.iso ? hit.iso : null;
+  if(!cid && hit){
+    var label=String(hit.sub||hit.name||"").toLowerCase().replace(/ё/g,"е");
+    if(label==="беларусь"||label==="белоруссия"||hit.name==="Белоруссия") cid="BY";
+    else if(label==="украина"||hit.name==="Украина") cid="UA";
+    else if(label==="россия") cid="RU";
+    else if(label.indexOf("китай")===0) cid="CN";
+  }
+  var rid=null, hitName="";
+  if(hit && hit.layer && hit.layer!=="W" && hit.name){
+    hitName=hit.name;
+    if(cid) rid=cid+":"+hit.name;
+  } else if(hit && hit.name) hitName=hit.name;
+  if(!cid) cid=countryAt(lat,lng);
   if(!cid) return;
+  if(!rid){
+    var regs=regionsFor(cid);
+    rid=regs ? regionIn(cid, lat, lng) : null;
+  }
   var been=visited && visited.indexOf(cid)>=0;
-  var regs=regionsFor(cid);
-  var rid=been && regs ? regionIn(cid, lat, lng) : null;
   if(rid && visitedRegions && visitedRegions.indexOf(rid)>=0) return;
   if(!rid && been) return;
   var c=countryRecord(cid), reg=rid?regionRecord(rid):null;
-  pendingVisit={countryId:cid, regionId:rid, name:reg?(regionLabel(reg.n)+" · "+(c?countryLabel(c):cid)):(c?countryLabel(c):cid)};
+  var placeName=reg?(regionLabel(reg.n)+" · "+(c?countryLabel(c):cid)):(hitName && rid ? (hitName+" · "+(c?countryLabel(c):hitName)):(c?countryLabel(c):(hitName||cid)));
+  pendingVisit={countryId:cid, regionId:rid, name:placeName};
   var modal=document.getElementById("visit-confirm");
   var title=document.getElementById("visit-confirm-title");
   var desc=document.getElementById("visit-confirm-desc");

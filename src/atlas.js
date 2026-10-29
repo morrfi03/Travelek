@@ -118,18 +118,20 @@
     var country = -1, i, L = byLayer.W;
     for (i = 0; i < L.length; i++) if (inside(ents[L[i]], lo, la)) { country = L[i]; break; }
     var host = country >= 0 ? ents[country] : null;
-    if (host && host.iso && markC[host.iso]) {
-      var order = ["R", "C", "G"], k, r;
-      for (k = 0; k < order.length; k++) {
-        L = byLayer[order[k]];
-        for (i = 0; i < L.length; i++) {
-          r = ents[L[i]];
-          if (!regionLayerOpen(r)) continue;
-          if (inside(r, lo, la)) return L[i];
-        }
+    var hostIso = host ? (host.iso || isoOfName(host.name)) : "";
+    var order = ["R", "C", "G"], k, r, best = -1, bestArea = 1e18, area, bb, riso;
+    for (k = 0; k < order.length; k++) {
+      L = byLayer[order[k]];
+      for (i = 0; i < L.length; i++) {
+        r = ents[L[i]];
+        riso = r.iso || isoOfName(r.sub || "");
+        if (hostIso && riso && riso !== hostIso) continue;
+        if (!inside(r, lo, la)) continue;
+        bb = r.bb; area = Math.max(0, bb[2] - bb[0]) * Math.max(0, bb[3] - bb[1]);
+        if (area < bestArea) { bestArea = area; best = L[i]; }
       }
     }
-    return country;
+    return best >= 0 ? best : country;
   }
   function regionLayerOpen(e) {
     if (!e) return false;
@@ -224,7 +226,9 @@
         var e = ents[i];
         if (e.name === "Украина") {
           if (!(litCountry(e) || markC.UA || washIso.UA)) return;
-          if (traceFlat(c, "UA")) { c.fillStyle = "rgba(214,168,72,.62)"; c.fill(); c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke(); }
+          showSmall(e);
+          c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.62)"; c.fill();
+          c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke();
           return;
         }
         if (!litCountry(e)) return;
@@ -258,9 +262,8 @@
         c.strokeStyle = L.style.c; c.globalAlpha = L.style.a; c.lineWidth = L.style.w * lw; c.setLineDash(L.style.dash ? L.style.dash.map(function (d) { return d * lw; }) : []); c.stroke();
       });
       c.setLineDash([]); c.globalAlpha = 1;
-      c.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name!=="Украина") entPath(c, ents[i]); }); byLayer.B.forEach(function (i) { entPath(c, ents[i]); });
+      c.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb || ents[i].name==="Украина") entPath(c, ents[i]); }); byLayer.B.forEach(function (i) { entPath(c, ents[i]); });
       c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke();
-      if (traceFlat(c, "UA")) { c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke(); }
       c.restore();
     }
     function draw() {
@@ -540,7 +543,8 @@
         var e = ents[i];
         if (e.name === "Украина") {
           if (!(litCountry(e) || markC.UA || washIso.UA)) return;
-          if (fillGeo("UA")) { ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill(); ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke(); }
+          ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill();
+          ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke();
           return;
         }
         if (!litCountry(e)) return;
@@ -562,9 +566,8 @@
         ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) strokeRings(ents[i]); }); });
         ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 0.45; ctx.lineJoin = "round"; ctx.stroke();
       }
-      ctx.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name!=="Украина") strokeRings(ents[i]); }); byLayer.B.forEach(function (i) { strokeRings(ents[i]); });
+      ctx.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb || ents[i].name==="Украина") strokeRings(ents[i]); }); byLayer.B.forEach(function (i) { strokeRings(ents[i]); });
       ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke();
-      if (fillGeo("UA")) { ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke(); }
       if (!moving) (function strokeNets() {
         var layers = views.flat.netLayers();
         if (!layers) return;
@@ -717,7 +720,10 @@
     if (!n) return "";
     if (nameIso[n]) return nameIso[n];
     var k;
-    for (k in nameIso) if (k.length > 4 && (n.indexOf(k) >= 0 || k.indexOf(n) >= 0)) return nameIso[k];
+    for (k in nameIso) {
+      if (k.length < 5 || k === n) continue;
+      if (n.indexOf(k) === 0 || k.indexOf(n) === 0) return nameIso[k];
+    }
     return "";
   }
   function litCountry(e) {
@@ -733,7 +739,7 @@
       "китай": "CN", "китайская народная республика": "CN",
       "соединенные штаты": "US", "соединенные штаты америки": "US", "сша": "US",
       "великобритания": "GB", "соединенное королевство": "GB",
-      "беларусь": "BY", "казахстан": "KZ", "турция": "TR", "таиланд": "TH",
+      "беларусь": "BY", "белоруссия": "BY", "украина": "UA", "казахстан": "KZ", "турция": "TR", "таиланд": "TH",
       "франция": "FR", "германия": "DE", "италия": "IT", "испания": "ES",
       "польша": "PL", "япония": "JP", "индия": "IN", "вьетнам": "VN",
       "египет": "EG", "литва": "LT", "армения": "AM", "болгария": "BG",
@@ -751,8 +757,13 @@
       var label = String((e.L === "W" ? e.name : (e.sub || e.name)) || "").toLowerCase().replace(/ё/g, "е");
       var iso = by[label] || "";
       if (!iso && label) {
-        for (k in by) if (k.length > 4 && (label.indexOf(k) >= 0 || k.indexOf(label) >= 0)) { iso = by[k]; break; }
+        for (k in by) {
+          if (k.length < 5 || k === label) continue;
+          if (label.indexOf(k) === 0 || k.indexOf(label) === 0) { iso = by[k]; break; }
+        }
       }
+      if (label === "белоруссия" || label === "беларусь") iso = "BY";
+      if (label === "украина") iso = "UA";
       if (e.L === "R" || label === "россия") iso = "RU";
       if (e.L === "C" || label.indexOf("китай") === 0) iso = "CN";
       if (iso && e.iso !== iso) { e.iso = iso; added++; }
