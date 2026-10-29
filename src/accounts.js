@@ -2,6 +2,15 @@
   var URL="https://keepjson.fourlegs.workers.dev/bins/BkoU663gNtadZ-zfQvPYx";
   var KEY="kj_w_qgNZJtClt_6vg01Eq5c8j1wpxzMTpSzUKrazvkb12AY";
   var HUES=["#3b82f6","#34d399","#a78bfa","#f59e0b","#fb7185","#22d3ee"];
+  function leaveForeign(e){
+    var back=e.target&&e.target.closest?e.target.closest("#view-banner button,#back-own"):null;
+    if(!back) return;
+    e.preventDefault();
+    e.stopPropagation();
+    try{ sessionStorage.removeItem("travelek-view"); }catch(err){}
+    location.replace(location.pathname+location.search);
+  }
+  document.addEventListener("click", leaveForeign, true);
   function say(msg){
     var el=document.getElementById("acct-err");
     if(el) el.textContent=msg||"";
@@ -162,11 +171,12 @@
   var sid="";
   try{ sid=localStorage.getItem("travelek-session")||""; }catch(e){}
   if(view && view!==sid){
-    function home(){ try{ sessionStorage.removeItem("travelek-view"); }catch(e){} location.reload(); }
+    function home(){ try{ sessionStorage.removeItem("travelek-view"); }catch(e){} location.replace(location.pathname+location.search); }
     var own=document.getElementById("back-own");
     if(own){ own.hidden=false; own.onclick=home; }
+    document.body.classList.add("foreign-diary");
     var banner=document.getElementById("view-banner");
-    if(banner && !banner.querySelector("button")){
+    if(banner){
       banner.hidden=false;
       banner.innerHTML="<span>Чужой дневник</span>";
       var back=document.createElement("button");

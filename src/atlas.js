@@ -117,18 +117,16 @@
   function pickLL(lo, la) {
     var country = -1, i, L = byLayer.W;
     for (i = 0; i < L.length; i++) if (inside(ents[L[i]], lo, la)) { country = L[i]; break; }
-    var best = -1, bestA = Infinity, order = ["R", "C", "G"], k, r, area;
-    for (k = 0; k < order.length; k++) {
-      L = byLayer[order[k]] || [];
-      for (i = 0; i < L.length; i++) {
-        r = ents[L[i]];
-        if (!regionLayerOpen(r) || !inside(r, lo, la)) continue;
-        area = Math.max(0, r.bb[2] - r.bb[0]) * Math.max(0, r.bb[3] - r.bb[1]);
-        if (area < bestA) { bestA = area; best = L[i]; }
-      }
+    var host = country >= 0 ? ents[country] : null;
+    var list = regionsOf(host ? entityIso(host) : "");
+    var best = -1, bestA = Infinity, r, area;
+    for (i = 0; i < list.length; i++) {
+      r = ents[list[i]];
+      if (!inside(r, lo, la)) continue;
+      area = Math.max(0, r.bb[2] - r.bb[0]) * Math.max(0, r.bb[3] - r.bb[1]);
+      if (area < bestA) { bestA = area; best = list[i]; }
     }
-    if (best >= 0) return best;
-    return country;
+    return best >= 0 ? best : country;
   }
   function entityIso(e) {
     if (!e) return "";
@@ -139,6 +137,22 @@
     if (n === "беларусь" || n === "белоруссия") return "BY";
     if (e.iso) return e.iso;
     return isoOfName(sub || e.name || "");
+  }
+  var regsByIso = null;
+  function regionsOf(iso) {
+    if (!iso) return [];
+    if (!regsByIso) {
+      stampIso();
+      regsByIso = {};
+      ["R", "C", "G"].forEach(function (L) {
+        (byLayer[L] || []).forEach(function (idx) {
+          var id = entityIso(ents[idx]);
+          if (!id) return;
+          (regsByIso[id] = regsByIso[id] || []).push(idx);
+        });
+      });
+    }
+    return regsByIso[iso] || [];
   }
   function regionLayerOpen(e) {
     if (!e || e.L === "W") return false;
@@ -207,6 +221,7 @@
       c.closePath();
     }
     function entPath(c, e) { for (var r = e.r0; r < e.r1; r++) if (RV[r]) ringPath(c, r); }
+    function entPathFull(c, e) { for (var r = e.r0; r < e.r1; r++) ringPath(c, r); }
     var bc = document.createElement("canvas"), bctx = bc.getContext("2d"), bkey = "", snapTx = 0, snapTy = 0, snapK = 1, hold = 0, zoomIdle = 0;
     var rc = document.createElement("canvas"), rctx = rc.getContext("2d");
     function base() {
@@ -290,9 +305,17 @@
       if (!settled) return;
       var kk = cw / WID * k; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.save(); ctx.translate(tx, ty); ctx.scale(kk, kk); ctx.lineJoin = "round";
       [[hoverEnt, "rgba(60,100,80,.38)"], [selEnt, "rgba(196,98,45,.65)"]].forEach(function (h) {
-        if (h[0] < 0) return; var e = ents[h[0]]; ctx.beginPath(); entPath(ctx, e); ctx.fillStyle = h[1]; ctx.fill("evenodd");
+        if (h[0] < 0) return; var e = ents[h[0]]; ctx.beginPath(); entPathFull(ctx, e); ctx.fillStyle = h[1]; ctx.fill("evenodd");
         ctx.strokeStyle = h[0] === selEnt ? "rgba(120,50,15,.9)" : "rgba(30,60,45,.7)"; ctx.lineWidth = 1.2 / kk; ctx.stroke();
       });
+      if (k >= 2.2 && hoverEnt >= 0) {
+        var hIso = entityIso(ents[hoverEnt]), regs = regionsOf(hIso), hi;
+        if (regs.length) {
+          ctx.beginPath();
+          for (hi = 0; hi < regs.length; hi++) entPathFull(ctx, ents[regs[hi]]);
+          ctx.strokeStyle = "rgba(20,40,30,.8)"; ctx.lineWidth = 0.7 / kk; ctx.stroke();
+        }
+      }
       ctx.restore();
     }
     function schedule() { if (!raf) raf = requestAnimationFrame(function () { raf = 0; if (mode === "flat") draw(); }); }
@@ -562,6 +585,14 @@
         });
       });
       [[hoverEnt, "rgba(60,110,85,.55)"], [selEnt, "rgba(196,98,45,.70)"]].forEach(function (h) { if (h[0] < 0) return; ctx.beginPath(); fillRings(ents[h[0]]); ctx.fillStyle = h[1]; ctx.fill("evenodd"); });
+      if (!moving && zoom >= 1.6 && hoverEnt >= 0) {
+        var hIso = entityIso(ents[hoverEnt]), regs = regionsOf(hIso), hi;
+        if (regs.length) {
+          ctx.beginPath();
+          for (hi = 0; hi < regs.length; hi++) strokeRings(ents[regs[hi]]);
+          ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.lineWidth = 0.6; ctx.lineJoin = "round"; ctx.stroke();
+        }
+      }
       if (!moving && zoom >= 2.2) {
         ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) strokeRings(ents[i]); }); });
         ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 0.45; ctx.lineJoin = "round"; ctx.stroke();
