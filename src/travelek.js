@@ -11221,6 +11221,14 @@ function indexRegions(){
   add(RUSSIA_REGIONS, "RU");
   add(CHINA_REGIONS, "CN");
   add(WORLD_REGIONS, "");
+  if(map && map.collectRegions){
+    var have={}, code;
+    for(code in REGIONS_BY) if(REGIONS_BY[code] && REGIONS_BY[code].length) have[code]=1;
+    map.collectRegions(have).forEach(function(r){
+      if(!r || !r.c || have[r.c]) return;
+      (REGIONS_BY[r.c]=REGIONS_BY[r.c]||[]).push(r);
+    });
+  }
 }
 function bootGeo(){
   var left=5;

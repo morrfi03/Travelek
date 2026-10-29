@@ -117,30 +117,34 @@
   function pickLL(lo, la) {
     var country = -1, i, L = byLayer.W;
     for (i = 0; i < L.length; i++) if (inside(ents[L[i]], lo, la)) { country = L[i]; break; }
-    var host = country >= 0 ? ents[country] : null;
-    if (host && host.iso && markC[host.iso]) {
-      var order = ["R", "C", "G"], k, r;
-      for (k = 0; k < order.length; k++) {
-        L = byLayer[order[k]];
-        for (i = 0; i < L.length; i++) {
-          r = ents[L[i]];
-          if (!regionLayerOpen(r)) continue;
-          if (inside(r, lo, la)) return L[i];
-        }
+    var best = -1, bestA = Infinity, order = ["R", "C", "G"], k, r, area;
+    for (k = 0; k < order.length; k++) {
+      L = byLayer[order[k]] || [];
+      for (i = 0; i < L.length; i++) {
+        r = ents[L[i]];
+        if (!regionLayerOpen(r) || !inside(r, lo, la)) continue;
+        area = Math.max(0, r.bb[2] - r.bb[0]) * Math.max(0, r.bb[3] - r.bb[1]);
+        if (area < bestA) { bestA = area; best = L[i]; }
       }
     }
+    if (best >= 0) return best;
     return country;
   }
+  function entityIso(e) {
+    if (!e) return "";
+    if (e.L === "R" || e.sub === "Россия") return "RU";
+    if (e.L === "C" || e.sub === "Китай") return "CN";
+    var sub = String(e.L === "W" ? (e.name || "") : (e.sub || ""));
+    var n = sub.toLowerCase().replace(/ё/g, "е");
+    if (n === "беларусь" || n === "белоруссия") return "BY";
+    if (e.iso) return e.iso;
+    return isoOfName(sub || e.name || "");
+  }
   function regionLayerOpen(e) {
-    if (!e) return false;
-    if (e.L === "R" || e.sub === "Россия") return !!markC.RU;
-    if (e.L === "C" || e.sub === "Китай") return !!markC.CN;
-    if (e.iso && markC[e.iso]) return true;
-    if (e.sub) {
-      var iso = isoOfName(e.sub);
-      if (iso && (markC[iso] || washIso[iso])) return true;
-    }
-    return false;
+    if (!e || e.L === "W") return false;
+    var iso = entityIso(e);
+    if (!iso) return false;
+    return !!(markC[iso] || washIso[iso]);
   }
   function showTip(tip, box, e, i) {
     if (i < 0) { tip.style.opacity = 0; return; }
@@ -733,7 +737,7 @@
       "китай": "CN", "китайская народная республика": "CN",
       "соединенные штаты": "US", "соединенные штаты америки": "US", "сша": "US",
       "великобритания": "GB", "соединенное королевство": "GB",
-      "беларусь": "BY", "казахстан": "KZ", "турция": "TR", "таиланд": "TH",
+      "беларусь": "BY", "белоруссия": "BY", "казахстан": "KZ", "турция": "TR", "таиланд": "TH",
       "франция": "FR", "германия": "DE", "италия": "IT", "испания": "ES",
       "польша": "PL", "япония": "JP", "индия": "IN", "вьетнам": "VN",
       "египет": "EG", "литва": "LT", "армения": "AM", "болгария": "BG",
@@ -915,7 +919,33 @@
       var i = pickLL(Math.round(lng * 100), Math.round(lat * 100));
       if (i < 0) return null;
       var e = ents[i];
-      return { layer: e.L, name: e.name || "", sub: e.sub || "", iso: e.iso || null };
+      return { layer: e.L, name: e.name || "", sub: e.sub || "", iso: entityIso(e) || e.iso || null };
+    };
+    facade.collectRegions = function (skip) {
+      skip = skip || {};
+      var out = [], seen = {};
+      ["R", "C", "G"].forEach(function (L) {
+        (byLayer[L] || []).forEach(function (i) {
+          var e = ents[i], iso = entityIso(e);
+          if (!iso || !e.name || skip[iso]) return;
+          var id = iso + ":" + e.name;
+          if (seen[id]) return;
+          seen[id] = 1;
+          var rings = [], r, s, n, t, ring;
+          for (r = e.r0; r < e.r1; r++) {
+            s = rStart[r]; n = rLen[r]; ring = [];
+            for (t = 0; t < n; t++) ring.push([LX[s + t] / 100, LY[s + t] / 100]);
+            if (ring.length > 2) rings.push(ring);
+          }
+          if (!rings.length) return;
+          out.push({
+            id: id, n: e.name, c: iso,
+            b: [e.bb[1] / 100, e.bb[0] / 100, e.bb[3] / 100, e.bb[2] / 100],
+            p: rings
+          });
+        });
+      });
+      return out;
     };
     var netWait = {};
     var netWant = { rd: false, rl: false };
