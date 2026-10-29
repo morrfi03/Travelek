@@ -889,14 +889,24 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   color:#e7f0fb;transition:opacity .4s ease;
 }
 #boot-loader.off{opacity:0;pointer-events:none}
-.boot-stage{position:relative;width:min(92vw,560px);height:240px}
+.boot-stage{position:relative;width:min(92vw,560px);height:280px}
+.boot-rail{
+  position:absolute;left:16%;right:16%;bottom:156px;height:28px;border-radius:6px;
+  background:linear-gradient(#6a5038,#3d2c1c);
+  box-shadow:0 8px 16px rgba(0,0,0,.28);
+}
+.boot-rail:before,.boot-rail:after{
+  content:"";position:absolute;left:4%;right:4%;height:3px;border-radius:2px;background:#c5ccd4;
+}
+.boot-rail:before{top:6px}
+.boot-rail:after{bottom:6px}
 .boot-road{
-  position:absolute;left:6%;right:6%;bottom:28px;height:52px;border-radius:10px;
-  background:linear-gradient(#4a5562,#2c343d);
-  box-shadow:0 14px 28px rgba(0,0,0,.35);
+  position:absolute;left:4%;right:4%;bottom:22px;height:78px;border-radius:12px;
+  background:linear-gradient(#5c6772,#2a3138);
+  box-shadow:0 16px 28px rgba(0,0,0,.38);
 }
 .boot-road:before{
-  content:"";position:absolute;left:8%;right:8%;top:50%;height:4px;margin-top:-2px;border-radius:2px;
+  content:"";position:absolute;left:6%;right:6%;top:50%;height:4px;margin-top:-2px;border-radius:2px;
   background:repeating-linear-gradient(90deg,#f6e7a8 0 22px,transparent 22px 40px);
 }
 #boot-cv{position:absolute;inset:0;width:100%;height:100%;display:block}
@@ -904,6 +914,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 </style>
 <div id="boot-loader" role="status" aria-live="polite">
   <div class="boot-stage">
+    <div class="boot-rail"></div>
     <div class="boot-road"></div>
     <canvas id="boot-cv"></canvas>
   </div>
@@ -959,30 +970,38 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
   }
   function train(x,y){
     ctx.save(); ctx.translate(x,y);
-    function car(px,w,nose){
-      ctx.fillStyle="#f7f4ee";
-      rr(px,-16,w,32,nose?16:8); ctx.fill();
-      ctx.fillStyle="#1f6f4a"; ctx.fillRect(px+8,-3,w-16,6);
-      ctx.fillStyle="#243044"; rr(px+10,-12,12,8,2); ctx.fill(); rr(px+w-28,-12,12,8,2); ctx.fill();
-    }
-    car(-70,44,0); car(-24,46,0); car(24,48,1);
+    ctx.fillStyle="#f7f9fc";
+    ctx.beginPath();
+    ctx.moveTo(78,8);
+    ctx.bezierCurveTo(62,8,48,-16,28,-16);
+    ctx.lineTo(-70,-16); ctx.lineTo(-78,-6); ctx.lineTo(-78,10); ctx.lineTo(-70,16);
+    ctx.lineTo(28,16); ctx.bezierCurveTo(48,16,62,8,78,8);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle="#1d4e89"; ctx.fillRect(-62,-6,78,10);
+    ctx.fillStyle="#e10600"; ctx.fillRect(-70,8,96,5);
+    ctx.fillStyle="#d7e7f5";
+    ctx.fillRect(-58,-13,16,7); ctx.fillRect(-38,-13,16,7); ctx.fillRect(-18,-13,16,7); ctx.fillRect(2,-13,16,7);
     ctx.fillStyle="#1c2430";
-    [-52,-18,8,40].forEach(function(px){ ctx.beginPath(); ctx.arc(px,16,4,0,6.3); ctx.fill(); });
+    [-58,-20,16,48].forEach(function(px){ ctx.beginPath(); ctx.arc(px,16,4.2,0,6.3); ctx.fill(); });
+    ctx.fillStyle="#f6e27a"; ctx.beginPath(); ctx.arc(70,2,3,0,6.3); ctx.fill();
     ctx.restore();
   }
   function car(x,y){
     ctx.save(); ctx.translate(x,y);
-    ctx.fillStyle="#f7f4ee";
+    ctx.fillStyle="#1b2128";
+    ctx.beginPath(); ctx.arc(-28,16,8,0,6.3); ctx.arc(24,16,8,0,6.3); ctx.fill();
+    ctx.fillStyle="#d5dbe3";
+    ctx.fillRect(-46,6,6,8); ctx.fillRect(40,6,6,8);
+    ctx.fillStyle="#f4f1ea";
     ctx.beginPath();
-    ctx.moveTo(-36,8); ctx.quadraticCurveTo(-34,-4,-18,-8); ctx.lineTo(-4,-8);
-    ctx.quadraticCurveTo(8,-22,24,-18); ctx.quadraticCurveTo(36,-14,40,2); ctx.lineTo(42,10);
-    ctx.quadraticCurveTo(40,16,28,16); ctx.lineTo(-24,16); ctx.quadraticCurveTo(-40,16,-36,8); ctx.closePath();
+    ctx.moveTo(-40,10); ctx.lineTo(-40,-2); ctx.lineTo(-18,-4); ctx.lineTo(-8,-16); ctx.lineTo(22,-16);
+    ctx.lineTo(30,-4); ctx.lineTo(42,-2); ctx.lineTo(42,12); ctx.lineTo(-40,12); ctx.closePath();
     ctx.fill();
-    ctx.fillStyle="#16383f";
-    ctx.beginPath(); ctx.moveTo(-2,-6); ctx.quadraticCurveTo(10,-16,22,-14); ctx.lineTo(28,-4); ctx.lineTo(0,-4); ctx.closePath(); ctx.fill();
-    ctx.fillStyle="#1f6f4a"; ctx.fillRect(-24,4,52,4);
-    ctx.fillStyle="#1c2430";
-    ctx.beginPath(); ctx.arc(-16,16,6,0,6.3); ctx.arc(18,16,6,0,6.3); ctx.fill();
+    ctx.fillStyle="#16324f";
+    ctx.beginPath(); ctx.moveTo(-6,-5); ctx.lineTo(-2,-14); ctx.lineTo(20,-14); ctx.lineTo(26,-5); ctx.closePath(); ctx.fill();
+    ctx.fillStyle="#c8102e"; ctx.fillRect(-36,2,74,3);
+    ctx.fillStyle="#f6e27a"; ctx.beginPath(); ctx.arc(40,0,3,0,6.3); ctx.fill();
+    ctx.fillStyle="#e8edf2"; ctx.beginPath(); ctx.arc(44,-1,2.2,0,6.3); ctx.fill();
     ctx.restore();
   }
   function frame(now){
@@ -991,10 +1010,10 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     size();
     ctx.clearRect(0,0,W,H);
     var u=((now-t0)%5400)/5400;
-    var road=H-54;
-    if(u<1/3) plane(-40+((u*3))*(W+80), road-86);
-    else if(u<2/3) train(-80+((u-1/3)*3)*(W+120), road-6);
-    else car(-50+((u-2/3)*3)*(W+90), road-8);
+    var rail=H-174, road=H-40;
+    if(u<1/3) plane(-40+((u*3))*(W+80), rail-78);
+    else if(u<2/3) train(-90+((u-1/3)*3)*(W+160), rail);
+    else car(-55+((u-2/3)*3)*(W+100), road);
     raf=requestAnimationFrame(frame);
   }
   size();
@@ -1318,7 +1337,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 <script src="vendor/d3-array.min.js"></script>
 <script src="vendor/d3-geo.min.js"></script>
 <script src="geo/atlas-data.js"></script>
-<script src="src/atlas.js?v=448"></script>
-<script src="src/travelek.js?v=453"></script>
+<script src="src/atlas.js?v=449"></script>
+<script src="src/travelek.js?v=454"></script>
 <script src="src/accounts.js?v=441"></script>
 </body></html>

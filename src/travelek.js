@@ -5862,6 +5862,9 @@ wipeRoutesOnce();
   function preferPack(a, b){
     if(!a) return b||null;
     if(!b) return a;
+    var ac=extraCount(a), bc=extraCount(b);
+    if(ac===0 && bc>0) return b;
+    if(bc===0 && ac>0) return a;
     var ar=packRev(a), br=packRev(b);
     if(ar!==br) return ar>br?a:b;
     return markCount(a)>=markCount(b)?a:b;
@@ -6088,6 +6091,9 @@ wipeRoutesOnce();
           localStorage.setItem(USERS, JSON.stringify(merged.users));
           localStorage.setItem(VAULT, JSON.stringify(vaultOut));
         }catch(e){}
+        if(me && merged.deleted.indexOf(me.id)>=0){
+          try{ localStorage.removeItem(SESSION); }catch(e2){}
+        }
         var after="";
         try{ after=(localStorage.getItem(USERS)||"")+"|"+(localStorage.getItem(VAULT)||""); }catch(e){}
         window.__TRAVELEK_STORE_CHANGED=after!==before;
@@ -7710,88 +7716,76 @@ function drawPlaneIcon(ctx){
 }
 function drawTrainIcon(ctx){
   ctx.save();
-  function coach(x, w, nose){
-    ctx.fillStyle="#8d8678";
-    roundRect(ctx, x, -9, w, 26, nose?14:7);
-    ctx.fill();
-    var g=ctx.createLinearGradient(0,-16,0,16);
-    g.addColorStop(0,"#fffdf8");
-    g.addColorStop(0.55,"#e7e0d2");
-    g.addColorStop(1,"#c2baab");
-    ctx.fillStyle=g;
-    roundRect(ctx, x, -14, w, 24, nose?13:6);
-    ctx.fill();
-    ctx.fillStyle="#1f6f4a";
-    ctx.fillRect(x+(nose?12:5), -2.4, w-(nose?18:10), 4.6);
-    ctx.fillStyle="#243044";
-    var i, n=Math.max(1, Math.floor((w-12)/15));
-    for(i=0;i<n;i++){
-      roundRect(ctx, x+8+i*14, -10, 8, 5.5, 1.6);
-      ctx.fill();
-    }
+  ctx.fillStyle="rgba(20,28,40,.22)";
+  ctx.beginPath();
+  ctx.moveTo(64,4); ctx.lineTo(42,12); ctx.lineTo(-50,11); ctx.lineTo(-60,4); ctx.lineTo(-50,-4); ctx.lineTo(42,-5); ctx.closePath();
+  ctx.fill();
+  var body=ctx.createLinearGradient(0,-10,0,10);
+  body.addColorStop(0,"#f7f9fc");
+  body.addColorStop(0.55,"#ffffff");
+  body.addColorStop(1,"#d7dee7");
+  ctx.fillStyle=body;
+  ctx.beginPath();
+  ctx.moveTo(66,0);
+  ctx.bezierCurveTo(58,-3,50,-8,40,-8);
+  ctx.lineTo(-46,-8.4);
+  ctx.quadraticCurveTo(-60,-7,-60,0);
+  ctx.quadraticCurveTo(-60,7,-46,8.4);
+  ctx.lineTo(40,8);
+  ctx.bezierCurveTo(50,8,58,3,66,0);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle="#e10600";
+  ctx.beginPath();
+  ctx.moveTo(54,0); ctx.lineTo(38,-2.3); ctx.lineTo(-50,-2.3); ctx.lineTo(-56,0); ctx.lineTo(-50,2.3); ctx.lineTo(38,2.3); ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle="#1d4e89";
+  ctx.lineWidth=1.6;
+  ctx.beginPath();
+  ctx.moveTo(36,-6.6); ctx.lineTo(-46,-7.4);
+  ctx.moveTo(36,6.6); ctx.lineTo(-46,7.4);
+  ctx.stroke();
+  ctx.fillStyle="#16324f";
+  var wx;
+  for(wx=-42; wx<=30; wx+=6.5){
+    ctx.fillRect(wx, -6.5, 3.1, 1.5);
+    ctx.fillRect(wx, 5, 3.1, 1.5);
   }
-  coach(-58, 36, false);
-  coach(-20, 38, false);
-  coach(20, 42, true);
-  ctx.fillStyle="#a39886";
-  ctx.fillRect(-22,-5,4,8);
-  ctx.fillRect(18,-5,4,8);
-  ctx.fillStyle="#1c2430";
-  [-46,-28,-8,10,34,50].forEach(function(x){
-    ctx.beginPath(); ctx.ellipse(x, 12.5, 4.4, 2.4, 0, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle="rgba(30,40,55,.4)";
+  ctx.lineWidth=1;
+  [-22, 0, 22].forEach(function(x){
+    ctx.beginPath(); ctx.moveTo(x,-7.6); ctx.lineTo(x,7.6); ctx.stroke();
   });
-  ctx.fillStyle="#f6e7a8";
-  ctx.beginPath(); ctx.ellipse(56, -1, 3.3, 2.2, 0, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle="#f6e27a";
+  ctx.beginPath(); ctx.ellipse(58,0,2.2,1.5,0,0,Math.PI*2); ctx.fill();
   ctx.restore();
 }
 function drawCarIcon(ctx){
   ctx.save();
-  ctx.fillStyle="#8d8678";
-  ctx.beginPath();
-  ctx.moveTo(-40,10);
-  ctx.quadraticCurveTo(-38,2,-26,0);
-  ctx.lineTo(18,0);
-  ctx.quadraticCurveTo(36,2,42,10);
-  ctx.lineTo(40,16);
-  ctx.lineTo(-38,16);
-  ctx.closePath();
+  ctx.fillStyle="#1b2128";
+  [[-20,-13],[22,-13],[-20,13],[22,13]].forEach(function(p){
+    ctx.beginPath(); ctx.ellipse(p[0], p[1], 6.2, 3.6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle="#c5cad1";
+    ctx.beginPath(); ctx.ellipse(p[0], p[1], 2.2, 1.3, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle="#1b2128";
+  });
+  ctx.fillStyle="#f3f0e8";
+  roundRect(ctx, -38, -9.5, 78, 19, 2.2);
   ctx.fill();
-  var g=ctx.createLinearGradient(0,-18,0,16);
-  g.addColorStop(0,"#fffdf8");
-  g.addColorStop(0.5,"#e8e1d3");
-  g.addColorStop(1,"#c9c1b2");
-  ctx.fillStyle=g;
-  ctx.beginPath();
-  ctx.moveTo(-42,7);
-  ctx.quadraticCurveTo(-40,-1,-28,-5);
-  ctx.lineTo(-8,-6);
-  ctx.quadraticCurveTo(2,-20,18,-18);
-  ctx.quadraticCurveTo(34,-16,40,-3);
-  ctx.lineTo(44,7);
-  ctx.quadraticCurveTo(44,15,34,15);
-  ctx.lineTo(-32,15);
-  ctx.quadraticCurveTo(-46,15,-42,7);
-  ctx.closePath();
+  ctx.strokeStyle="#b7b1a4";
+  ctx.lineWidth=1;
+  ctx.stroke();
+  ctx.fillStyle="#1a3348";
+  roundRect(ctx, -16, -7.4, 26, 14.8, 1.4);
   ctx.fill();
-  ctx.fillStyle="#16383f";
-  ctx.beginPath();
-  ctx.moveTo(-4,-5);
-  ctx.quadraticCurveTo(6,-16,17,-15);
-  ctx.quadraticCurveTo(28,-13,33,-4);
-  ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle="rgba(255,255,255,.5)";
-  ctx.beginPath();
-  ctx.moveTo(2,-12); ctx.lineTo(14,-13.2); ctx.lineTo(18,-7); ctx.lineTo(4,-7); ctx.closePath();
-  ctx.fill();
-  ctx.fillStyle="#1f6f4a";
-  ctx.fillRect(-30,5,66,3.2);
-  ctx.fillStyle="#1c2430";
-  ctx.beginPath(); ctx.ellipse(-22,14,7.2,4.2,0,0,Math.PI*2); ctx.ellipse(24,14,7.2,4.2,0,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle="#e4e9ef";
-  ctx.beginPath(); ctx.ellipse(-22,14,2.7,1.6,0,0,Math.PI*2); ctx.ellipse(24,14,2.7,1.6,0,0,Math.PI*2); ctx.fill();
-  ctx.fillStyle="#f6e7a8";
-  ctx.beginPath(); ctx.ellipse(40,3,2.6,1.8,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle="rgba(220,236,248,.45)";
+  ctx.fillRect(-14, -6.2, 22, 2.2);
+  ctx.fillStyle="#d5dbe3";
+  ctx.fillRect(37, -8, 3.2, 16);
+  ctx.fillRect(-41, -8, 3.2, 16);
+  ctx.strokeStyle="#8d887c";
+  ctx.strokeRect(18, -6.2, 16, 12.4);
+  ctx.strokeRect(-34, -5.2, 12, 10.4);
   ctx.restore();
 }
 function drawShipIcon(ctx){
@@ -10876,21 +10870,18 @@ function showMapHover(lat,lng,containerPoint){
 }
 function openVisitPrompt(lat,lng){
   if(pickTarget || !COUNTRY_LIST || !COUNTRY_LIST.length) return;
+  var cid=countryAt(lat,lng);
   var hit=map && map.regionAt ? map.regionAt(lat, lng) : null;
-  var cid=hit && hit.iso ? hit.iso : null;
-  if(!cid && hit){
-    var label=String(hit.sub||hit.name||"").toLowerCase().replace(/ё/g,"е");
-    if(label==="беларусь"||label==="белоруссия"||hit.name==="Белоруссия") cid="BY";
-    else if(label==="украина"||hit.name==="Украина") cid="UA";
-    else if(label==="россия") cid="RU";
-    else if(label.indexOf("китай")===0) cid="CN";
-  }
   var rid=null, hitName="";
   if(hit && hit.layer && hit.layer!=="W" && hit.name){
-    hitName=hit.name;
-    if(cid) rid=cid+":"+hit.name;
-  } else if(hit && hit.name) hitName=hit.name;
-  if(!cid) cid=countryAt(lat,lng);
+    var hiso=hit.iso||"";
+    if(!cid && hiso) cid=hiso;
+    if(hiso && cid && hiso!==cid) hit=null;
+    else {
+      hitName=hit.name;
+      if(cid) rid=cid+":"+hit.name;
+    }
+  }
   if(!cid) return;
   if(!rid){
     var regs=regionsFor(cid);
@@ -11397,36 +11388,27 @@ function indexRegions(){
   add(WORLD_REGIONS, "");
 }
 function warmDiary(done){
-  var savedTab=activeTab, savedTrip=selectedTripId, i=0;
-  function geos(){
-    var end=Math.min(ROUTES.length, i+5);
-    for(; i<end; i++){
-      try{ buildGeoSync(ROUTES[i]); }catch(e){}
-      try{ endpointBag(ROUTES[i]); }catch(e){}
+  var savedTab=activeTab, savedTrip=selectedTripId;
+  var tabs=["future","past","trips"], ti=0;
+  function nextTab(){
+    if(ti>=tabs.length){
+      activeTab=savedTab;
+      selectedTripId=savedTrip;
+      if(done) done();
+      return;
     }
-    if(i<ROUTES.length){ setTimeout(geos, 0); return; }
-    var tabs=["future","past","trips"], ti=0;
-    function nextTab(){
-      if(ti>=tabs.length){
-        activeTab=savedTab;
-        selectedTripId=savedTrip;
-        try{ syncVisited(); }catch(e){}
-        if(done) done();
-        return;
-      }
-      activeTab=tabs[ti++];
-      selectedTripId=null;
-      try{ syncVisited(); }catch(e){}
-      setTimeout(nextTab, 0);
-    }
-    nextTab();
+    activeTab=tabs[ti++];
+    selectedTripId=null;
+    try{ syncVisited(); }catch(e){}
+    setTimeout(nextTab, 80);
   }
-  setTimeout(geos, 0);
+  setTimeout(nextTab, 80);
 }
 function bootGeo(){
   var left=5;
   function finish(){
     if(--left>0) return;
+    if(window.__bootDone) window.__bootDone();
     indexRegions();
     bindRegionCities();
     syncVisited();
@@ -11443,12 +11425,7 @@ function bootGeo(){
     if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
     if(typeof scheduleNet==="function") scheduleNet();
     if(window.__fillAccount && document.getElementById("account-panel") && document.getElementById("account-panel").classList.contains("on")) window.__fillAccount();
-    warmDiary(function(){
-      try{ if(typeof render==="function") render(); }catch(e){}
-      function hideBoot(){ if(window.__bootDone) window.__bootDone(); }
-      if(window.__TRAVELEK_ATLAS_READY || !(map && map.setVisited)) hideBoot();
-      else window.__onAtlasReady=hideBoot;
-    });
+    warmDiary(function(){});
   }
   if(!countryLayer && typeof L!=="undefined" && typeof map!=="undefined") countryLayer=L.layerGroup().addTo(map);
   ensureHoverLayer();
