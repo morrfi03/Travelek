@@ -10579,35 +10579,66 @@ function polyHas(poly, lat, lng){
   if(!poly||!poly.length||!ringHas(poly[0], lat, lng)) return false;
   return true;
 }
+var COUNTRY_GRID=null;
+function countryGrid(){
+  if(COUNTRY_GRID && COUNTRY_GRID.src===COUNTRY_LIST) return COUNTRY_GRID;
+  var cell={}, STEP=4, ci, polys, k, ring, t, lng, lat, s, n, w, e, id, la, lo, la0, la1, lo0, lo1;
+  function put(key, id){
+    var a=cell[key];
+    if(!a){ cell[key]=[id]; return; }
+    if(a[a.length-1]!==id && a.indexOf(id)<0) a.push(id);
+  }
+  for(ci=0; ci<COUNTRY_LIST.length; ci++){
+    polys=polysOf(COUNTRY_LIST[ci]);
+    for(k=0;k<polys.length;k++){
+      ring=polys[k][0];
+      if(!ring||ring.length<3) continue;
+      s=90; n=-90; w=180; e=-180;
+      for(t=0;t<ring.length;t++){
+        lng=ring[t][0]; lat=ring[t][1];
+        if(lat<s) s=lat; if(lat>n) n=lat; if(lng<w) w=lng; if(lng>e) e=lng;
+      }
+      id=ci+":"+k;
+      la0=Math.floor(s/STEP); la1=Math.floor(n/STEP);
+      lo0=Math.floor(w/STEP); lo1=Math.floor(e/STEP);
+      if(e-w>180){ lo0=Math.floor(-180/STEP); lo1=Math.floor(180/STEP); }
+      for(la=la0; la<=la1; la++) for(lo=lo0; lo<=lo1; lo++) put(la+":"+lo, id);
+    }
+  }
+  COUNTRY_GRID={src:COUNTRY_LIST, cell:cell, step:STEP};
+  return COUNTRY_GRID;
+}
+function gridHits(lat, lng){
+  var g=countryGrid();
+  return g.cell[Math.floor(lat/g.step)+":"+Math.floor(lng/g.step)]||[];
+}
+function hitCountry(lat, lng, want){
+  var hits=gridHits(lat, lng), i, parts, c, polys;
+  for(i=0;i<hits.length;i++){
+    parts=hits[i].split(":");
+    c=COUNTRY_LIST[+parts[0]];
+    if(!c) continue;
+    if(want){ if(c.i!==want) continue; }
+    else if(c.i==="RU") continue;
+    polys=polysOf(c);
+    if(polyHas(polys[+parts[1]], lat, lng)) return c.i;
+  }
+  return null;
+}
 function countryAt(lat, lng){
   if(!COUNTRY_LIST) return null;
-  var i, c, k, polys, region;
-  for(i=0;i<COUNTRY_LIST.length;i++){
-    c=COUNTRY_LIST[i];
-    if(c.i!=="UA") continue;
-    polys=polysOf(c);
-    for(k=0;k<polys.length;k++){ if(polyHas(polys[k], lat, lng)) return "UA"; }
-  }
-  region=regionAtList(RUSSIA_REGIONS, lat, lng, 0.08);
+  if(hitCountry(lat, lng, "UA")) return "UA";
+  var region=regionAtList(RUSSIA_REGIONS, lat, lng, 0.08);
   if(region) return "RU";
-  for(i=0;i<COUNTRY_LIST.length;i++){
-    c=COUNTRY_LIST[i];
-    if(c.i!=="RU") continue;
-    polys=polysOf(c);
-    for(k=0;k<polys.length;k++){ if(polyHas(polys[k], lat, lng)) return "RU"; }
-  }
-  for(i=0;i<COUNTRY_LIST.length;i++){
-    c=COUNTRY_LIST[i];
-    if(c.i==="RU") continue;
-    polys=polysOf(c);
-    for(k=0;k<polys.length;k++){ if(polyHas(polys[k], lat, lng)) return c.i; }
-  }
-  var near=null, nearD=0.06;
+  if(hitCountry(lat, lng, "RU")) return "RU";
+  var other=hitCountry(lat, lng, null);
+  if(other) return other;
+  var near=null, nearD=0.06, i, c, dlt;
   for(i=0;i<COUNTRY_LIST.length;i++){
     c=COUNTRY_LIST[i];
     if(c.i==="RU") continue;
     if(c.b && (lat<c.b[0]-nearD || lat>c.b[2]+nearD || lng<c.b[1]-nearD || lng>c.b[3]+nearD)) continue;
-    var dlt=regionEdgeDist(c, lat, lng);
+    dlt=regionEdgeDist(c, lat, lng);
     if(dlt<nearD){ nearD=dlt; near=c.i; }
   }
   return near;
@@ -11196,7 +11227,8 @@ function bindRegionCities(){
     lists[i].forEach(function(r){ r._cities=[]; by[r.id]=r; });
   }
   var seen={};
-  function add(raw, lat, lng){
+  var queue=[];
+  function put(raw, lat, lng){
     if(!raw || lat==null || lng==null || isNaN(lat) || isNaN(lng)) return;
     var cid=typeof countryAt==="function"?countryAt(lat, lng):null;
     var id=cid?regionIn(cid, lat, lng):(regionAt(lat, lng)||chinaRegionAt(lat, lng));
@@ -11213,6 +11245,10 @@ function bindRegionCities(){
       if(reg._cities.length<48) reg._cities.push(name);
     });
   }
+  function add(raw, lat, lng){
+    if(!raw || lat==null || lng==null || isNaN(lat) || isNaN(lng)) return;
+    queue.push([raw, lat, lng]);
+  }
   function walk(arr, key){
     if(!arr) return;
     for(var j=0;j<arr.length;j++) add(arr[j][key]||arr[j].n||arr[j].name, arr[j].lat, arr[j].lng);
@@ -11223,6 +11259,15 @@ function bindRegionCities(){
   walk(typeof AIRPORTS!=="undefined"?AIRPORTS:null,"n");
   walk(typeof STATIONS!=="undefined"?STATIONS:null,"n");
   walk(typeof PORTS!=="undefined"?PORTS:null,"n");
+  var qi=0;
+  (function step(){
+    var t0=Date.now();
+    while(qi<queue.length && Date.now()-t0<12){
+      put(queue[qi][0], queue[qi][1], queue[qi][2]);
+      qi++;
+    }
+    if(qi<queue.length) setTimeout(step, 0);
+  })();
 }
 function loadGeo(url){
   return fetch(url).then(function(r){
