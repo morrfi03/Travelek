@@ -7401,7 +7401,7 @@ function routeSmart(a,b,depth,cb){
   var d=hav(a,b);
   if(d<18){ cb([[a.lat,a.lng],[b.lat,b.lng]]); return; }
   fetchOsrm(a,b,function(coords){
-    if(coords&&coords.length>=2&&(coords.length>=8||d<90)){ cb(coords); return; }
+    if(coords&&coords.length>=2){ cb(coords); return; }
     if(depth>=3 || d<160){
       cb(null);
       return;
@@ -8352,8 +8352,11 @@ function buildGeoSyncUncached(r){
     if(along && along.length>=2) return {coords:along, km:pathKm(along), a:a, b:b, needRoad:false};
   }
   var cached=roadCache[key];
-  if(cached==="fail" && hav(a,b)>100) return {coords:null, km:0, a:a, b:b, needRoad:false, roadMiss:true};
-  if(cached && cached!=="fail" && cached!=="pending") coords=cached;
+  if(cached==="fail"){
+    coords=densify([[a.lat,a.lng],[b.lat,b.lng]], 15);
+    return {coords:coords, km:hav(a,b), a:a, b:b, needRoad:false, roadMiss:hav(a,b)>100};
+  }
+  if(cached && cached!=="pending") coords=cached;
   else coords=densify([[a.lat,a.lng],[b.lat,b.lng]],15);
   return {coords:coords, km:pathKm(coords), a:a, b:b, needRoad:cached==null, hops:cached==null?[[a,b]]:[]};
 }
@@ -8380,6 +8383,18 @@ var map;
 if(window.TravelekAtlas){
   map=window.TravelekAtlas.createMap();
   try{ if(map.prepareNetwork) map.prepareNetwork(); }catch(e){}
+  window.__onRoads=function(){
+    if(window.__roadsApplied) return;
+    window.__roadsApplied=1;
+    geoMemo={};
+    roadRev++;
+    var k;
+    for(k in lineHold){
+      try{ if(lineHold[k] && lineHold[k].group && map.hasLayer(lineHold[k].group)) map.removeLayer(lineHold[k].group); }catch(e){}
+    }
+    lineHold={};
+    if(typeof render==="function") render();
+  };
   map.setView([48, 37], 3.4);
 }else{
 map=L.map("map",{
@@ -9708,7 +9723,11 @@ function render(){
   }
 
   var el=document.getElementById("list");
-  paintSheetList(el, list);
+  var sheetKey=holdKey+"|"+holdSig;
+  if(!el || el.getAttribute("data-sheet")!==sheetKey){
+    paintSheetList(el, list);
+    if(el) el.setAttribute("data-sheet", sheetKey);
+  }
   lastBounds=bounds;
   /* не дёргаем карту при каждом render — только при смене вкладки / старте */
   if(bounds.length&&!selectedId&&!window.__mapInited){

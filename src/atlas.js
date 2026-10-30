@@ -252,73 +252,115 @@
     function entPath(c, e) { for (var r = e.r0; r < e.r1; r++) if (RV[r]) ringPath(c, r); }
     function entPathFull(c, e) { for (var r = e.r0; r < e.r1; r++) ringPath(c, r); }
     var bc = document.createElement("canvas"), bctx = bc.getContext("2d"), bkey = "", snapTx = 0, snapTy = 0, snapK = 1, hold = 0, zoomIdle = 0;
+    var fc = document.createElement("canvas"), fctx = fc.getContext("2d"), fkey = "";
+    var ic = document.createElement("canvas"), ictx = ic.getContext("2d"), ikey = "";
     var rc = document.createElement("canvas"), rctx = rc.getContext("2d");
-    function base() {
-      var c = bctx, kk = cw / WID * k; thr2 = Math.pow(1.3 / kk, 2);
-      c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, bc.width, bc.height); c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    function mapCtx(c, fn){
+      var kk = cw / WID * k;
+      c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, c.canvas.width, c.canvas.height); c.setTransform(dpr, 0, 0, dpr, 0, 0);
       c.save(); c.translate(tx, ty); c.scale(kk, kk);
-      var vx0 = -tx / kk, vx1 = (cw - tx) / kk, vy0 = -ty / kk, vy1 = (ch - ty) / kk, px1 = 1.4 / kk;
-      c.imageSmoothingEnabled = true; if (texF.complete && texF.naturalWidth) c.drawImage(texF, 0, 0, WID, HF);
-      stampIso();
-      for (var r = 0; r < NR; r++) RV[r] = (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1 || (rbx1[r] - rbx0[r] < px1 && rby1[r] - rby0[r] < px1)) ? 0 : 1;
-      var lw = 1 / kk; c.lineJoin = "round"; c.lineCap = "round";
-      function showSmall(e){
-        for (var r = e.r0; r < e.r1; r++){
-          if (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1) continue;
-          RV[r] = 1;
-        }
+      fn(c, kk);
+      c.restore();
+    }
+    function seenRings(){
+      var kk = cw / WID * k; thr2 = Math.pow(1.3 / kk, 2);
+      var vx0 = -tx / kk, vx1 = (cw - tx) / kk, vy0 = -ty / kk, vy1 = (ch - ty) / kk, px1 = 1.4 / kk, r;
+      for (r = 0; r < NR; r++) RV[r] = (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1 || (rbx1[r] - rbx0[r] < px1 && rby1[r] - rby0[r] < px1)) ? 0 : 1;
+    }
+    function showSmall(e){
+      var kk = cw / WID * k, vx0 = -tx / kk, vx1 = (cw - tx) / kk, vy0 = -ty / kk, vy1 = (ch - ty) / kk, r;
+      for (r = e.r0; r < e.r1; r++){
+        if (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1) continue;
+        RV[r] = 1;
       }
-      byLayer.W.forEach(function (i) {
-        var e = ents[i];
-        if (e.name === "Украина") {
-          if (!(litCountry(e) || markC.UA || washIso.UA)) return;
+    }
+    function base() {
+      seenRings();
+      mapCtx(bctx, function (c) {
+        var kk = cw / WID * k;
+        c.imageSmoothingEnabled = true; if (texF.complete && texF.naturalWidth) c.drawImage(texF, 0, 0, WID, HF);
+        stampIso();
+      });
+    }
+    var fillStore = [];
+    function fills(key) {
+      var i, slot = null;
+      for (i = 0; i < fillStore.length; i++) if (fillStore[i].key === key && fillStore[i].c.width === fc.width && fc.width) slot = fillStore[i];
+      if (slot) {
+        fctx.setTransform(1, 0, 0, 1, 0, 0);
+        fctx.clearRect(0, 0, fc.width, fc.height);
+        fctx.drawImage(slot.c, 0, 0);
+        return;
+      }
+      mapCtx(fctx, function (c, kk) {
+        var lw = 1 / kk;
+        c.lineJoin = "round"; c.lineCap = "round";
+        byLayer.W.forEach(function (i) {
+          var e = ents[i];
+          if (!litCountry(e) && !(e.name === "Украина" && (markC.UA || washIso.UA))) return;
           showSmall(e);
           c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.62)"; c.fill();
           c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke();
-          return;
-        }
-        if (!litCountry(e)) return;
-        showSmall(e);
-        c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.62)"; c.fill();
-        c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke();
-      });
-      ["R", "C", "G"].forEach(function (L) {
-        byLayer[L].forEach(function (i) {
-          var e = ents[i];
-          var open=regionLayerOpen(e), marked=regionMarked(e);
-          if(!open && !marked) return;
-          showSmall(e);
-          c.beginPath(); entPath(c, e);
-          c.fillStyle=marked?"rgba(196,92,40,.72)":"rgba(214,168,72,.38)";
-          c.fill();
         });
-      });
-      if (k >= 2.6) {
-        c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) entPath(c, ents[i]); }); });
-        c.strokeStyle = "rgba(250,252,251,.55)"; c.lineWidth = 0.4 * lw; c.stroke();
-      }
-      LAYERS.forEach(function (L) {
-        if (!show[L.key] || k < L.th) return; if (!L.ready) load(L);
-        c.beginPath();
-        for (var i = 0; i < L.n; i++) {
-          var b = i * 4; if (L.bx[b + 2] < vx0 || L.bx[b] > vx1 || L.bx[b + 3] < vy0 || L.bx[b + 1] > vy1) continue;
-          var s = L.ps[i], m = L.pl[i], px = L.px[s], py = L.py[s]; c.moveTo(px, py);
-          for (var j = 1; j < m; j++) { var x = L.px[s + j], y = L.py[s + j], dx = x - px, dy = y - py; if (dx * dx + dy * dy < thr2 && j < m - 1) continue; c.lineTo(x, y); px = x; py = y; }
+        ["R", "C", "G"].forEach(function (L) {
+          byLayer[L].forEach(function (i) {
+            var e = ents[i];
+            var open = regionLayerOpen(e), marked = regionMarked(e);
+            if (!open && !marked) return;
+            showSmall(e);
+            c.beginPath(); entPath(c, e);
+            c.fillStyle = marked ? "rgba(196,92,40,.72)" : "rgba(214,168,72,.38)";
+            c.fill();
+          });
+        });
+        if (k >= 2.6) {
+          c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) entPath(c, ents[i]); }); });
+          c.strokeStyle = "rgba(250,252,251,.55)"; c.lineWidth = 0.4 * lw; c.stroke();
         }
-        c.strokeStyle = L.style.c; c.globalAlpha = L.style.a; c.lineWidth = L.style.w * lw; c.setLineDash(L.style.dash ? L.style.dash.map(function (d) { return d * lw; }) : []); c.stroke();
       });
-      c.setLineDash([]); c.globalAlpha = 1;
-      c.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name!=="Украина") entPath(c, ents[i]); }); byLayer.B.forEach(function (i) { entPath(c, ents[i]); });
-      c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke();
-      if (traceFlat(c, "UA")) { c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke(); }
-      c.restore();
+      if (fc.width && key) {
+        var snap = document.createElement("canvas");
+        snap.width = fc.width; snap.height = fc.height;
+        snap.getContext("2d").drawImage(fc, 0, 0);
+        fillStore.push({ key: key, c: snap });
+        if (fillStore.length > 3) fillStore.shift();
+      }
+    }
+    function ink() {
+      mapCtx(ictx, function (c, kk) {
+        var lw = 1 / kk, vx0 = -tx / kk, vx1 = (cw - tx) / kk, vy0 = -ty / kk, vy1 = (ch - ty) / kk;
+        c.lineJoin = "round"; c.lineCap = "round";
+        LAYERS.forEach(function (L) {
+          if (!show[L.key] || k < L.th) return; if (!L.ready) load(L);
+          c.beginPath();
+          for (var i = 0; i < L.n; i++) {
+            var b = i * 4; if (L.bx[b + 2] < vx0 || L.bx[b] > vx1 || L.bx[b + 3] < vy0 || L.bx[b + 1] > vy1) continue;
+            var s = L.ps[i], m = L.pl[i], px = L.px[s], py = L.py[s]; c.moveTo(px, py);
+            for (var j = 1; j < m; j++) { var x = L.px[s + j], y = L.py[s + j], dx = x - px, dy = y - py; if (dx * dx + dy * dy < thr2 && j < m - 1) continue; c.lineTo(x, y); px = x; py = y; }
+          }
+          c.strokeStyle = L.style.c; c.globalAlpha = L.style.a; c.lineWidth = L.style.w * lw; c.setLineDash(L.style.dash ? L.style.dash.map(function (d) { return d * lw; }) : []); c.stroke();
+        });
+        c.setLineDash([]); c.globalAlpha = 1;
+        c.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name !== "Украина") entPath(c, ents[i]); }); byLayer.B.forEach(function (i) { entPath(c, ents[i]); });
+        c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke();
+        if (traceFlat(c, "UA")) { c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke(); }
+      });
     }
     function draw() {
       var dragging = cv.classList.contains("drag");
       var settled = !dragging && !hold;
-      var key = [cw, ch, dpr, Math.round(k * 1000), settled ? Math.round(tx) : "m", settled ? Math.round(ty) : "m", show.rd ? 1 : 0, show.rl ? 1 : 0, show.rv ? 1 : 0, texF.complete ? 1 : 0, markRev].join("|");
-      if (bc.width !== cv.width || bc.height !== cv.height) { bc.width = cv.width; bc.height = cv.height; rc.width = cv.width; rc.height = cv.height; bkey = ""; }
-      if (settled && key !== bkey) { base(); bkey = key; snapTx = tx; snapTy = ty; snapK = k; }
+      var landKey = [cw, ch, dpr, Math.round(k * 1000), settled ? Math.round(tx) : "m", settled ? Math.round(ty) : "m", show.rd ? 1 : 0, show.rl ? 1 : 0, show.rv ? 1 : 0, texF.complete ? 1 : 0].join("|");
+      var fillKey = landKey + "|" + visitSig;
+      if (bc.width !== cv.width || bc.height !== cv.height) {
+        bc.width = cv.width; bc.height = cv.height;
+        fc.width = cv.width; fc.height = cv.height;
+        ic.width = cv.width; ic.height = cv.height;
+        rc.width = cv.width; rc.height = cv.height;
+        bkey = ""; fkey = ""; ikey = "";
+      }
+      if (settled && landKey !== bkey) { base(); bkey = landKey; snapTx = tx; snapTy = ty; snapK = k; }
+      if (settled && fillKey !== fkey) { fills(fillKey); fkey = fillKey; }
+      if (settled && landKey !== ikey) { ink(); ikey = landKey; }
       if (settled) {
         rctx.setTransform(1, 0, 0, 1, 0, 0); rctx.clearRect(0, 0, rc.width, rc.height);
         if (hooks.paint) { rctx.setTransform(dpr, 0, 0, dpr, 0, 0); hooks.paint(rctx); }
@@ -328,11 +370,11 @@
       if (!settled && snapK) {
         var s = k / snapK;
         ctx.setTransform(s, 0, 0, s, (tx - snapTx * s) * dpr, (ty - snapTy * s) * dpr);
-        ctx.drawImage(bc, 0, 0); ctx.drawImage(rc, 0, 0);
+        ctx.drawImage(bc, 0, 0); ctx.drawImage(fc, 0, 0); ctx.drawImage(ic, 0, 0); ctx.drawImage(rc, 0, 0);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         var labels2 = document.getElementById("atlas-html");
         if (labels2) { labels2.style.transformOrigin = "0 0"; labels2.style.transform = "translate(" + (tx - snapTx * s) + "px," + (ty - snapTy * s) + "px) scale(" + s + ")"; }
-      } else { ctx.drawImage(bc, 0, 0); ctx.drawImage(rc, 0, 0); }
+      } else { ctx.drawImage(bc, 0, 0); ctx.drawImage(fc, 0, 0); ctx.drawImage(ic, 0, 0); ctx.drawImage(rc, 0, 0); }
       if (!settled) return;
       var kk = cw / WID * k; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.save(); ctx.translate(tx, ty); ctx.scale(kk, kk); ctx.lineJoin = "round";
       [[hoverEnt, "rgba(60,100,80,.38)"], [selEnt, "rgba(196,98,45,.65)"]].forEach(function (h) {
@@ -1046,6 +1088,7 @@
           if (data) views.flat.addNet(key, data);
           if (views.flat.warm) views.flat.warm(key);
           views.flat.setShow(key, !!netWant[key]);
+          if (key === "rd" && window.__onRoads) window.__onRoads();
         }
         var bag = key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS;
         if (bag) { ready(bag); return; }
