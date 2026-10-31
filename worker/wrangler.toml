@@ -1,0 +1,9 @@
+name = "travelek-api"
+main = "index.js"
+compatibility_date = "2026-10-30"
+
+# После `wrangler d1 create travelek` впишите database_id и раскомментируйте.
+# [[d1_databases]]
+# binding = "DB"
+# database_name = "travelek"
+# database_id = ""

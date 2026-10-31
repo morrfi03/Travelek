@@ -5833,9 +5833,15 @@ wipeRoutesOnce();
   window.__TRAVELEK_PRIVATE=true;
   var USERS="travelek-users", SESSION="travelek-session", VAULT="travelek-vault";
   var KEYS=["travelek-extra","travelek-del","travelek-app-settings","travelek-mapprefs","travelek-theme","travelek-theme-pref","travelek-countries","travelek-countries-off","travelek-regions","travelek-regions-off","travelek-trips"];
-  var STORE_URL="https://keepjson.fourlegs.workers.dev/bins/BkoU663gNtadZ-zfQvPYx";
-  var STORE_KEY="kj_w_qgNZJtClt_6vg01Eq5c8j1wpxzMTpSzUKrazvkb12AY";
+  var STORE_URL=window.__TRAVELEK_API||"https://keepjson.fourlegs.workers.dev/bins/BkoU663gNtadZ-zfQvPYx";
+  var STORE_KEY=window.__TRAVELEK_API?"":"kj_w_qgNZJtClt_6vg01Eq5c8j1wpxzMTpSzUKrazvkb12AY";
   window.__TRAVELEK_STORE_URL=STORE_URL;
+  window.__TRAVELEK_STORE_KEY=STORE_KEY;
+  function storeHeaders(){
+    var h={"Content-Type":"application/json"};
+    if(STORE_KEY) h.Authorization="Bearer "+STORE_KEY;
+    return h;
+  }
   var DEL="travelek-deleted-users";
   function read(k, fb){ try{ var v=JSON.parse(localStorage.getItem(k)||""); return v==null?fb:v; }catch(e){ return fb; } }
   function users(){
@@ -5965,7 +5971,7 @@ wipeRoutesOnce();
       }catch(e){}
       return fetch(STORE_URL, {
         method:"PUT",
-        headers:{"Content-Type":"application/json","Authorization":"Bearer "+STORE_KEY},
+        headers:storeHeaders(),
         body:JSON.stringify({users:merged.users, vault:vaultOut, deleted:merged.deleted})
       }).then(function(r){ if(!r.ok) throw new Error("save"); return gen; });
     });
@@ -6828,8 +6834,7 @@ function worldRegionMap(q){
   }
   return _wrm;
 }
-function loadWorldPlaces(){
-  if(WORLD.loading || WORLD.ready) return;
+function loadWorldPlacesMain(){
   WORLD.loading=true;
   fetch("./geo/places.json?v=1").then(function(r){
     if(!r.ok) throw new Error("places");
@@ -6850,6 +6855,40 @@ function loadWorldPlaces(){
     }
     setTimeout(step, 0);
   }).catch(function(){ WORLD.loading=false; });
+}
+function loadWorldPlaces(){
+  if(WORLD.loading || WORLD.ready) return;
+  WORLD.loading=true;
+  if(!window.Worker){ WORLD.loading=false; loadWorldPlacesMain(); return; }
+  var w;
+  try{ w=new Worker("src/places.worker.js?v=1"); }
+  catch(e){ WORLD.loading=false; loadWorldPlacesMain(); return; }
+  var done=false;
+  var timer=setTimeout(function(){ fail(); }, 25000);
+  function fail(){
+    if(done) return;
+    done=true;
+    clearTimeout(timer);
+    try{ w.terminate(); }catch(err){}
+    WORLD.loading=false;
+    loadWorldPlacesMain();
+  }
+  w.onerror=function(){ fail(); };
+  w.onmessage=function(ev){
+    var data=ev.data||{};
+    if(done) return;
+    if(!data.ok){ fail(); return; }
+    done=true;
+    clearTimeout(timer);
+    WORLD.air=data.air||[];
+    WORLD.cities=data.cities||[];
+    WORLD.byCode=data.byCode||{};
+    WORLD.ab=data.ab||{};
+    WORLD.cb=data.cb||{};
+    WORLD.ready=true;
+    try{ w.terminate(); }catch(err){}
+    if(typeof render==="function") render();
+  };
 }
 
 /* geometry */

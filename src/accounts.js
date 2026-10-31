@@ -1,6 +1,11 @@
 (function(){
-  var URL="https://keepjson.fourlegs.workers.dev/bins/BkoU663gNtadZ-zfQvPYx";
-  var KEY="kj_w_qgNZJtClt_6vg01Eq5c8j1wpxzMTpSzUKrazvkb12AY";
+  var URL=window.__TRAVELEK_STORE_URL||"https://keepjson.fourlegs.workers.dev/bins/BkoU663gNtadZ-zfQvPYx";
+  var KEY=typeof window.__TRAVELEK_STORE_KEY==="string"?window.__TRAVELEK_STORE_KEY:"";
+  function authHeaders(){
+    var h={"Content-Type":"application/json"};
+    if(KEY) h.Authorization="Bearer "+KEY;
+    return h;
+  }
   var HUES=["#3b82f6","#34d399","#a78bfa","#f59e0b","#fb7185","#22d3ee"];
   function leaveForeign(e){
     var back=e.target&&e.target.closest?e.target.closest("#view-banner button,#back-own"):null;
@@ -37,7 +42,7 @@
   function save(data){
     return fetch(URL,{
       method:"PUT",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+KEY},
+      headers:authHeaders(),
       body:JSON.stringify({users:data.users, vault:data.vault||{}, deleted:data.deleted||[]})
     }).then(function(r){
       if(!r.ok) throw new Error("Не удалось сохранить");
