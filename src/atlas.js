@@ -234,9 +234,7 @@
   }
   function regionLayerOpen(e) {
     if (!e || e.L === "W") return false;
-    var iso = entityIso(e);
-    if (!iso) return false;
-    return !!(markC[iso] || washIso[iso]);
+    return regionMarked(e);
   }
   function showTip(tip, box, e, i) {
     if (i < 0) { tip.style.opacity = 0; return; }
@@ -322,14 +320,14 @@
         if (e.name === "Украина") {
           if (!(litCountry(e) || markC.UA || washIso.UA)) return;
           showSmall(e);
-          c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.62)"; c.fill("evenodd");
-          c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke();
+          c.beginPath(); entPath(c, e); c.fillStyle = toneFill(); c.fill("evenodd");
+          c.strokeStyle = toneLine(); c.lineWidth = 1.3 * lw; c.stroke();
           return;
         }
         if (!litCountry(e)) return;
         showSmall(e);
-        c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.62)"; c.fill("evenodd");
-        c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke();
+        c.beginPath(); entPath(c, e); c.fillStyle = toneFill(); c.fill("evenodd");
+        c.strokeStyle = toneLine(); c.lineWidth = 1.3 * lw; c.stroke();
       });
       ["R", "C", "G"].forEach(function (L) {
         byLayer[L].forEach(function (i) {
@@ -780,13 +778,13 @@
         var e = ents[i];
         if (e.name === "Украина") {
           if (!(litCountry(e) || markC.UA || washIso.UA)) return;
-          ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill("evenodd");
-          ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke();
+          ctx.beginPath(); fillRings(e); ctx.fillStyle = toneFill(); ctx.fill("evenodd");
+          ctx.strokeStyle = toneLine(); ctx.lineWidth = 1.1; ctx.stroke();
           return;
         }
         if (!litCountry(e)) return;
-        ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill("evenodd");
-        ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke();
+        ctx.beginPath(); fillRings(e); ctx.fillStyle = toneFill(); ctx.fill("evenodd");
+        ctx.strokeStyle = toneLine(); ctx.lineWidth = 1.1; ctx.stroke();
       });
       ["R", "C", "G"].forEach(function (L) {
         byLayer[L].forEach(function (i) {
@@ -1032,19 +1030,14 @@
   function rebuildWash() {
     washIso = {};
     Object.keys(markC).forEach(function (id) { washIso[id] = 1; });
-    ["R", "C", "G"].forEach(function (L) {
-      (byLayer[L] || []).forEach(function (i) {
-        var r = ents[i];
-        if (!regionMarked(r)) return;
-        if (r.iso) washIso[r.iso] = 1;
-        if (r.L === "R" || r.sub === "Россия") washIso.RU = 1;
-        if (r.L === "C" || r.sub === "Китай") washIso.CN = 1;
-      });
-    });
   }
   var visitSig = "";
-  function setVisited(countries, regions) {
-    var sig = (countries || []).join("\n") + "|" + (regions || []).join("\n");
+  var visitTone = "past";
+  function toneFill() { return visitTone === "future" ? "rgba(109,40,217,.58)" : "rgba(214,168,72,.62)"; }
+  function toneLine() { return visitTone === "future" ? "rgba(67,32,130,.9)" : "rgba(120,78,20,.85)"; }
+  function setVisited(countries, regions, tone) {
+    visitTone = tone === "future" ? "future" : "past";
+    var sig = visitTone + "\n" + (countries || []).join("\n") + "|" + (regions || []).join("\n");
     if (sig === visitSig) {
       if (stampIso()) { rebuildWash(); markRev++; views.flat.draw(); if (mode === "globe") views.globe.draw(); }
       return;

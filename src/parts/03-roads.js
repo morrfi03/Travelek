@@ -1400,9 +1400,17 @@ function registerOfflineSW(){
 
 
 function isFuture(r){
-  var end=r.arrDate||r.date, t=r.arrTime||r.time||"23:59";
-  if(!end) return false;
-  return new Date(end+"T"+t) > new Date();
+  var end=String((r&& (r.arrDate||r.date))||"").trim();
+  var day=end.slice(0,10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(day)) return false;
+  var now=new Date();
+  var today=now.getFullYear()+"-"+("0"+(now.getMonth()+1)).slice(-2)+"-"+("0"+now.getDate()).slice(-2);
+  if(day>today) return true;
+  if(day<today) return false;
+  var t=String((r.arrTime||r.time||"23:59")).slice(0,5);
+  if(!/^\d{2}:\d{2}$/.test(t)) t="23:59";
+  var hm=("0"+now.getHours()).slice(-2)+":"+("0"+now.getMinutes()).slice(-2);
+  return t>hm;
 }
 
 function pathKm(coords){

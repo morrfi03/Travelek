@@ -2880,7 +2880,7 @@ function paintPoly(poly, style){
 function drawCountries(){
   if(map && map._isAtlas && map.setVisited){
     if(countryLayer) countryLayer.clearLayers();
-    map.setVisited(visited||[], visitedRegions||[]);
+    map.setVisited(visited||[], visitedRegions||[], activeTab==="future"?"future":"past");
     return;
   }
   countryLayer.clearLayers();
