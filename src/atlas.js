@@ -65,7 +65,7 @@
   }
 
   // ---------- полигоны ----------
-  var lx = [], ly = [], rStart = [], rLen = [], rCx = [], rCy = [], rCz = [], rSin = [], rbx0 = [], rby0 = [], rbx1 = [], rby1 = [];
+  var lx = [], ly = [], rStart = [], rLen = [], rHole = [], rCx = [], rCy = [], rCz = [], rSin = [], rbx0 = [], rby0 = [], rbx1 = [], rby1 = [];
   var ents = [], byLayer = { W: [], R: [], C: [], G: [], B: [] };
   ["W", "R", "C", "G", "B"].forEach(function (L) {
     var rd = reader(G["d" + L]), idx = 0;
@@ -89,7 +89,7 @@
         }
         var m = Math.hypot(sx, sy, sz) || 1; sx /= m; sy /= m; sz /= m;
         var cmin = 1; for (var k = 0; k < pts.length; k += 3) { var dt = pts[k] * sx + pts[k + 1] * sy + pts[k + 2] * sz; if (dt < cmin) cmin = dt; }
-        rLen.push(n); rCx.push(sx); rCy.push(sy); rCz.push(sz); rSin.push(Math.sin(Math.acos(Math.max(-1, Math.min(1, cmin)))));
+        rLen.push(n); rHole.push(0); rCx.push(sx); rCy.push(sy); rCz.push(sz); rSin.push(Math.sin(Math.acos(Math.max(-1, Math.min(1, cmin)))));
         rbx0.push(fx0); rby0.push(fy0); rbx1.push(fx1); rby1.push(fy1);
       }
       e.r1 = rStart.length; ents.push(e); byLayer[L].push(ents.length - 1); idx++;
@@ -97,6 +97,42 @@
   });
   var NV = lx.length, LX = Int32Array.from(lx), LY = Int32Array.from(ly), VX = new Float32Array(NV), VY = new Float32Array(NV), VZ = new Float32Array(NV), FXv = new Float32Array(NV), FYv = new Float32Array(NV);
   for (var i = 0; i < NV; i++) { var la = LY[i] * D2R, lo = LX[i] * D2R, c = Math.cos(la); VX[i] = c * Math.sin(lo); VY[i] = Math.sin(la); VZ[i] = c * Math.cos(lo); var f = flatXY(lo, la); FXv[i] = f[0]; FYv[i] = f[1]; }
+  function ringContains(r, x, y) {
+    var s = rStart[r], n = rLen[r], c = false, i, j = n - 1, xi, yi, xj, yj;
+    for (i = 0; i < n; i++) {
+      xi = lx[s + i]; yi = ly[s + i]; xj = lx[s + j]; yj = ly[s + j];
+      if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / ((yj - yi) || 1e-9) + xi) c = !c;
+      j = i;
+    }
+    return c;
+  }
+  (function markHoles() {
+    var ei, e, r, i, s, n, a, x, y, px, py, areas, bestA, sign, cx, cy, o;
+    for (ei = 0; ei < ents.length; ei++) {
+      e = ents[ei];
+      if (e.r1 - e.r0 < 2) continue;
+      areas = []; bestA = 0;
+      for (r = e.r0; r < e.r1; r++) {
+        s = rStart[r]; n = rLen[r]; a = 0; px = lx[s]; py = ly[s];
+        for (i = 1; i < n; i++) { x = lx[s + i]; y = ly[s + i]; a += px * y - x * py; px = x; py = y; }
+        a += px * ly[s] - lx[s] * py;
+        areas[r] = a;
+        if (Math.abs(a) > Math.abs(bestA)) bestA = a;
+      }
+      if (!bestA) continue;
+      sign = bestA > 0 ? 1 : -1;
+      for (r = e.r0; r < e.r1; r++) {
+        if ((areas[r] || 0) * sign >= 0) continue;
+        s = rStart[r]; n = rLen[r]; cx = 0; cy = 0;
+        for (i = 0; i < n; i++) { cx += lx[s + i]; cy += ly[s + i]; }
+        cx /= n; cy /= n;
+        for (o = e.r0; o < e.r1; o++) {
+          if (o === r || (areas[o] || 0) * sign <= 0) continue;
+          if (ringContains(o, cx, cy)) { rHole[r] = 1; break; }
+        }
+      }
+    }
+  })();
   lx = ly = null;
   var NR = rStart.length;
 
@@ -106,6 +142,7 @@
     var bb = e.bb; if (lo < bb[0] || lo > bb[2] || la < bb[1] || la > bb[3]) return false;
     var c = false;
     for (var r = e.r0; r < e.r1; r++) {
+      if (rHole[r]) continue;
       var s = rStart[r], n = rLen[r];
       for (var i = 0, j = n - 1; i < n; j = i++) {
         var xi = LX[s + i], yi = LY[s + i], xj = LX[s + j], yj = LY[s + j];
@@ -249,8 +286,8 @@
       for (var i = 1; i < n; i++) { var x = FXv[s + i], y = FYv[s + i], dx = x - px, dy = y - py; if (dx * dx + dy * dy < thr2 && i < n - 1) continue; c.lineTo(x, y); px = x; py = y; }
       c.closePath();
     }
-    function entPath(c, e) { for (var r = e.r0; r < e.r1; r++) if (RV[r]) ringPath(c, r); }
-    function entPathFull(c, e) { for (var r = e.r0; r < e.r1; r++) ringPath(c, r); }
+    function entPath(c, e) { for (var r = e.r0; r < e.r1; r++) if (RV[r] && !rHole[r]) ringPath(c, r); }
+    function entPathFull(c, e) { for (var r = e.r0; r < e.r1; r++) if (!rHole[r]) ringPath(c, r); }
     var bc = document.createElement("canvas"), bctx = bc.getContext("2d"), bkey = "", snapTx = 0, snapTy = 0, snapK = 1, hold = 0, zoomIdle = 0;
     var rc = document.createElement("canvas"), rctx = rc.getContext("2d");
     function base() {
@@ -540,7 +577,7 @@
     function setCam() { var a = lon0 * PI / 180, b = lat0 * PI / 180; cl = Math.cos(a); sl = Math.sin(a); cp = Math.cos(b); sp = Math.sin(b); R = Math.min(cw, ch) / 2 * 0.9 * zoom; cx = cw / 2; cy = ch / 2; }
     function resize() { var r = box.getBoundingClientRect(); cw = Math.max(200, r.width); ch = Math.max(200, r.height); dpr = Math.min(window.devicePixelRatio || 1, 2); cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); }
     function hq() { return Math.min(1, 960 / Math.max(cw, ch)); }
-    function relief(q) {
+    function relief(q, fast) {
       var rw = Math.max(2, Math.round(cw * q)), rh = Math.max(2, Math.round(ch * q)), kq = 1 / q;
       if (rbuf.width !== rw || rbuf.height !== rh) { rbuf.width = rw; rbuf.height = rh; rimg = rctx.createImageData(rw, rh); }
       var d = rimg.data, t = tex, TH1 = TH - 1;
@@ -552,6 +589,11 @@
           var nz = Math.sqrt(1 - r2), Y = ny * cp + nz * sp, z1 = -ny * sp + nz * cp, X = nx * cl + z1 * sl, Z = -nx * sl + z1 * cl;
           var u = (Math.atan2(X, Z) / (2 * PI) + 0.5) * TW - 0.5, v = (0.5 - Math.asin(Y) / PI) * TH - 0.5;
           if (v < 0) v = 0; else if (v > TH1) v = TH1;
+          if (fast) {
+            var uf = ((Math.round(u) % TW) + TW) % TW, vf = Math.round(v), p = (vf * TW + uf) * 4;
+            d[o] = t[p]; d[o + 1] = t[p + 1]; d[o + 2] = t[p + 2]; d[o + 3] = 255;
+            continue;
+          }
           var u0 = Math.floor(u), v0 = Math.floor(v), fu = u - u0, fv = v - v0, v1 = v0 < TH1 ? v0 + 1 : v0, ua = ((u0 % TW) + TW) % TW, ub = (ua + 1) % TW;
           var a = (v0 * TW + ua) * 4, b = (v0 * TW + ub) * 4, c = (v1 * TW + ua) * 4, e = (v1 * TW + ub) * 4, w1 = (1 - fu) * (1 - fv), w2 = fu * (1 - fv), w3 = (1 - fu) * fv, w4 = fu * fv;
           d[o] = t[a] * w1 + t[b] * w2 + t[c] * w3 + t[e] * w4; d[o + 1] = t[a + 1] * w1 + t[b + 1] * w2 + t[c + 1] * w3 + t[e + 1] * w4; d[o + 2] = t[a + 2] * w1 + t[b + 2] * w2 + t[c + 2] * w3 + t[e + 2] * w4; d[o + 3] = 255;
@@ -569,10 +611,10 @@
         }
       }
     }
-    function fillRings(e) { for (var r = e.r0; r < e.r1; r++) { if (!RVg[r]) continue; var s = rStart[r], n = rLen[r]; ctx.moveTo(SX[s], SY[s]); for (var i = 1; i < n; i++) ctx.lineTo(SX[s + i], SY[s + i]); ctx.closePath(); } }
+    function fillRings(e) { for (var r = e.r0; r < e.r1; r++) { if (!RVg[r] || rHole[r]) continue; var s = rStart[r], n = rLen[r]; ctx.moveTo(SX[s], SY[s]); for (var i = 1; i < n; i++) ctx.lineTo(SX[s + i], SY[s + i]); ctx.closePath(); } }
     function strokeRings(e) {
       for (var r = e.r0; r < e.r1; r++) {
-        if (!RVg[r]) continue; var s = rStart[r], n = rLen[r], prev = false;
+        if (!RVg[r] || rHole[r]) continue; var s = rStart[r], n = rLen[r], prev = false;
         for (var i = 0; i < n; i++) { var j = s + i; if (ZV[j]) { if (prev) ctx.lineTo(SX[j], SY[j]); else ctx.moveTo(SX[j], SY[j]); prev = true; } else prev = false; }
         if (ZV[s + n - 1] && ZV[s]) ctx.lineTo(SX[s], SY[s]);
       }
@@ -594,12 +636,13 @@
       }
       return true;
     }
-    function draw(q) {
+    function draw(q, fast) {
       setCam(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, cw, ch);
       var g = ctx.createRadialGradient(cx, cy, R * 0.98, cx, cy, R * 1.08); g.addColorStop(0, "rgba(130,180,230,.40)"); g.addColorStop(1, "rgba(130,180,230,0)");
       ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R * 1.08, 0, 2 * PI); ctx.fill();
       if (!tex) { ctx.fillStyle = "#96b8d0"; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.fill(); return; }
-      relief(q); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = "high"; ctx.drawImage(rbuf, 0, 0, cw, ch); ctx.restore();
+      relief(q, fast); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = fast ? "low" : "medium"; ctx.drawImage(rbuf, 0, 0, cw, ch); ctx.restore();
+      if (fast) return;
       project(); stampIso(); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
       byLayer.W.forEach(function (i) {
         var e = ents[i];
@@ -677,7 +720,7 @@
       if (hooks.paint) { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); hooks.paint(ctx); }
     }
     function redraw() { if (mode === "globe") { initTex(); draw(hq()); } }
-    function schedule() { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; if (mode !== "globe") return; initTex(); draw(moving || spinning ? Math.max(0.85, hq() * 0.92) : hq()); if (spinning) { lon0 += 0.25; schedule(); } }); }
+    function schedule() { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; if (mode !== "globe") return; initTex(); var drag = moving || spinning; draw(drag ? 0.34 : hq(), drag); if (spinning) { lon0 += 0.25; schedule(); } }); }
     function settle() { clearTimeout(idle); idle = setTimeout(function () { moving = 0; if (!spinning) redraw(); }, 160); }
     function pick(px, py) {
       setCam(); var nx = (px - cx) / R, ny = (cy - py) / R, r2 = nx * nx + ny * ny; if (r2 >= 1) return -1;
@@ -735,7 +778,7 @@
       var a = { lon: lon0, lat: lat0, z: zoom }, t0 = performance.now(), dl = ((lo - a.lon + 540) % 360) - 180;
       (function step(now) {
         var t = Math.min(1, (now - t0) / 700), e = t < .5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
-        lon0 = a.lon + dl * e; lat0 = a.lat + (la - a.lat) * e; zoom = a.z + (z - a.z) * e; draw(t < 1 ? Math.max(0.85, hq() * 0.92) : hq()); if (t < 1) fly = requestAnimationFrame(step);
+        lon0 = a.lon + dl * e; lat0 = a.lat + (la - a.lat) * e; zoom = a.z + (z - a.z) * e; draw(t < 1 ? 0.4 : hq(), t < 1); if (t < 1) fly = requestAnimationFrame(step);
       })(t0);
     }
     return {

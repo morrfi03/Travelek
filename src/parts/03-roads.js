@@ -1411,6 +1411,13 @@ function pathKm(coords){
 }
 
 function buildGeoSync(r){
+  var sig=[r.mode,r.from,r.to,r.fromCode||"",r.toCode||"",r.date||"",r.carPath||"",(r.waypoints&&r.waypoints.length)||0,(r.coords&&r.coords.length)||0,window.__roadGen||0].join("|");
+  if(r._geo && r._geoSig===sig && r._geo.coords && !r._geo.needRoad) return r._geo;
+  var g=computeGeo(r);
+  if(g && g.coords && !g.needRoad){ r._geo=g; r._geoSig=sig; }
+  return g;
+}
+function computeGeo(r){
   /* GPS-трек: готовые координаты */
   if(r.coords && r.coords.length>=2){
     var km=pathKm(r.coords);
