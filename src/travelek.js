@@ -6507,21 +6507,23 @@ function place(name, code){
   }
   k = norm(name);
   if(!k) return null;
-  /* exact airport code */
+  /* код IATA раньше города: «MSQ». Голое «Минск» — центр города, не аэропорт. */
   for(i=0;i<AIRPORTS.length;i++){
     a = AIRPORTS[i];
-    if(norm(a.code)===k || norm(a.n)===k || norm(airportLabel(a))===k || norm(airportLabel(a)+" ("+a.code+")")===k || norm(a.n+" ("+a.code+")")===k)
-      return {lat:a.lat,lng:a.lng,label:airportLabel(a)+" ("+a.code+")"};
+    if(norm(a.code)===k) return {lat:a.lat,lng:a.lng,label:airportLabel(a)+" ("+a.code+")"};
   }
-  /* город раньше порта и вокзала: «Москва» — центр, не речной порт */
   for(i=0;i<CITIES.length;i++){
     c = CITIES[i];
     if(norm(c.n)===k) return {lat:c.lat,lng:c.lng,label:c.n};
   }
-  /* station exact */
   for(i=0;i<STATIONS.length;i++){
     s = STATIONS[i];
     if(norm(s.n)===k || norm(s.id)===k) return {lat:s.lat,lng:s.lng,label:s.n};
+  }
+  for(i=0;i<AIRPORTS.length;i++){
+    a = AIRPORTS[i];
+    if(norm(a.n)===k || norm(airportLabel(a))===k || norm(airportLabel(a)+" ("+a.code+")")===k || norm(a.n+" ("+a.code+")")===k)
+      return {lat:a.lat,lng:a.lng,label:airportLabel(a)+" ("+a.code+")"};
   }
   /* речные/морские порты раньше городов (Ярославль → речной) */
   if(typeof findPortByQuery==="function"){
@@ -7566,6 +7568,7 @@ function pointAlong(coords, t){
 var liveMarker=null;
 
 var yearFilter="all"; /* all | 2026 | ... */
+var modeFilter="all"; /* all | plane | train | car */
 var liveMarkers=[];
 var animMarkers={}; /* id -> marker for animated past trips when selected */
 var notifAsked=false;
@@ -7708,6 +7711,7 @@ function tripPlayRoutes(){
   else if(activeTab==="past") pool=ROUTES.filter(function(r){ return !isFuture(r); });
   return pool.filter(function(r){
     if(!selectedTripId && typeof yearFilter!=="undefined" && yearFilter!=="all" && (r.date||"").slice(0,4)!==yearFilter) return false;
+    if(typeof modeFilter!=="undefined" && modeFilter!=="all" && r.mode!==modeFilter) return false;
     return true;
   }).slice().sort(function(a,b){
     return ((a.date||"")+" "+(a.time||"")).localeCompare((b.date||"")+" "+(b.time||""));
@@ -9259,6 +9263,10 @@ function t(s){
 }
 UI.en["Все годы"]="All years";
 UI.zh["Все годы"]="全部年份";
+UI.en["Все"]="All";
+UI.zh["Все"]="全部";
+UI.en["Город или страна…"]="City or country…";
+UI.zh["Город или страна…"]="城市或国家…";
 UI.en["Проверяем…"]="Checking…";
 UI.zh["Проверяем…"]="正在核对…";
 UI.en["Считаем страны по маршрутам…"]="Counting countries from routes…";
@@ -9603,6 +9611,7 @@ function filtered(){
       else if(activeTab==="past") { if(fut) return false; }
     }
     if(activeTab!=="trips" && typeof yearFilter!=="undefined" && yearFilter!=="all" && (r.date||"").slice(0,4)!==yearFilter) return false;
+    if(typeof modeFilter!=="undefined" && modeFilter!=="all" && r.mode!==modeFilter) return false;
     return true;
   }).slice().sort(function(a,b){ return ((a.date||"")+" "+(a.time||"")).localeCompare((b.date||"")+" "+(b.time||"")); });
 }
@@ -9767,6 +9776,80 @@ if(yearFilterEl) yearFilterEl.addEventListener("click", function(e){
   if(tripPlay.on) stopTripPlay();
   else startTripPlay();
 });
+var modeFilterEl=document.getElementById("mode-filter");
+if(modeFilterEl) modeFilterEl.addEventListener("click", function(e){
+  var b=e.target.closest && e.target.closest("[data-mode]");
+  if(!b || !modeFilterEl.contains(b)) return;
+  modeFilter=b.getAttribute("data-mode")||"all";
+  var all=modeFilterEl.querySelectorAll("button");
+  for(var mi=0;mi<all.length;mi++) all[mi].classList.toggle("on", all[mi]===b);
+  if(typeof render==="function") render();
+});
+(function bindMapFind(){
+  var input=document.getElementById("map-q"), box=document.getElementById("map-q-box");
+  if(!input || !box) return;
+  function goCountry(iso){
+    var c=countryRecord(iso);
+    if(!c) return;
+    if(c.b && map && map.fitBounds) map.fitBounds([[c.b[0],c.b[1]],[c.b[2],c.b[3]]],{padding:[48,120],maxZoom:6});
+    else if(c.b && map && map.setView) map.setView([(c.b[0]+c.b[2])/2,(c.b[1]+c.b[3])/2],5);
+  }
+  function goPlace(value){
+    var p=typeof place==="function"?place(value):null;
+    if(p && map && map.setView) map.setView([p.lat,p.lng],6);
+  }
+  function paint(items){
+    if(!items.length){ box.classList.remove("on"); box.innerHTML=""; box._items=null; return; }
+    box._items=items;
+    box.innerHTML=items.map(function(it,i){
+      return '<div data-i="'+i+'">'+escLabel(it.label)+'</div>';
+    }).join("");
+    box.classList.add("on");
+    var divs=box.querySelectorAll("div");
+    for(var i=0;i<divs.length;i++){
+      divs[i].addEventListener("pointerdown",(function(d){return function(ev){
+        ev.preventDefault();
+        var it=(box._items||[])[+d.getAttribute("data-i")];
+        box.classList.remove("on");
+        if(!it) return;
+        input.value=it.label;
+        if(it.kind==="c") goCountry(it.iso); else goPlace(it.value);
+      };})(divs[i]));
+    }
+  }
+  function collect(q){
+    var items=[], nq=String(q||"").trim().toLowerCase(), seen={};
+    if(nq.length<1) return items;
+    if(COUNTRY_LIST){
+      COUNTRY_LIST.forEach(function(c){
+        if(items.length>=6) return;
+        var label=countryLabel(c);
+        if((c.n||"").toLowerCase().indexOf(nq)<0 && String(c.i).toLowerCase().indexOf(nq)<0 && label.toLowerCase().indexOf(nq)<0) return;
+        seen[label]=1;
+        items.push({kind:"c", label:label, iso:c.i});
+      });
+    }
+    if(typeof searchCatalog==="function"){
+      searchCatalog("car", q).forEach(function(it){
+        if(items.length>=12 || seen[it.label]) return;
+        seen[it.label]=1;
+        items.push({kind:"p", label:it.label, value:it.value});
+      });
+    }
+    return items;
+  }
+  input.addEventListener("input", function(){ paint(collect(input.value)); });
+  input.addEventListener("blur", function(){ setTimeout(function(){ box.classList.remove("on"); }, 220); });
+  input.addEventListener("keydown", function(e){
+    if(e.key!=="Enter") return;
+    e.preventDefault();
+    var items=box._items && box.classList.contains("on") ? box._items : collect(input.value);
+    box.classList.remove("on");
+    if(!items.length){ goPlace(input.value); return; }
+    input.value=items[0].label;
+    if(items[0].kind==="c") goCountry(items[0].iso); else goPlace(items[0].value);
+  });
+})();
 document.addEventListener("keydown",function(e){if(e.key==="Escape") closeVisitPrompt();});
 (function bindPinch(map){
   if(map && map._isAtlas) return;
@@ -10150,9 +10233,10 @@ function bindSuggest(input, box, which){
     box.classList.add("on");
     var divs=box.querySelectorAll("div");
     for(var i=0;i<divs.length;i++){
-      divs[i].onclick=(function(d){return function(){
+      divs[i].addEventListener("pointerdown",(function(d){return function(ev){
+        ev.preventDefault();
         input.value=d.getAttribute("data-v"); box.classList.remove("on");
-      };})(divs[i]);
+      };})(divs[i]));
     }
   });
   input.addEventListener("blur",function(){ setTimeout(function(){box.classList.remove("on");},200); });
@@ -11014,16 +11098,19 @@ function openVisitPrompt(lat,lng){
       var ci;
       for(ci=0;ci<COUNTRY_LIST.length;ci++) if(COUNTRY_LIST[ci].n===hit.name){ atlasId=COUNTRY_LIST[ci].i; break; }
     }
-    if(atlasId==="UA" || (!cid && atlasId)) cid=atlasId;
+    if(atlasId) cid=atlasId;
   }
   if(!cid) return;
   var been=visited && visited.indexOf(cid)>=0;
   var regs=regionsFor(cid);
   var rid=been && regs ? regionIn(cid, lat, lng) : null;
+  if(been && !rid && hit && hit.layer && hit.layer!=="W" && hit.name && cid) rid=cid+":"+hit.name;
   if(rid && visitedRegions && visitedRegions.indexOf(rid)>=0) return;
   if(!rid && been) return;
   var c=countryRecord(cid), reg=rid?regionRecord(rid):null;
-  pendingVisit={countryId:cid, regionId:rid, name:reg?(regionLabel(reg.n)+" · "+(c?countryLabel(c):cid)):(c?countryLabel(c):cid)};
+  var placeName=reg?(regionLabel(reg.n)+" · "+(c?countryLabel(c):cid)):(c?countryLabel(c):cid);
+  if(!reg && rid && hit && hit.layer && hit.layer!=="W" && hit.name) placeName=hit.name+" · "+(c?countryLabel(c):placeName);
+  pendingVisit={countryId:cid, regionId:rid, name:placeName};
   var modal=document.getElementById("visit-confirm");
   var title=document.getElementById("visit-confirm-title");
   var desc=document.getElementById("visit-confirm-desc");
@@ -11074,9 +11161,22 @@ function syncVisited(){
       id=String(list[i].id||"");
       if(rn===n || id.toLowerCase().replace(/ё/g,"е")===n || id.toLowerCase().replace(/ё/g,"е")===(String(code).toLowerCase()+":"+n)) return list[i].id;
     }
+    function closeName(a, b){
+      if(a===b) return true;
+      if(!a || !b || a.length<4 || b.length<4) return false;
+      var short=a.length<=b.length?a:b, long=a.length<=b.length?b:a;
+      if(long.length-short.length>6) return false;
+      var at=long.indexOf(short);
+      if(at<0) return false;
+      var before=at===0 || /[\s\-(«]/.test(long.charAt(at-1));
+      var afterCh=long.charAt(at+short.length);
+      var after=!afterCh || /[\s\-),»]/.test(afterCh);
+      if(before && after) return true;
+      return at===0 && long.length-short.length<=2;
+    }
     for(i=0;i<list.length;i++){
       rn=String(list[i].n||"").toLowerCase().replace(/ё/g,"е");
-      if(rn.length>=4 && (n.indexOf(rn)>=0 || rn.indexOf(n)>=0)) return list[i].id;
+      if(closeName(rn, n)) return list[i].id;
     }
     return null;
   }
@@ -11146,22 +11246,12 @@ function syncVisited(){
     return "RU";
   }
   Object.keys(autoC).forEach(addC);
-  if(activeTab==="past"){
-    var futC={}, futR={};
-    (ROUTES||[]).forEach(function(r){
-      if(!(typeof isFuture==="function" && isFuture(r))) return;
-      var bag=endpointBag(r);
-      bag.countries.forEach(function(id){ futC[id]=1; });
-      bag.regions.forEach(function(id){ futR[id]=1; });
-    });
-    manualCountries.forEach(function(id){ if(!futC[id]) addC(id); });
-    manualRegions.forEach(function(id){
-      if(futR[id]) return;
-      addR(id);
-      var c=countryOfRegion(id);
-      if(c) addC(c);
-    });
-  }
+  manualCountries.forEach(addC);
+  manualRegions.forEach(function(id){
+    addR(id);
+    var c=countryOfRegion(id);
+    if(c) addC(c);
+  });
   if(activeTab==="trips"){
     var trips=typeof loadTrips==="function"?loadTrips():[], ti;
     for(ti=0;ti<trips.length;ti++){
@@ -11419,7 +11509,8 @@ function toggleRegion(id){
   } else {
     offRegions=offRegions.filter(function(x){ return x!==id; });
     if(manualRegions.indexOf(id)<0) manualRegions.push(id);
-    offCountries=offCountries.filter(function(x){ return x!==(id.indexOf("CN:")===0?"CN":"RU"); });
+    var parent=countryOfRid(id);
+    if(parent) offCountries=offCountries.filter(function(x){ return x!==parent; });
   }
   saveSets();
   refreshVisitUi();
@@ -12502,7 +12593,12 @@ function bindTripWindow(){
       }).join("");
       box.classList.add("on");
       box.querySelectorAll("div").forEach(function(d){
-        d.onclick=function(){ input.value=d.getAttribute("data-v"); box.classList.remove("on"); if(typeof previewTripPlaces==="function") previewTripPlaces(); };
+        d.addEventListener("pointerdown", function(ev){
+          ev.preventDefault();
+          input.value=d.getAttribute("data-v");
+          box.classList.remove("on");
+          if(typeof previewTripPlaces==="function") previewTripPlaces();
+        });
       });
     });
     input.addEventListener("blur", function(){ setTimeout(function(){ box.classList.remove("on"); previewTripPlaces(); }, 180); });
@@ -12519,13 +12615,14 @@ function bindTripWindow(){
     cBox.innerHTML=items.map(function(c){ return '<div data-iso="'+c.i+'">'+escLabel(countryLabel(c))+"</div>"; }).join("");
     cBox.classList.add("on");
     cBox.querySelectorAll("div").forEach(function(d){
-      d.onclick=function(){
+      d.addEventListener("pointerdown", function(ev){
+        ev.preventDefault();
         var id=d.getAttribute("data-iso");
         if(tw.countries.indexOf(id)<0) tw.countries.push(id);
         tw.focus=id;
         cIn.value=""; cBox.classList.remove("on");
         paintTripWindow();
-      };
+      });
     });
   });
   function addDraftRoute(){

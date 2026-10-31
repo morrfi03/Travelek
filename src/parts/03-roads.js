@@ -673,6 +673,7 @@ function pointAlong(coords, t){
 var liveMarker=null;
 
 var yearFilter="all"; /* all | 2026 | ... */
+var modeFilter="all"; /* all | plane | train | car */
 var liveMarkers=[];
 var animMarkers={}; /* id -> marker for animated past trips when selected */
 var notifAsked=false;
@@ -815,6 +816,7 @@ function tripPlayRoutes(){
   else if(activeTab==="past") pool=ROUTES.filter(function(r){ return !isFuture(r); });
   return pool.filter(function(r){
     if(!selectedTripId && typeof yearFilter!=="undefined" && yearFilter!=="all" && (r.date||"").slice(0,4)!==yearFilter) return false;
+    if(typeof modeFilter!=="undefined" && modeFilter!=="all" && r.mode!==modeFilter) return false;
     return true;
   }).slice().sort(function(a,b){
     return ((a.date||"")+" "+(a.time||"")).localeCompare((b.date||"")+" "+(b.time||""));

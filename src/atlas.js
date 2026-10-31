@@ -35,7 +35,7 @@
   }
   (function mountAtlas() {
     var css = document.createElement("style");
-    css.textContent = "#flatBox,#globeBox{position:absolute;inset:0;overflow:hidden}#flatBox{background:#dde8ee}#globeBox{background:#0e1a24}#cvF,#cvG{width:100%;height:100%;display:block;touch-action:none;cursor:grab}#cvF.drag,#cvG.drag{cursor:grabbing}#tipF,#tipG{position:absolute;z-index:4;pointer-events:none;background:#1f2a26;color:#fff;padding:5px 9px;border-radius:6px;font:600 13px/1.3 system-ui,sans-serif;opacity:0;transform:translate(12px,12px);white-space:nowrap}#tipF small,#tipG small{display:block;opacity:.7;font-size:11px;font-weight:500}#atlas-html{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}";
+    css.textContent = "#flatBox,#globeBox{position:absolute;inset:0;overflow:hidden}#flatBox{background:#dde8ee}#globeBox{background:#0e1a24}#cvF,#cvG,#cvGgl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}#cvGgl{pointer-events:none;z-index:0}#cvG{z-index:1;background:transparent}#cvF.drag,#cvG.drag{cursor:grabbing}#tipF,#tipG{position:absolute;z-index:4;pointer-events:none;background:#1f2a26;color:#fff;padding:5px 9px;border-radius:6px;font:600 13px/1.3 system-ui,sans-serif;opacity:0;transform:translate(12px,12px);white-space:nowrap}#tipF small,#tipG small{display:block;opacity:.7;font-size:11px;font-weight:500}#atlas-html{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}";
     document.head.appendChild(css);
     function box(id){ var d=document.createElement("div"); d.id=id; return d; }
     var fb=box("flatBox"), cv=document.createElement("canvas"); cv.id="cvF"; fb.appendChild(cv);
@@ -142,7 +142,6 @@
     var bb = e.bb; if (lo < bb[0] || lo > bb[2] || la < bb[1] || la > bb[3]) return false;
     var c = false;
     for (var r = e.r0; r < e.r1; r++) {
-      if (rHole[r]) continue;
       var s = rStart[r], n = rLen[r];
       for (var i = 0, j = n - 1; i < n; j = i++) {
         var xi = LX[s + i], yi = LY[s + i], xj = LX[s + j], yj = LY[s + j];
@@ -179,7 +178,20 @@
       area = Math.max(0, r.bb[2] - r.bb[0]) * Math.max(0, r.bb[3] - r.bb[1]);
       if (area < bestA) { bestA = area; best = list[i]; }
     }
-    if (best >= 0) return best;
+    if (best >= 0) {
+      if (hoverEnt >= 0 && hoverEnt !== best) {
+        var prev = ents[hoverEnt];
+        if (prev && prev.L !== "W") {
+          var pad = 22, bb = prev.bb;
+          if (lo >= bb[0] - pad && lo <= bb[2] + pad && la >= bb[1] - pad && la <= bb[3] + pad) {
+            var pArea = Math.max(1, bb[2] - bb[0]) * Math.max(1, bb[3] - bb[1]);
+            var bArea = Math.max(1, ents[best].bb[2] - ents[best].bb[0]) * Math.max(1, ents[best].bb[3] - ents[best].bb[1]);
+            if (pArea < bArea * 0.45) return hoverEnt;
+          }
+        }
+      }
+      return best;
+    }
     if (country < 0) {
       var order = ["R", "C", "G"], k;
       for (k = 0; k < order.length; k++) {
@@ -286,8 +298,8 @@
       for (var i = 1; i < n; i++) { var x = FXv[s + i], y = FYv[s + i], dx = x - px, dy = y - py; if (dx * dx + dy * dy < thr2 && i < n - 1) continue; c.lineTo(x, y); px = x; py = y; }
       c.closePath();
     }
-    function entPath(c, e) { for (var r = e.r0; r < e.r1; r++) if (RV[r] && !rHole[r]) ringPath(c, r); }
-    function entPathFull(c, e) { for (var r = e.r0; r < e.r1; r++) if (!rHole[r]) ringPath(c, r); }
+    function entPath(c, e) { for (var r = e.r0; r < e.r1; r++) if (RV[r]) ringPath(c, r); }
+    function entPathFull(c, e) { for (var r = e.r0; r < e.r1; r++) ringPath(c, r); }
     var bc = document.createElement("canvas"), bctx = bc.getContext("2d"), bkey = "", snapTx = 0, snapTy = 0, snapK = 1, hold = 0, zoomIdle = 0;
     var rc = document.createElement("canvas"), rctx = rc.getContext("2d");
     function base() {
@@ -310,13 +322,13 @@
         if (e.name === "Украина") {
           if (!(litCountry(e) || markC.UA || washIso.UA)) return;
           showSmall(e);
-          c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.62)"; c.fill();
+          c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.62)"; c.fill("evenodd");
           c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke();
           return;
         }
         if (!litCountry(e)) return;
         showSmall(e);
-        c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.62)"; c.fill();
+        c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.62)"; c.fill("evenodd");
         c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke();
       });
       ["R", "C", "G"].forEach(function (L) {
@@ -327,7 +339,7 @@
           showSmall(e);
           c.beginPath(); entPath(c, e);
           c.fillStyle=marked?"rgba(196,92,40,.72)":"rgba(214,168,72,.38)";
-          c.fill();
+          c.fill("evenodd");
         });
       });
       if (k >= 2.6) {
@@ -568,10 +580,75 @@
 
   // ===================== ГЛОБУС =====================
   views.globe = (function () {
-    var box = $("globeBox"), cv = $("cvG"), ctx = cv.getContext("2d"), tip = $("tipG");
+    var box = $("globeBox"), cv = $("cvG"), ctx = cv.getContext("2d", { alpha: true }), tip = $("tipG");
+    var glcv = document.createElement("canvas"); glcv.id = "cvGgl"; box.insertBefore(glcv, cv);
     var tex = null, TW = 0, TH = 0, rbuf = document.createElement("canvas"), rctx = rbuf.getContext("2d"), rimg = null, gimg = new Image(), gready = false;
-    gimg.onload = function () { gready = true; if (mode === "globe") initTex(); }; gimg.src = G.tg;
-    function initTex() { if (tex || !gready) return; var c = document.createElement("canvas"); c.width = TW = gimg.width; c.height = TH = gimg.height; var x = c.getContext("2d"); x.drawImage(gimg, 0, 0); tex = x.getImageData(0, 0, TW, TH).data; schedule(); }
+    var gl = null, glProg = null, glBuf = null, glTex = null, uLoc = null, sphereMode = "";
+    gimg.onload = function () { gready = true; if (mode === "globe") { uploadSphere(); schedule(); } }; gimg.src = G.tg;
+    function bootGL() {
+      if (sphereMode) return sphereMode === "webgl";
+      var opts = { alpha: true, antialias: false, depth: false, stencil: false, premultipliedAlpha: false, preserveDrawingBuffer: false };
+      var g = glcv.getContext("webgl2", opts) || glcv.getContext("webgl", opts) || glcv.getContext("experimental-webgl", opts);
+      if (!g) { sphereMode = "cpu"; return false; }
+      function sh(type, src) {
+        var s = g.createShader(type); g.shaderSource(s, src); g.compileShader(s);
+        if (!g.getShaderParameter(s, g.COMPILE_STATUS)) { sphereMode = "cpu"; return null; }
+        return s;
+      }
+      var vs = sh(g.VERTEX_SHADER, "attribute vec2 a;varying vec2 v;void main(){v=a;gl_Position=vec4(a,0.0,1.0);}");
+      var fs = sh(g.FRAGMENT_SHADER, "precision mediump float;varying vec2 v;uniform sampler2D uTex;uniform float uLon,uLat,uR,uCx,uCy,uW,uH,uHas;const float PI=3.14159265;void main(){float px=(v.x*.5+.5)*uW;float py=(.5-v.y*.5)*uH;float nx=(px-uCx)/uR;float ny=(uCy-py)/uR;float r2=nx*nx+ny*ny;if(r2>=1.0){gl_FragColor=vec4(0.0);return;}float nz=sqrt(1.0-r2);float cp=cos(uLat),sp=sin(uLat),cl=cos(uLon),sl=sin(uLon);float Y=ny*cp+nz*sp;float z1=-ny*sp+nz*cp;float X=nx*cl+z1*sl;float Z=-nx*sl+z1*cl;float u=atan(X,Z)/(2.0*PI)+.5;float vv=.5+asin(clamp(Y,-1.0,1.0))/PI;vec3 col=uHas>.5?texture2D(uTex,vec2(u,vv)).rgb:vec3(.55,.70,.80);float limb=pow(nz,.45);col*=.72+.28*limb;gl_FragColor=vec4(col,1.0);}");
+      if (!vs || !fs) { sphereMode = "cpu"; return false; }
+      var p = g.createProgram(); g.attachShader(p, vs); g.attachShader(p, fs); g.bindAttribLocation(p, 0, "a"); g.linkProgram(p);
+      if (!g.getProgramParameter(p, g.LINK_STATUS)) { sphereMode = "cpu"; return false; }
+      gl = g; glProg = p;
+      glBuf = g.createBuffer(); g.bindBuffer(g.ARRAY_BUFFER, glBuf); g.bufferData(g.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), g.STATIC_DRAW);
+      uLoc = { lon: g.getUniformLocation(p, "uLon"), lat: g.getUniformLocation(p, "uLat"), R: g.getUniformLocation(p, "uR"), cx: g.getUniformLocation(p, "uCx"), cy: g.getUniformLocation(p, "uCy"), w: g.getUniformLocation(p, "uW"), h: g.getUniformLocation(p, "uH"), has: g.getUniformLocation(p, "uHas") };
+      g.useProgram(p); g.uniform1i(g.getUniformLocation(p, "uTex"), 0);
+      sphereMode = "webgl";
+      return true;
+    }
+    function pot(n) { var p = 1; while (p < n) p <<= 1; return p; }
+    function uploadSphere() {
+      if (!gready || !bootGL() || glTex) return;
+      var src = gimg, w = gimg.width, h = gimg.height, webgl2 = typeof WebGL2RenderingContext !== "undefined" && gl instanceof WebGL2RenderingContext;
+      if (!webgl2 && ((w & (w - 1)) || (h & (h - 1)))) {
+        var c = document.createElement("canvas"); c.width = pot(w); c.height = pot(h);
+        c.getContext("2d").drawImage(gimg, 0, 0, c.width, c.height); src = c;
+      }
+      var t = gl.createTexture(); gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      var webgl2b = typeof WebGL2RenderingContext !== "undefined" && gl instanceof WebGL2RenderingContext;
+      var potOk = src.width && !(src.width & (src.width - 1)) && !(src.height & (src.height - 1));
+      if (webgl2b || potOk) {
+        try {
+          gl.generateMipmap(gl.TEXTURE_2D);
+          gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR);
+        } catch (e) {}
+      }
+      glTex = t;
+    }
+    function paintSphere() {
+      if (bootGL()) {
+        uploadSphere();
+        if (glcv.width !== cv.width || glcv.height !== cv.height) { glcv.width = cv.width; glcv.height = cv.height; }
+        gl.viewport(0, 0, glcv.width, glcv.height);
+        gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.useProgram(glProg);
+        gl.bindBuffer(gl.ARRAY_BUFFER, glBuf); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        gl.uniform1f(uLoc.lon, lon0 * PI / 180); gl.uniform1f(uLoc.lat, lat0 * PI / 180);
+        gl.uniform1f(uLoc.R, R); gl.uniform1f(uLoc.cx, cx); gl.uniform1f(uLoc.cy, cy);
+        gl.uniform1f(uLoc.w, cw); gl.uniform1f(uLoc.h, ch); gl.uniform1f(uLoc.has, glTex ? 1 : 0);
+        if (glTex) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, glTex); }
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        return;
+      }
+    }
+    function initTex() { if (tex || !gready || sphereMode === "webgl") return; var c = document.createElement("canvas"); c.width = TW = gimg.width; c.height = TH = gimg.height; var x = c.getContext("2d"); x.drawImage(gimg, 0, 0); tex = x.getImageData(0, 0, TW, TH).data; }
     var SX = new Float32Array(NV), SY = new Float32Array(NV), ZV = new Uint8Array(NV), RVg = new Uint8Array(NR);
     var lon0 = 60, lat0 = 25, zoom = 1, cw = 600, ch = 600, dpr = 1, spinning = false, moving = 0, raf = 0, idle = 0, cl, sl, cp, sp, R, cx, cy;
     function setCam() { var a = lon0 * PI / 180, b = lat0 * PI / 180; cl = Math.cos(a); sl = Math.sin(a); cp = Math.cos(b); sp = Math.sin(b); R = Math.min(cw, ch) / 2 * 0.9 * zoom; cx = cw / 2; cy = ch / 2; }
@@ -601,22 +678,53 @@
       }
       rctx.putImageData(rimg, 0, 0);
     }
-    function project() {
+    function project(step) {
+      step = step || 1;
       for (var r = 0; r < NR; r++) {
-        var z1 = rCx[r] * sl + rCz[r] * cl, z2 = rCy[r] * sp + z1 * cp, vis = z2 > -rSin[r] ? 1 : 0; RVg[r] = vis; if (!vis) continue;
-        for (var j = rStart[r], e = j + rLen[r]; j < e; j++) {
+        var z1 = rCx[r] * sl + rCz[r] * cl, z2 = rCy[r] * sp + z1 * cp, vis = z2 > -rSin[r] ? 1 : 0;
+        RVg[r] = vis;
+        if (!vis) continue;
+        var s0 = rStart[r], e0 = s0 + rLen[r], j;
+        for (j = s0; j < e0; j++) ZV[j] = 0;
+        for (j = s0; j < e0; j += step) {
           var X = VX[j], Y = VY[j], Z = VZ[j], x1 = X * cl - Z * sl, zz = X * sl + Z * cl, y2 = Y * cp - zz * sp, z = Y * sp + zz * cp;
-          if (z > 0) { ZV[j] = 1; SX[j] = cx + R * x1; SY[j] = cy - R * y2; }
-          else { ZV[j] = 0; var l = Math.hypot(x1, y2); if (l < 1e-6) { x1 = 1; y2 = 0; l = 1; } SX[j] = cx + R * x1 / l; SY[j] = cy - R * y2 / l; }
+          if (z > 0.02) { ZV[j] = 1; SX[j] = cx + R * x1; SY[j] = cy - R * y2; }
+        }
+        if (step > 1) {
+          j = e0 - 1;
+          var X2 = VX[j], Y2 = VY[j], Z2 = VZ[j], x12 = X2 * cl - Z2 * sl, zz2 = X2 * sl + Z2 * cl, y22 = Y2 * cp - zz2 * sp, zc = Y2 * sp + zz2 * cp;
+          if (zc > 0.02) { ZV[j] = 1; SX[j] = cx + R * x12; SY[j] = cy - R * y22; }
         }
       }
     }
-    function fillRings(e) { for (var r = e.r0; r < e.r1; r++) { if (!RVg[r] || rHole[r]) continue; var s = rStart[r], n = rLen[r]; ctx.moveTo(SX[s], SY[s]); for (var i = 1; i < n; i++) ctx.lineTo(SX[s + i], SY[s + i]); ctx.closePath(); } }
-    function strokeRings(e) {
+    function fillRings(e) {
       for (var r = e.r0; r < e.r1; r++) {
-        if (!RVg[r] || rHole[r]) continue; var s = rStart[r], n = rLen[r], prev = false;
-        for (var i = 0; i < n; i++) { var j = s + i; if (ZV[j]) { if (prev) ctx.lineTo(SX[j], SY[j]); else ctx.moveTo(SX[j], SY[j]); prev = true; } else prev = false; }
-        if (ZV[s + n - 1] && ZV[s]) ctx.lineTo(SX[s], SY[s]);
+        if (!RVg[r]) continue;
+        var s = rStart[r], n = rLen[r], started = false;
+        for (var i = 0; i < n; i++) {
+          var j = s + i;
+          if (!ZV[j]) { if (started) { ctx.closePath(); started = false; } continue; }
+          if (!started) { ctx.moveTo(SX[j], SY[j]); started = true; }
+          else ctx.lineTo(SX[j], SY[j]);
+        }
+        if (started) ctx.closePath();
+      }
+    }
+    function strokeRings(e, min2) {
+      min2 = min2 || 0;
+      for (var r = e.r0; r < e.r1; r++) {
+        if (!RVg[r]) continue;
+        var s = rStart[r], n = rLen[r], prev = false, px = 0, py = 0;
+        for (var i = 0; i < n; i++) {
+          var j = s + i;
+          if (!ZV[j]) { prev = false; continue; }
+          if (prev) {
+            var dx = SX[j] - px, dy = SY[j] - py;
+            if (min2 && dx * dx + dy * dy < min2 && i < n - 1) continue;
+            ctx.lineTo(SX[j], SY[j]);
+          } else ctx.moveTo(SX[j], SY[j]);
+          prev = true; px = SX[j]; py = SY[j];
+        }
       }
     }
     function fillGeo(iso){
@@ -637,23 +745,47 @@
       return true;
     }
     function draw(q, fast) {
-      setCam(); ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, cw, ch);
-      var g = ctx.createRadialGradient(cx, cy, R * 0.98, cx, cy, R * 1.08); g.addColorStop(0, "rgba(130,180,230,.40)"); g.addColorStop(1, "rgba(130,180,230,0)");
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R * 1.08, 0, 2 * PI); ctx.fill();
-      if (!tex) { ctx.fillStyle = "#96b8d0"; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.fill(); return; }
-      relief(q, fast); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip(); ctx.imageSmoothingEnabled = true; ctx.imageSmoothingQuality = fast ? "low" : "medium"; ctx.drawImage(rbuf, 0, 0, cw, ch); ctx.restore();
-      if (fast) return;
-      project(); stampIso(); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
+      setCam();
+      var glOn = bootGL();
+      if (glOn) paintSphere();
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, cv.width, cv.height);
+      if (!glOn) {
+        if (!gready) {
+          ctx.fillStyle = "#96b8d0";
+          ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.fill();
+        } else {
+          initTex();
+          if (tex) {
+            relief(fast ? 0.42 : (q || hq()), !!fast);
+            ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = fast ? "low" : "high";
+            ctx.drawImage(rbuf, 0, 0, cw, ch);
+            ctx.restore();
+          }
+        }
+      }
+      if (!fast) {
+        var g = ctx.createRadialGradient(cx - R * 0.2, cy - R * 0.25, R * 0.2, cx, cy, R * 1.05);
+        g.addColorStop(0, "rgba(255,255,255,.05)"); g.addColorStop(1, "rgba(0,0,0,0)");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI);
+      ctx.strokeStyle = "rgba(170,200,230,.45)"; ctx.lineWidth = fast ? 1.5 : 2.2; ctx.stroke();
+      var stride = (fast && !glOn) ? (zoom >= 2.4 ? 1 : (zoom >= 1.45 ? 2 : 3)) : 1;
+      var min2 = (fast && !glOn) ? (zoom >= 2.2 ? 1.6 : 3.4) : 0.45;
+      project(stride); stampIso(); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
       byLayer.W.forEach(function (i) {
         var e = ents[i];
         if (e.name === "Украина") {
           if (!(litCountry(e) || markC.UA || washIso.UA)) return;
-          ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill();
+          ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill("evenodd");
           ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke();
           return;
         }
         if (!litCountry(e)) return;
-        ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill();
+        ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill("evenodd");
         ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke();
       });
       ["R", "C", "G"].forEach(function (L) {
@@ -661,9 +793,10 @@
           var e = ents[i];
           var open=regionLayerOpen(e), marked=regionMarked(e);
           if(!open && !marked) return;
+          if (fast && !marked) return;
           ctx.beginPath(); fillRings(e);
           ctx.fillStyle=marked?"rgba(196,92,40,.72)":"rgba(214,168,72,.38)";
-          ctx.fill();
+          ctx.fill("evenodd");
         });
       });
       [[hoverEnt, "rgba(60,110,85,.55)"], [selEnt, "rgba(196,98,45,.70)"]].forEach(function (h) {
@@ -671,22 +804,22 @@
         if (ents[h[0]].name === "Украина" && fillGeo("UA")) { ctx.fillStyle = h[1]; ctx.fill("evenodd"); return; }
         ctx.beginPath(); fillRings(ents[h[0]]); ctx.fillStyle = h[1]; ctx.fill("evenodd");
       });
-      if (!moving && zoom >= 1.6 && hoverEnt >= 0) {
+      if (!fast && zoom >= 1.6 && hoverEnt >= 0) {
         var hIso = entityIso(ents[hoverEnt]), regs = regionsOf(hIso), hi;
         if (regs.length) {
           ctx.beginPath();
-          for (hi = 0; hi < regs.length; hi++) strokeRings(ents[regs[hi]]);
+          for (hi = 0; hi < regs.length; hi++) strokeRings(ents[regs[hi]], min2);
           ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.lineWidth = 0.6; ctx.lineJoin = "round"; ctx.stroke();
         }
       }
-      if (!moving && zoom >= 2.2) {
-        ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) strokeRings(ents[i]); }); });
+      if (!fast && zoom >= 2.2) {
+        ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) strokeRings(ents[i], min2); }); });
         ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 0.45; ctx.lineJoin = "round"; ctx.stroke();
       }
-      ctx.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name!=="Украина") strokeRings(ents[i]); }); byLayer.B.forEach(function (i) { strokeRings(ents[i]); });
+      ctx.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name!=="Украина") strokeRings(ents[i], min2); }); byLayer.B.forEach(function (i) { strokeRings(ents[i], min2); });
       ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke();
-      if (fillGeo("UA")) { ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke(); }
-      if (!moving) (function strokeNets() {
+      if (!fast && fillGeo("UA")) { ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke(); }
+      if (!fast) (function strokeNets() {
         var layers = views.flat.netLayers();
         if (!layers) return;
         layers.forEach(function (L) {
@@ -719,8 +852,8 @@
       ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = 1.5; ctx.stroke();
       if (hooks.paint) { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); hooks.paint(ctx); }
     }
-    function redraw() { if (mode === "globe") { initTex(); draw(hq()); } }
-    function schedule() { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; if (mode !== "globe") return; initTex(); var drag = moving || spinning; draw(drag ? 0.34 : hq(), drag); if (spinning) { lon0 += 0.25; schedule(); } }); }
+    function redraw() { if (mode === "globe") draw(hq(), false); }
+    function schedule() { if (raf) return; raf = requestAnimationFrame(function () { raf = 0; if (mode !== "globe") return; var drag = moving || spinning; draw(drag ? 0.45 : hq(), drag); if (spinning) { lon0 += 0.25; schedule(); } }); }
     function settle() { clearTimeout(idle); idle = setTimeout(function () { moving = 0; if (!spinning) redraw(); }, 160); }
     function pick(px, py) {
       setCam(); var nx = (px - cx) / R, ny = (cy - py) / R, r2 = nx * nx + ny * ny; if (r2 >= 1) return -1;
@@ -769,8 +902,8 @@
     cv.addEventListener("pointerleave", function () { tip.style.opacity = 0; if (hoverEnt >= 0) { hoverEnt = -1; redraw(); } });
     cv.addEventListener("wheel", function (e) { e.preventDefault(); zoom = Math.max(1, Math.min(6, zoom * Math.exp(-e.deltaY * 0.0015))); moving = 1; schedule(); settle(); if (hooks.afterView) hooks.afterView(); }, { passive: false });
     function hover(e) {
-      if (e.pointerType === "touch" || !tex) return; var p = local(e), i = pick(p.x, p.y);
-      if (i !== hoverEnt) { hoverEnt = i; if (!raf) draw(hq()); } showTip(tip, box, e, i);
+      if (e.pointerType === "touch") return; var p = local(e), i = pick(p.x, p.y);
+      if (i !== hoverEnt) { hoverEnt = i; schedule(); } showTip(tip, box, e, i);
     }
     var fly = 0;
     function flyTo(lo, la, z) {
@@ -838,8 +971,21 @@
     if (!n) return "";
     if (nameIso[n]) return nameIso[n];
     var k;
-    for (k in nameIso) if (k.length > 4 && (n.indexOf(k) >= 0 || k.indexOf(n) >= 0)) return nameIso[k];
+    for (k in nameIso) if (nameClose(n, k)) return nameIso[k];
     return "";
+  }
+  function nameClose(a, b) {
+    if (a === b) return true;
+    if (!a || !b || a.length < 5 || b.length < 5) return false;
+    var short = a.length <= b.length ? a : b, long = a.length <= b.length ? b : a;
+    if (long.length - short.length > 8) return false;
+    var at = long.indexOf(short);
+    if (at < 0) return false;
+    var before = at === 0 || /[\s\-(«]/.test(long.charAt(at - 1));
+    var afterCh = long.charAt(at + short.length);
+    var after = !afterCh || /[\s\-),»]/.test(afterCh);
+    if (before && after) return true;
+    return at === 0 && long.length - short.length <= 3;
   }
   function litCountry(e) {
     if (!e) return false;
@@ -857,7 +1003,9 @@
       "беларусь": "BY", "белоруссия": "BY", "казахстан": "KZ", "турция": "TR", "таиланд": "TH",
       "франция": "FR", "германия": "DE", "италия": "IT", "испания": "ES",
       "польша": "PL", "япония": "JP", "индия": "IN", "вьетнам": "VN",
-      "египет": "EG", "литва": "LT", "армения": "AM", "болгария": "BG",
+      "египет": "EG", "литва": "LT", "латвия": "LV", "эстония": "EE",
+      "армения": "AM", "грузия": "GE", "молдова": "MD", "болгария": "BG",
+      "финляндия": "FI", "швеция": "SE", "норвегия": "NO", "дания": "DK",
       "словения": "SI", "оаэ": "AE", "объединенные арабские эмираты": "AE",
       "индонезия": "ID", "малайзия": "MY", "иран": "IR", "бразилия": "BR",
       "канада": "CA", "австралия": "AU", "аргентина": "AR", "мексика": "MX"
@@ -872,7 +1020,7 @@
       var label = String((e.L === "W" ? e.name : (e.sub || e.name)) || "").toLowerCase().replace(/ё/g, "е");
       var iso = by[label] || "";
       if (!iso && label) {
-        for (k in by) if (k.length > 4 && (label.indexOf(k) >= 0 || k.indexOf(label) >= 0)) { iso = by[k]; break; }
+        for (k in by) if (nameClose(label, k)) { iso = by[k]; break; }
       }
       if (e.L === "R" || label === "россия") iso = "RU";
       if (e.L === "C" || label.indexOf("китай") === 0) iso = "CN";
@@ -1215,6 +1363,12 @@
     Lref.marker = function (ll, st) { return new Feat("marker", ll, st); };
     Lref.layerGroup = function () { return new Group(); };
     Lref.divIcon = function (opts) { return { options: opts || {} }; };
+    Lref.DomEvent = Lref.DomEvent || {
+      disableClickPropagation: function () {},
+      disableScrollPropagation: function () {},
+      stopPropagation: function () {},
+      preventDefault: function () {}
+    };
     window.L = Lref;
     return facade;
   }

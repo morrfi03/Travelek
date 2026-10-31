@@ -783,21 +783,23 @@ function place(name, code){
   }
   k = norm(name);
   if(!k) return null;
-  /* exact airport code */
+  /* код IATA раньше города: «MSQ». Голое «Минск» — центр города, не аэропорт. */
   for(i=0;i<AIRPORTS.length;i++){
     a = AIRPORTS[i];
-    if(norm(a.code)===k || norm(a.n)===k || norm(airportLabel(a))===k || norm(airportLabel(a)+" ("+a.code+")")===k || norm(a.n+" ("+a.code+")")===k)
-      return {lat:a.lat,lng:a.lng,label:airportLabel(a)+" ("+a.code+")"};
+    if(norm(a.code)===k) return {lat:a.lat,lng:a.lng,label:airportLabel(a)+" ("+a.code+")"};
   }
-  /* город раньше порта и вокзала: «Москва» — центр, не речной порт */
   for(i=0;i<CITIES.length;i++){
     c = CITIES[i];
     if(norm(c.n)===k) return {lat:c.lat,lng:c.lng,label:c.n};
   }
-  /* station exact */
   for(i=0;i<STATIONS.length;i++){
     s = STATIONS[i];
     if(norm(s.n)===k || norm(s.id)===k) return {lat:s.lat,lng:s.lng,label:s.n};
+  }
+  for(i=0;i<AIRPORTS.length;i++){
+    a = AIRPORTS[i];
+    if(norm(a.n)===k || norm(airportLabel(a))===k || norm(airportLabel(a)+" ("+a.code+")")===k || norm(a.n+" ("+a.code+")")===k)
+      return {lat:a.lat,lng:a.lng,label:airportLabel(a)+" ("+a.code+")"};
   }
   /* речные/морские порты раньше городов (Ярославль → речной) */
   if(typeof findPortByQuery==="function"){
