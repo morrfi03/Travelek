@@ -1,8 +1,4 @@
 {
   "$schema": "https://layero.ru/schema/layero-v2.json",
-  "framework": "vite",
-  "installCommand": "npm ci",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "nodeVersion": "22"
+  "framework": "static"
 }
