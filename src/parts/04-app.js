@@ -2738,6 +2738,13 @@ function confirmVisitedPlace(){
   if(typeof renderCountryUi==="function") renderCountryUi();
   if(typeof render==="function") render();
 }
+function countryHint(label){
+  var n=String(label||"").toLowerCase().replace(/ё/g,"е");
+  if(!n) return "";
+  if(/абхаз|сухум|гагра|пицунд|гудаут|очамчир|ткварчел|новый афон/.test(n)) return "AB";
+  if(/южн\S* осет|цхинвал/.test(n)) return "OS";
+  return "";
+}
 function syncVisited(){
   if(!COUNTRY_LIST) return;
   var visitKey=[activeTab,selectedTripId||"",manualCountries.join(","),offCountries.join(","),manualRegions.join(","),offRegions.join(","),(ROUTES||[]).map(function(r){return r.id+"@"+(r.date||"");}).join(";")].join("|");
@@ -2801,8 +2808,9 @@ function syncVisited(){
   }
   (typeof ROUTES!=="undefined"?ROUTES:[]).forEach(function(r){
     var fut=typeof isFuture==="function" && isFuture(r);
+    var past=typeof datedPast==="function"?datedPast(r):!fut;
     if(activeTab==="future" && !fut) return;
-    if(activeTab==="past" && fut) return;
+    if(activeTab==="past" && !past) return;
     if(activeTab==="trips" && selectedTripId){
       var trip=null, trips=typeof loadTrips==="function"?loadTrips():[], ti, ids;
       for(ti=0;ti<trips.length;ti++) if(trips[ti].id===selectedTripId) trip=trips[ti];
@@ -2823,6 +2831,9 @@ function syncVisited(){
       var a=place(r.from, r.fromCode), b=place(r.to, r.toCode);
       if(a) hit(a.lat, a.lng);
       if(b) hit(b.lat, b.lng);
+      var ha=countryHint(r.from)||countryHint(a&&a.label), hb=countryHint(r.to)||countryHint(b&&b.label);
+      if(ha) autoC[ha]=1;
+      if(hb) autoC[hb]=1;
     }
   });
   var next=[], seen={};
@@ -2844,22 +2855,35 @@ function syncVisited(){
     return "RU";
   }
   Object.keys(autoC).forEach(addC);
+  var futOnly={};
+  if(activeTab==="past"){
+    (ROUTES||[]).forEach(function(r){
+      if(!(typeof isFuture==="function" && isFuture(r))) return;
+      var hint=countryHint(r.to)||countryHint(r.from);
+      if(hint) futOnly[hint]=1;
+      var b=typeof endpointBag==="function"?endpointBag(r):null;
+      if(b) b.countries.forEach(function(id){ futOnly[id]=1; });
+    });
+  }
   function addTripSet(tab){
-    var trips=typeof loadTrips==="function"?loadTrips():[], ti, tp, ids, ri, rr, on, fut;
+    var trips=typeof loadTrips==="function"?loadTrips():[], ti, tp, ids, ri, rr, futN, pastN;
     for(ti=0;ti<trips.length;ti++){
       tp=trips[ti];
       if(selectedTripId && tp.id!==selectedTripId) continue;
       ids=tp.routes||[];
-      on=!ids.length && tab==="past";
-      for(ri=0;ri<ids.length && !on;ri++){
+      futN=0; pastN=0;
+      for(ri=0;ri<ids.length;ri++){
         rr=typeof routeById==="function"?routeById(ids[ri]):null;
         if(!rr) continue;
-        fut=typeof isFuture==="function" && isFuture(rr);
-        if(tab==="future" && fut) on=true;
-        if(tab==="past" && !fut) on=true;
+        if(typeof isFuture==="function" && isFuture(rr)) futN++;
+        else if(typeof datedPast==="function" && datedPast(rr)) pastN++;
       }
-      if(!on) continue;
-      (tp.countries||[]).forEach(addC);
+      if(tab==="future" && !(futN && !pastN)) continue;
+      if(tab==="past" && !((pastN && !futN) || (!futN && !pastN && !ids.length))) continue;
+      (tp.countries||[]).forEach(function(id){
+        if(tab==="past" && futOnly && futOnly[id]) return;
+        addC(id);
+      });
       (tp.regions||[]).forEach(function(id){
         addR(id);
         var c=countryOfRegion(id);
@@ -3612,6 +3636,9 @@ function endpointBag(r){
   if(typeof place==="function"){
     hitPt(place(r.from, r.fromCode));
     hitPt(place(r.to, r.toCode));
+    var ha=countryHint(r.from), hb=countryHint(r.to);
+    if(ha && !sc[ha]){ sc[ha]=1; countries.push(ha); }
+    if(hb && !sc[hb]){ sc[hb]=1; countries.push(hb); }
   }
   var bag={countries:countries, regions:regions};
   if(COUNTRY_LIST){ r._bag=bag; r._bagKey=bagKey; }

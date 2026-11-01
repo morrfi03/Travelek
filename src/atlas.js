@@ -317,6 +317,8 @@
           RV[r] = 1;
         }
       }
+      var detailThr = thr2;
+      thr2 = 0;
       byLayer.W.forEach(function (i) {
         var e = ents[i];
         if (e.name === "Украина") {
@@ -342,7 +344,7 @@
           c.fill("evenodd");
         });
       });
-      ["AB", "OS", "MC", "NR", "PN", "SX", "TV"].forEach(function (id) {
+      ["AB", "OS", "MC", "NR", "PN", "SX", "TV", "HK", "MO", "SG", "BH", "MT", "AD", "LI", "LU", "QA", "SM", "VA"].forEach(function (id) {
         if (!washIso[id] && !markC[id]) return;
         if (!traceFlat(c, id)) return;
         c.fillStyle = "rgba(214,168,72,.62)";
@@ -351,6 +353,7 @@
         c.lineWidth = 1.3 * lw;
         c.stroke();
       });
+      thr2 = detailThr;
       if (k >= 2.6) {
         c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) entPath(c, ents[i]); }); });
         c.strokeStyle = "rgba(250,252,251,.55)"; c.lineWidth = 0.4 * lw; c.stroke();
@@ -826,16 +829,14 @@
           var e = ents[i];
           var open=regionLayerOpen(e), marked=regionMarked(e);
           if(!open && !marked) return;
-          if (fast && !marked) return;
+          if (fast && L === "G" && !marked) return;
           if (fast) projectFull(e);
           ctx.beginPath(); fillRings(e);
           ctx.fillStyle=marked?"rgba(196,92,40,.72)":"rgba(214,168,72,.38)";
           ctx.fill("evenodd");
         });
       });
-      ["AB", "OS", "MC", "NR", "PN", "SX", "TV"].forEach(paintIso);
-      if (fast && (washIso.RU || markC.RU)) paintIso("RU");
-      if (fast && (washIso.CN || markC.CN)) paintIso("CN");
+      ["AB", "OS", "MC", "NR", "PN", "SX", "TV", "HK", "MO", "SG", "BH", "MT", "AD", "LI", "LU", "QA", "SM", "VA"].forEach(paintIso);
       [[hoverEnt, "rgba(60,110,85,.55)"], [selEnt, "rgba(196,98,45,.70)"]].forEach(function (h) {
         if (h[0] < 0) return;
         if (ents[h[0]].name === "Украина" && fillGeo("UA")) { ctx.fillStyle = h[1]; ctx.fill("evenodd"); return; }
