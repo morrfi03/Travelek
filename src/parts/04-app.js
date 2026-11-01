@@ -2534,7 +2534,7 @@ function gridHits(lat, lng){
   return g.cell[Math.floor(lat/g.step)+":"+Math.floor(lng/g.step)]||[];
 }
 function hitCountry(lat, lng, want){
-  var hits=gridHits(lat, lng), i, parts, c, polys;
+  var hits=gridHits(lat, lng), i, parts, c, polys, best=null, bestA=1e18, b, area;
   for(i=0;i<hits.length;i++){
     parts=hits[i].split(":");
     c=COUNTRY_LIST[+parts[0]];
@@ -2542,9 +2542,12 @@ function hitCountry(lat, lng, want){
     if(want){ if(c.i!==want) continue; }
     else if(c.i==="RU") continue;
     polys=polysOf(c);
-    if(polyHas(polys[+parts[1]], lat, lng)) return c.i;
+    if(!polyHas(polys[+parts[1]], lat, lng)) continue;
+    b=c.b||[0,0,0,0];
+    area=Math.max(1e-4, (b[2]-b[0])*Math.min(360, Math.abs(b[3]-b[1])));
+    if(area<bestA){ bestA=area; best=c.i; }
   }
-  return null;
+  return best;
 }
 function countryAt(lat, lng){
   if(!COUNTRY_LIST) return null;
@@ -2553,6 +2556,22 @@ function countryAt(lat, lng){
   if(region) return "RU";
   if(hitCountry(lat, lng, "RU")) return "RU";
   var other=hitCountry(lat, lng, null);
+  var tiny=null, tinyD=1e9, tinyA=1e18, i, c, b, span, reach, dlt, area;
+  for(i=0;i<COUNTRY_LIST.length;i++){
+    c=COUNTRY_LIST[i];
+    if(!c || c.i==="RU" || !c.b) continue;
+    b=c.b;
+    span=Math.max(b[2]-b[0], Math.min(360, Math.abs(b[3]-b[1])));
+    if(span>1.5) continue;
+    if(lat<b[0]-0.25 || lat>b[2]+0.25 || lng<b[1]-0.25 || lng>b[3]+0.25) continue;
+    dlt=regionEdgeDist(c, lat, lng);
+    reach=Math.max(0.12, span*0.55);
+    area=Math.max(1e-4, (b[2]-b[0])*Math.min(360, Math.abs(b[3]-b[1])));
+    if(dlt<=reach && (dlt<tinyD-1e-6 || (Math.abs(dlt-tinyD)<0.02 && area<tinyA))){
+      tinyD=dlt; tiny=c.i; tinyA=area;
+    }
+  }
+  if(tiny && (!other || tinyA<1.2)) return tiny;
   if(other) return other;
   var near=null, nearD=0.06, i, c, dlt;
   for(i=0;i<COUNTRY_LIST.length;i++){
@@ -2855,15 +2874,31 @@ function syncVisited(){
     return "RU";
   }
   Object.keys(autoC).forEach(addC);
-  var futOnly={};
-  if(activeTab==="past"){
+  function evidence(pred){
+    var cs={}, rs={};
     (ROUTES||[]).forEach(function(r){
-      if(!(typeof isFuture==="function" && isFuture(r))) return;
-      var hint=countryHint(r.to)||countryHint(r.from);
-      if(hint) futOnly[hint]=1;
+      if(!pred(r)) return;
       var b=typeof endpointBag==="function"?endpointBag(r):null;
-      if(b) b.countries.forEach(function(id){ futOnly[id]=1; });
+      if(b){
+        b.countries.forEach(function(id){ cs[id]=1; });
+        b.regions.forEach(function(id){ rs[id]=1; });
+      }
+      var ha=countryHint(r.from), hb=countryHint(r.to);
+      if(ha) cs[ha]=1;
+      if(hb) cs[hb]=1;
     });
+    return {c:cs, r:rs};
+  }
+  var pastEv=null, futEv=null;
+  if(activeTab==="past"){
+    pastEv=evidence(function(r){ return typeof datedPast==="function"?datedPast(r):!(typeof isFuture==="function" && isFuture(r)); });
+    futEv=evidence(function(r){ return typeof isFuture==="function" && isFuture(r); });
+  }
+  function futureOnlyC(id){ return !!(futEv && futEv.c[id] && !(pastEv && pastEv.c[id])); }
+  function futureOnlyR(id){ return !!(futEv && futEv.r[id] && !(pastEv && pastEv.r[id])); }
+  function promote(id){
+    var c=countryOfRegion(id);
+    if(c==="RU" || c==="CN") addC(c);
   }
   function addTripSet(tab){
     var trips=typeof loadTrips==="function"?loadTrips():[], ti, tp, ids, ri, rr, futN, pastN;
@@ -2881,22 +2916,22 @@ function syncVisited(){
       if(tab==="future" && !(futN && !pastN)) continue;
       if(tab==="past" && !((pastN && !futN) || (!futN && !pastN && !ids.length))) continue;
       (tp.countries||[]).forEach(function(id){
-        if(tab==="past" && futOnly && futOnly[id]) return;
+        if(tab==="past" && futureOnlyC(id)) return;
         addC(id);
       });
       (tp.regions||[]).forEach(function(id){
+        if(tab==="past" && futureOnlyR(id)) return;
         addR(id);
-        var c=countryOfRegion(id);
-        if(c) addC(c);
+        promote(id);
       });
     }
   }
   if(activeTab==="past"){
-    manualCountries.forEach(addC);
+    manualCountries.forEach(function(id){ if(!futureOnlyC(id)) addC(id); });
     manualRegions.forEach(function(id){
+      if(futureOnlyR(id)) return;
       addR(id);
-      var c=countryOfRegion(id);
-      if(c) addC(c);
+      promote(id);
     });
     addTripSet("past");
   } else if(activeTab==="future"){
@@ -2904,7 +2939,7 @@ function syncVisited(){
   } else if(activeTab==="trips"){
     addTripSet("past");
   }
-  Object.keys(autoR).forEach(function(id){ var c=countryOfRegion(id); if(c && offCountries.indexOf(c)<0) addC(c); });
+  Object.keys(autoR).forEach(function(id){ promote(id); });
   visited=next;
   Object.keys(autoR).forEach(addR);
   visitedRegions=nextR;
@@ -4039,6 +4074,8 @@ function absorbRoute(r){
   bag.countries.forEach(function(id){ if(tw.countries.indexOf(id)<0) tw.countries.push(id); });
   bag.regions.forEach(function(id){ if(tw.regions.indexOf(id)<0) tw.regions.push(id); });
   if(bag.countries.length) tw.focus=bag.countries[bag.countries.length-1];
+  var past=typeof datedPast==="function" && datedPast(r);
+  if(!past) return;
   var marked=false;
   bag.countries.forEach(function(id){
     if((visited||[]).indexOf(id)>=0 || manualCountries.indexOf(id)>=0) return;

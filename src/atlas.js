@@ -344,15 +344,6 @@
           c.fill("evenodd");
         });
       });
-      ["AB", "OS", "MC", "NR", "PN", "SX", "TV", "HK", "MO", "SG", "BH", "MT", "AD", "LI", "LU", "QA", "SM", "VA"].forEach(function (id) {
-        if (!washIso[id] && !markC[id]) return;
-        if (!traceFlat(c, id)) return;
-        c.fillStyle = "rgba(214,168,72,.62)";
-        c.fill("evenodd");
-        c.strokeStyle = "rgba(120,78,20,.8)";
-        c.lineWidth = 1.3 * lw;
-        c.stroke();
-      });
       thr2 = detailThr;
       if (k >= 2.6) {
         c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) entPath(c, ents[i]); }); });
@@ -372,6 +363,38 @@
       c.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name!=="Украина") entPath(c, ents[i]); }); byLayer.B.forEach(function (i) { entPath(c, ents[i]); });
       c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke();
       if (traceFlat(c, "UA")) { c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke(); }
+      (function paintFlatOverlays(){
+        var ids = Object.keys(washIso), k, iso, rings, ring, i, p, minx, miny, maxx, maxy, sw, sh;
+        for (k in markC) if (ids.indexOf(k) < 0) ids.push(k);
+        for (k = 0; k < ids.length; k++) {
+          iso = ids[k];
+          if (!overlayWanted(iso)) continue;
+          if (!traceFlat(c, iso)) continue;
+          c.fillStyle = "rgba(214,168,72,.78)";
+          c.fill("nonzero");
+          c.strokeStyle = "rgba(120,78,20,.95)";
+          c.lineWidth = Math.max(lw * 1.4, 1.6 / kk);
+          c.stroke();
+          rings = countryRings(iso);
+          if (!rings.length || !rings[0].length) continue;
+          ring = rings[0]; minx = 1e9; miny = 1e9; maxx = -1e9; maxy = -1e9;
+          for (i = 0; i < ring.length; i++) {
+            p = flatXY(ring[i][0] * PI / 180, ring[i][1] * PI / 180);
+            if (p[0] < minx) minx = p[0]; if (p[0] > maxx) maxx = p[0];
+            if (p[1] < miny) miny = p[1]; if (p[1] > maxy) maxy = p[1];
+          }
+          sw = (maxx - minx) * kk; sh = (maxy - miny) * kk;
+          if (sw < 13 && sh < 13) {
+            c.beginPath();
+            c.arc((minx + maxx) / 2, (miny + maxy) / 2, 7 / kk, 0, 2 * PI);
+            c.fillStyle = "rgba(214,168,72,.96)";
+            c.fill();
+            c.lineWidth = 1.2 / kk;
+            c.strokeStyle = "rgba(90,56,12,.9)";
+            c.stroke();
+          }
+        }
+      })();
       c.restore();
     }
     function draw() {
@@ -593,13 +616,13 @@
   // ===================== ГЛОБУС =====================
   views.globe = (function () {
     var box = $("globeBox"), cv = $("cvG"), ctx = cv.getContext("2d", { alpha: true }), tip = $("tipG");
-    var glcv = document.createElement("canvas"); glcv.id = "cvGgl"; box.insertBefore(glcv, cv);
+    var glcv = document.createElement("canvas"); glcv.id = "cvGgl"; glcv.style.opacity = "0"; glcv.style.pointerEvents = "none"; box.insertBefore(glcv, cv);
     var tex = null, TW = 0, TH = 0, rbuf = document.createElement("canvas"), rctx = rbuf.getContext("2d"), rimg = null, gimg = new Image(), gready = false;
     var gl = null, glProg = null, glBuf = null, glTex = null, uLoc = null, sphereMode = "";
     gimg.onload = function () { gready = true; if (mode === "globe") { uploadSphere(); schedule(); } }; gimg.src = G.tg;
     function bootGL() {
       if (sphereMode) return sphereMode === "webgl";
-      var opts = { alpha: true, antialias: false, depth: false, stencil: false, premultipliedAlpha: false, preserveDrawingBuffer: false };
+      var opts = { alpha: true, antialias: false, depth: false, stencil: false, premultipliedAlpha: false, preserveDrawingBuffer: true };
       var g = glcv.getContext("webgl2", opts) || glcv.getContext("webgl", opts) || glcv.getContext("experimental-webgl", opts);
       if (!g) { sphereMode = "cpu"; return false; }
       function sh(type, src) {
@@ -709,15 +732,46 @@
         }
       }
     }
+    function projectFull(e) {
+      for (var r = e.r0; r < e.r1; r++) {
+        var s0 = rStart[r], n = rLen[r], j, idx, X, Y, Z, x1, zz, y2, z, any = 0;
+        for (j = 0; j < n; j++) {
+          idx = s0 + j;
+          X = VX[idx]; Y = VY[idx]; Z = VZ[idx];
+          x1 = X * cl - Z * sl; zz = X * sl + Z * cl; y2 = Y * cp - zz * sp; z = Y * sp + zz * cp;
+          if (z > 0.02) { ZV[idx] = 1; SX[idx] = cx + R * x1; SY[idx] = cy - R * y2; any = 1; }
+          else ZV[idx] = 0;
+        }
+        if (any) RVg[r] = 1;
+      }
+    }
+    function limbXY(i, j) {
+      function xyz(idx) {
+        var X = VX[idx], Y = VY[idx], Z = VZ[idx];
+        var x1 = X * cl - Z * sl, zz = X * sl + Z * cl, y2 = Y * cp - zz * sp, z = Y * sp + zz * cp;
+        return [cx + R * x1, cy - R * y2, z];
+      }
+      var a = xyz(i), b = xyz(j), t = (0.025 - a[2]) / ((b[2] - a[2]) || 1e-6);
+      if (t < 0) t = 0; else if (t > 1) t = 1;
+      return [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t];
+    }
     function fillRings(e) {
       for (var r = e.r0; r < e.r1; r++) {
         if (!RVg[r]) continue;
-        var s = rStart[r], n = rLen[r], started = false;
+        var s = rStart[r], n = rLen[r];
+        if (n < 3) continue;
+        var started = false;
         for (var i = 0; i < n; i++) {
-          var j = s + i;
-          if (!ZV[j]) { if (started) { ctx.closePath(); started = false; } continue; }
-          if (!started) { ctx.moveTo(SX[j], SY[j]); started = true; }
-          else ctx.lineTo(SX[j], SY[j]);
+          var j = s + i, jn = s + ((i + 1) % n), a = ZV[j], b = ZV[jn], p;
+          if (!a && !b) continue;
+          if (!started) {
+            if (a) ctx.moveTo(SX[j], SY[j]);
+            else { p = limbXY(j, jn); ctx.moveTo(p[0], p[1]); }
+            started = true;
+          } else if (a) ctx.lineTo(SX[j], SY[j]);
+          else { p = limbXY(j, jn); ctx.lineTo(p[0], p[1]); }
+          if (a && b) ctx.lineTo(SX[jn], SY[jn]);
+          else if (a && !b) { p = limbXY(j, jn); ctx.lineTo(p[0], p[1]); }
         }
         if (started) ctx.closePath();
       }
@@ -740,50 +794,94 @@
       }
     }
     function fillGeo(iso){
-      var rings=countryRings(iso), r, i, la, lo, X, Y, Z, x1, zz, y2, zc, prev;
+      var rings=countryRings(iso), r, i, n, lo, la, X, Y, Z, x1, zz, y2, zc, pts, a, b, p, started;
       if(!rings.length) return false;
+      function proj(pt){
+        lo=pt[0]*PI/180; la=pt[1]*PI/180;
+        X=Math.cos(la)*Math.sin(lo); Y=Math.sin(la); Z=Math.cos(la)*Math.cos(lo);
+        x1=X*cl-Z*sl; zz=X*sl+Z*cl; y2=Y*cp-zz*sp; zc=Y*sp+zz*cp;
+        return {x:cx+R*x1, y:cy-R*y2, z:zc};
+      }
+      function mid(u, v){
+        var t=(0.025-u.z)/((v.z-u.z)||1e-6);
+        if(t<0) t=0; else if(t>1) t=1;
+        return {x:u.x+(v.x-u.x)*t, y:u.y+(v.y-u.y)*t};
+      }
       ctx.beginPath();
       for(r=0;r<rings.length;r++){
-        prev=false;
-        for(i=0;i<rings[r].length;i++){
-          lo=rings[r][i][0]*PI/180; la=rings[r][i][1]*PI/180;
-          X=Math.cos(la)*Math.sin(lo); Y=Math.sin(la); Z=Math.cos(la)*Math.cos(lo);
-          x1=X*cl-Z*sl; zz=X*sl+Z*cl; y2=Y*cp-zz*sp; zc=Y*sp+zz*cp;
-          if(zc<=0.05){ prev=false; continue; }
-          if(prev) ctx.lineTo(cx+R*x1, cy-R*y2); else ctx.moveTo(cx+R*x1, cy-R*y2);
-          prev=true;
+        n=rings[r].length;
+        if(n<3) continue;
+        pts=[];
+        for(i=0;i<n;i++) pts.push(proj(rings[r][i]));
+        started=false;
+        for(i=0;i<n;i++){
+          a=pts[i]; b=pts[(i+1)%n];
+          if(a.z<=0.025 && b.z<=0.025) continue;
+          if(!started){
+            p=a.z>0.025?a:mid(a,b);
+            ctx.moveTo(p.x, p.y);
+            started=true;
+          } else if(a.z>0.025) ctx.lineTo(a.x, a.y);
+          else { p=mid(a,b); ctx.lineTo(p.x, p.y); }
+          if(a.z>0.025 && b.z>0.025) ctx.lineTo(b.x, b.y);
+          else if(a.z>0.025 && b.z<=0.025){ p=mid(a,b); ctx.lineTo(p.x, p.y); }
         }
+        if(started) ctx.closePath();
       }
       return true;
     }
-    function projectFull(e) {
-      for (var r = e.r0; r < e.r1; r++) {
-        if (!RVg[r]) continue;
-        var s0 = rStart[r], n = rLen[r], j, idx, X, Y, Z, x1, zz, y2, z;
-        for (j = 0; j < n; j++) {
-          idx = s0 + j;
-          X = VX[idx]; Y = VY[idx]; Z = VZ[idx];
-          x1 = X * cl - Z * sl; zz = X * sl + Z * cl; y2 = Y * cp - zz * sp; z = Y * sp + zz * cp;
-          if (z > 0.02) { ZV[idx] = 1; SX[idx] = cx + R * x1; SY[idx] = cy - R * y2; }
-          else ZV[idx] = 0;
-        }
+    function countryScreen(iso){
+      var rings=countryRings(iso), ring, i, lo, la, X, Y, Z, x1, zz, y2, zc, sx, sy;
+      var minx=1e9, miny=1e9, maxx=-1e9, maxy=-1e9, sx0=0, sy0=0, nFront=0;
+      if(!rings.length) return null;
+      ring=rings[0];
+      for(i=0;i<ring.length;i++){
+        lo=ring[i][0]*PI/180; la=ring[i][1]*PI/180;
+        X=Math.cos(la)*Math.sin(lo); Y=Math.sin(la); Z=Math.cos(la)*Math.cos(lo);
+        x1=X*cl-Z*sl; zz=X*sl+Z*cl; y2=Y*cp-zz*sp; zc=Y*sp+zz*cp;
+        if(zc<=0.02) continue;
+        sx=cx+R*x1; sy=cy-R*y2; nFront++;
+        if(sx<minx) minx=sx; if(sx>maxx) maxx=sx;
+        if(sy<miny) miny=sy; if(sy>maxy) maxy=sy;
+        sx0+=sx; sy0+=sy;
       }
+      if(!nFront) return null;
+      return {x:sx0/nFront, y:sy0/nFront, small:(maxx-minx)<14 && (maxy-miny)<14};
     }
-    function paintIso(id) {
-      if (!washIso[id] && !markC[id]) return;
-      if (!fillGeo(id)) return;
-      ctx.fillStyle = "rgba(214,168,72,.62)";
-      ctx.fill("evenodd");
-      ctx.strokeStyle = "rgba(120,78,20,.85)";
-      ctx.lineWidth = 1.1;
-      ctx.stroke();
+    function paintGlobeOverlays(){
+      var ids=Object.keys(washIso), k;
+      for(k in markC) if(ids.indexOf(k)<0) ids.push(k);
+      ids.forEach(function(iso){
+        if(!overlayWanted(iso)) return;
+        if(!fillGeo(iso)) return;
+        ctx.fillStyle="rgba(214,168,72,.78)";
+        ctx.fill("nonzero");
+        ctx.strokeStyle="rgba(120,78,20,.95)";
+        ctx.lineWidth=1.35;
+        ctx.stroke();
+        var dot=countryScreen(iso);
+        if(dot && dot.small){
+          ctx.beginPath();
+          ctx.arc(dot.x, dot.y, 6.5, 0, 2*PI);
+          ctx.fillStyle="rgba(214,168,72,.96)";
+          ctx.fill();
+          ctx.strokeStyle="rgba(90,56,12,.9)";
+          ctx.lineWidth=1;
+          ctx.stroke();
+        }
+      });
     }
     function draw(q, fast) {
       setCam();
       var glOn = bootGL();
       if (glOn) paintSphere();
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, cv.width, cv.height);
+      if (glOn) {
+        try { if (gl) gl.flush(); ctx.drawImage(glcv, 0, 0); glcv.style.opacity = "0"; }
+        catch (err) { glcv.style.opacity = "1"; }
+      }
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (!glOn) {
         if (!gready) {
           ctx.fillStyle = "#96b8d0";
@@ -814,13 +912,13 @@
         var e = ents[i];
         if (e.name === "Украина") {
           if (!(litCountry(e) || markC.UA || washIso.UA)) return;
-          if (fast) projectFull(e);
+          projectFull(e);
           ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill("evenodd");
           ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke();
           return;
         }
         if (!litCountry(e)) return;
-        if (fast) projectFull(e);
+        projectFull(e);
         ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill("evenodd");
         ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke();
       });
@@ -830,13 +928,12 @@
           var open=regionLayerOpen(e), marked=regionMarked(e);
           if(!open && !marked) return;
           if (fast && L === "G" && !marked) return;
-          if (fast) projectFull(e);
+          projectFull(e);
           ctx.beginPath(); fillRings(e);
           ctx.fillStyle=marked?"rgba(196,92,40,.72)":"rgba(214,168,72,.38)";
           ctx.fill("evenodd");
         });
       });
-      ["AB", "OS", "MC", "NR", "PN", "SX", "TV", "HK", "MO", "SG", "BH", "MT", "AD", "LI", "LU", "QA", "SM", "VA"].forEach(paintIso);
       [[hoverEnt, "rgba(60,110,85,.55)"], [selEnt, "rgba(196,98,45,.70)"]].forEach(function (h) {
         if (h[0] < 0) return;
         if (ents[h[0]].name === "Украина" && fillGeo("UA")) { ctx.fillStyle = h[1]; ctx.fill("evenodd"); return; }
@@ -885,6 +982,7 @@
           ctx.setLineDash([]); ctx.globalAlpha = 1;
         });
       })();
+      paintGlobeOverlays();
       var sh = ctx.createRadialGradient(cx - R * 0.35, cy - R * 0.4, R * 0.15, cx, cy, R); sh.addColorStop(0, "rgba(255,255,255,.06)"); sh.addColorStop(0.65, "rgba(0,0,0,0)"); sh.addColorStop(1, "rgba(0,0,0,.30)");
       ctx.fillStyle = sh; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.fill(); ctx.restore();
       ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.strokeStyle = "rgba(0,0,0,.45)"; ctx.lineWidth = 1.5; ctx.stroke();
@@ -1031,6 +1129,18 @@
     if (iso && !e.iso) e.iso = iso;
     return !!(iso && washIso[iso]);
   }
+  function overlayWanted(iso) {
+    if (!iso || iso === "RU" || iso === "CN") return false;
+    if (!washIso[iso] && !markC[iso]) return false;
+    var list = byLayer.W || [], i, e, span = -1;
+    for (i = 0; i < list.length; i++) {
+      e = ents[list[i]];
+      if ((e.iso || isoOfName(e.name)) !== iso) continue;
+      span = Math.max(e.bb[2] - e.bb[0], e.bb[3] - e.bb[1]);
+      break;
+    }
+    return span < 0 || span < 320;
+  }
   function stampIso() {
     var list = (typeof COUNTRY_LIST !== "undefined") ? COUNTRY_LIST : null;
     var by = {
@@ -1074,7 +1184,7 @@
       (byLayer[L] || []).forEach(function (i) {
         var r = ents[i];
         if (!regionMarked(r)) return;
-        if (r.iso) washIso[r.iso] = 1;
+        if (r.iso && (r.L === "R" || r.L === "C")) washIso[r.iso] = 1;
         if (r.L === "R" || r.sub === "Россия") washIso.RU = 1;
         if (r.L === "C" || r.sub === "Китай") washIso.CN = 1;
       });
