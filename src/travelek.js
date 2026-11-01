@@ -6462,6 +6462,70 @@ var deleted = loadDeleted();
 var ROUTES = assembleRoutes();
 
 /* place lookup */
+var CITY_RU=null;
+function ensureCityRu(){
+  if(CITY_RU || !WORLD || !WORLD.cities) return;
+  CITY_RU={};
+  var i, row, alts, ru, k;
+  for(i=0;i<WORLD.cities.length;i++){
+    row=WORLD.cities[i];
+    alts=String(row[3]||"").split("|");
+    ru="";
+    for(k=0;k<alts.length;k++) if(/[А-Яа-яЁё]/.test(alts[k])){ ru=alts[k]; break; }
+    if(ru) CITY_RU[foldQ(row[0])]=ru;
+  }
+}
+function translitRu(s){
+  var src=String(s||"").toLowerCase();
+  var dig=[["shch","щ"],["sch","щ"],["yo","ё"],["zh","ж"],["kh","х"],["ts","ц"],["ch","ч"],["sh","ш"],["yu","ю"],["ya","я"],["ye","е"],["yi","и"]];
+  var one={a:"а",b:"б",c:"к",d:"д",e:"е",f:"ф",g:"г",h:"х",i:"и",j:"й",k:"к",l:"л",m:"м",n:"н",o:"о",p:"п",q:"к",r:"р",s:"с",t:"т",u:"у",v:"в",w:"в",x:"кс",y:"й",z:"з"};
+  var out="", i=0, low, hit, d;
+  while(i<src.length){
+    low=src.slice(i);
+    hit="";
+    for(d=0;d<dig.length;d++) if(low.indexOf(dig[d][0])===0){ hit=dig[d][1]; i+=dig[d][0].length; break; }
+    if(hit){ out+=hit; continue; }
+    if(one[src.charAt(i)]) out+=one[src.charAt(i)];
+    else out+=s.charAt(i);
+    i++;
+  }
+  return out.replace(/\b([а-яё])/g, function(ch){ return ch.toUpperCase(); }).replace(/(^|[\s\-(])([а-яё])/g, function(_, a, b){ return a+b.toUpperCase(); });
+}
+function ruAirportName(en, code){
+  ensureCityRu();
+  var clean=String(en||"").replace(/\b(international|airport|aerodrome|airfield|regional|municipal|executive|field)\b/ig, " ").replace(/\s+/g," ").trim();
+  var parts=foldQ(clean).split(/[^a-z0-9]+/).filter(Boolean);
+  var n, key, ru="";
+  if(CITY_RU){
+    for(n=Math.min(3, parts.length); n>=1 && !ru; n--){
+      key=parts.slice(0, n).join(" ");
+      if(CITY_RU[key]) ru=CITY_RU[key];
+    }
+  }
+  if(!ru) ru=translitRu(clean||en);
+  return code? ru+" ("+code+")" : ru;
+}
+function shownPlace(name){
+  if(!name) return "";
+  if(typeof currentLang==="function" && currentLang()!=="ru") return name;
+  if(/[А-Яа-яЁё]/.test(name)) return name;
+  if(/-?\d+\.\d+/.test(name) && /точк|point/i.test(name)) return name;
+  var m=String(name).match(/\(([A-Za-z0-9]{3})\)/);
+  var code=m?m[1].toUpperCase():"";
+  var i, a;
+  if(code && typeof AIRPORTS!=="undefined"){
+    for(i=0;i<AIRPORTS.length;i++){
+      a=AIRPORTS[i];
+      if(a.code===code && /[А-Яа-яЁё]/.test(a.n||"")) return a.n+" ("+code+")";
+    }
+  }
+  if(code && typeof WORLD!=="undefined" && WORLD.ready && WORLD.byCode && WORLD.byCode[code]) return ruAirportName(WORLD.byCode[code].n, code);
+  if(typeof WORLD!=="undefined" && WORLD.ready){
+    ensureCityRu();
+    if(CITY_RU && CITY_RU[foldQ(name)]) return CITY_RU[foldQ(name)];
+  }
+  return ruAirportName(name, "");
+}
 function airportLabel(a){
   if(!a) return "";
   var lang=typeof currentLang==="function"?currentLang():"ru";
@@ -6470,7 +6534,8 @@ function airportLabel(a){
   var latin=(a.alias||"").split(/\s+/).filter(function(w){ return /[A-Za-z]/.test(w); }).slice(0,4).join(" ");
   if(!latin && !ru) latin=name;
   if(lang==="en" || lang==="zh") return latin || name;
-  return ru ? name : (latin || name);
+  if(ru) return name;
+  return ruAirportName(name, "");
 }
 function norm(s){ return (s||"").toLowerCase().replace(/\s+/g," ").trim(); }
 function nameHas(hay, needle){
@@ -6720,6 +6785,11 @@ function worldCityLabel(row, q){
     rank=(f===q?0:100)+names[i].length+(/[ёЁ]/.test(names[i])?1:0)+i*0.001;
     if(rank<bestRank){ bestRank=rank; best=names[i]; }
   }
+  if(!best) return null;
+  if(typeof currentLang!=="function" || currentLang()==="ru"){
+    var alts=String(row[3]||"").split("|"), k;
+    for(k=0;k<alts.length;k++) if(/[А-Яа-яЁё]/.test(alts[k])) return alts[k];
+  }
   return best;
 }
 function fillWorldAir(q, fromCode, out, push){
@@ -6773,13 +6843,13 @@ function worldPlace(name, code){
   var rec, raw, im, q, ids, i, row, label, best, cm, cc;
   if(up && WORLD.byCode[up]){
     rec=WORLD.byCode[up];
-    return {lat:rec.lat,lng:rec.lng,label:rec.n+" ("+rec.code+")"};
+    return {lat:rec.lat,lng:rec.lng,label:airportLabel(rec)+" ("+rec.code+")"};
   }
   raw=String(name||"");
   im=raw.match(/\(([A-Za-z]{3})\)/);
   if(im && WORLD.byCode[im[1].toUpperCase()]){
     rec=WORLD.byCode[im[1].toUpperCase()];
-    return {lat:rec.lat,lng:rec.lng,label:rec.n+" ("+rec.code+")"};
+    return {lat:rec.lat,lng:rec.lng,label:airportLabel(rec)+" ("+rec.code+")"};
   }
   cc=null;
   cm=raw.trim().match(/,\s*([A-Za-z]{2})$/);
@@ -6787,7 +6857,7 @@ function worldPlace(name, code){
   q=foldQ(raw);
   if(/^[a-z]{3}$/.test(q) && WORLD.byCode[q.toUpperCase()]){
     rec=WORLD.byCode[q.toUpperCase()];
-    return {lat:rec.lat,lng:rec.lng,label:rec.n+" ("+rec.code+")"};
+    return {lat:rec.lat,lng:rec.lng,label:airportLabel(rec)+" ("+rec.code+")"};
   }
   if(q.length<2) return null;
   ids=WORLD.cb[q.slice(0,2)];
@@ -6807,7 +6877,7 @@ function worldPlace(name, code){
   if(ids){
     for(i=0;i<ids.length;i++){
       row=WORLD.air[ids[i]];
-      if(foldQ(row[1])===q || foldQ(row[0])===q) return {lat:row[2],lng:row[3],label:row[1]+" ("+row[0]+")"};
+      if(foldQ(row[1])===q || foldQ(row[0])===q) return {lat:row[2],lng:row[3],label:airportLabel({n:row[1],code:row[0]})+" ("+row[0]+")"};
     }
   }
   return best;
@@ -9574,7 +9644,7 @@ function nearestCityName(lat, lng, maxKm){
 }
 function shortPlaceLabel(label, lat, lng){
   if(!label) return label;
-  if(!isCoordLabel(label)) return label;
+  if(!isCoordLabel(label)) return typeof shownPlace==="function"?shownPlace(label):label;
   var la=lat, ln=lng;
   if(la==null||ln==null){
     var m=String(label).match(/(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/);
@@ -11246,23 +11316,41 @@ function syncVisited(){
     return "RU";
   }
   Object.keys(autoC).forEach(addC);
-  manualCountries.forEach(addC);
-  manualRegions.forEach(function(id){
-    addR(id);
-    var c=countryOfRegion(id);
-    if(c) addC(c);
-  });
-  if(activeTab==="trips"){
-    var trips=typeof loadTrips==="function"?loadTrips():[], ti;
+  function addTripSet(tab){
+    var trips=typeof loadTrips==="function"?loadTrips():[], ti, tp, ids, ri, rr, on, fut;
     for(ti=0;ti<trips.length;ti++){
-      if(selectedTripId && trips[ti].id!==selectedTripId) continue;
-      (trips[ti].countries||[]).forEach(addC);
-      (trips[ti].regions||[]).forEach(function(id){
+      tp=trips[ti];
+      if(selectedTripId && tp.id!==selectedTripId) continue;
+      ids=tp.routes||[];
+      on=!ids.length && tab==="past";
+      for(ri=0;ri<ids.length && !on;ri++){
+        rr=typeof routeById==="function"?routeById(ids[ri]):null;
+        if(!rr) continue;
+        fut=typeof isFuture==="function" && isFuture(rr);
+        if(tab==="future" && fut) on=true;
+        if(tab==="past" && !fut) on=true;
+      }
+      if(!on) continue;
+      (tp.countries||[]).forEach(addC);
+      (tp.regions||[]).forEach(function(id){
         addR(id);
         var c=countryOfRegion(id);
         if(c) addC(c);
       });
     }
+  }
+  if(activeTab==="past"){
+    manualCountries.forEach(addC);
+    manualRegions.forEach(function(id){
+      addR(id);
+      var c=countryOfRegion(id);
+      if(c) addC(c);
+    });
+    addTripSet("past");
+  } else if(activeTab==="future"){
+    addTripSet("future");
+  } else if(activeTab==="trips"){
+    addTripSet("past");
   }
   Object.keys(autoR).forEach(function(id){ var c=countryOfRegion(id); if(c && offCountries.indexOf(c)<0) addC(c); });
   visited=next;
@@ -12043,7 +12131,7 @@ function cmpDate(a, b){ return ((a&&a.date||"")+" "+(a&&a.time||"")).localeCompa
 function routeText(r){
   return '<div class="route-line" data-route-edit="'+r.id+'" style="color:'+modeColor(r.mode)+'">'+
     '<button type="button" class="route-x" data-route-del="'+r.id+'" title="'+t("Удалить")+'">×</button>'+
-    escLabel((r.from||"")+" → "+(r.to||""))+(r.date?" · "+escLabel(r.date):"")+'</div>';
+    escLabel(shownPlace(r.from||"")+" → "+shownPlace(r.to||""))+(r.date?" · "+escLabel(r.date):"")+'</div>';
 }
 function deleteRoute(id){
   if(!id) return;
@@ -12345,7 +12433,7 @@ function paintTripWindow(){
   var freeBox=document.getElementById("tw-free");
   if(freeBox){
     freeBox.innerHTML=show.map(function(r){
-      return '<button type="button" data-take="'+r.id+'" style="color:'+modeColor(r.mode)+'">'+escLabel((r.from||"")+" → "+(r.to||""))+'<div class="meta">'+(r.date||"")+"</div></button>";
+      return '<button type="button" data-take="'+r.id+'" style="color:'+modeColor(r.mode)+'">'+escLabel(shownPlace(r.from||"")+" → "+shownPlace(r.to||""))+'<div class="meta">'+(r.date||"")+"</div></button>";
     }).join("");
   }
   var more=document.getElementById("tw-free-more");
@@ -12355,7 +12443,7 @@ function paintTripWindow(){
     var ordered=tw.routes.map(function(r,i){ return {r:r,i:i}; }).sort(function(a,b){ return cmpDate(a.r,b.r); });
     box.innerHTML=ordered.map(function(item){
       var r=item.r;
-      return '<button type="button" data-drop-route="'+item.i+'" style="color:'+modeColor(r.mode)+'">'+escLabel((r.from||"")+" → "+(r.to||""))+'<div class="meta">'+(r.date||"")+"</div> ×</button>";
+      return '<button type="button" data-drop-route="'+item.i+'" style="color:'+modeColor(r.mode)+'">'+escLabel(shownPlace(r.from||"")+" → "+shownPlace(r.to||""))+'<div class="meta">'+(r.date||"")+"</div> ×</button>";
     }).join("");
   }
   var picked=document.getElementById("tw-picked");

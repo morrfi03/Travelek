@@ -1172,7 +1172,7 @@ function nearestCityName(lat, lng, maxKm){
 }
 function shortPlaceLabel(label, lat, lng){
   if(!label) return label;
-  if(!isCoordLabel(label)) return label;
+  if(!isCoordLabel(label)) return typeof shownPlace==="function"?shownPlace(label):label;
   var la=lat, ln=lng;
   if(la==null||ln==null){
     var m=String(label).match(/(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/);
@@ -2844,23 +2844,41 @@ function syncVisited(){
     return "RU";
   }
   Object.keys(autoC).forEach(addC);
-  manualCountries.forEach(addC);
-  manualRegions.forEach(function(id){
-    addR(id);
-    var c=countryOfRegion(id);
-    if(c) addC(c);
-  });
-  if(activeTab==="trips"){
-    var trips=typeof loadTrips==="function"?loadTrips():[], ti;
+  function addTripSet(tab){
+    var trips=typeof loadTrips==="function"?loadTrips():[], ti, tp, ids, ri, rr, on, fut;
     for(ti=0;ti<trips.length;ti++){
-      if(selectedTripId && trips[ti].id!==selectedTripId) continue;
-      (trips[ti].countries||[]).forEach(addC);
-      (trips[ti].regions||[]).forEach(function(id){
+      tp=trips[ti];
+      if(selectedTripId && tp.id!==selectedTripId) continue;
+      ids=tp.routes||[];
+      on=!ids.length && tab==="past";
+      for(ri=0;ri<ids.length && !on;ri++){
+        rr=typeof routeById==="function"?routeById(ids[ri]):null;
+        if(!rr) continue;
+        fut=typeof isFuture==="function" && isFuture(rr);
+        if(tab==="future" && fut) on=true;
+        if(tab==="past" && !fut) on=true;
+      }
+      if(!on) continue;
+      (tp.countries||[]).forEach(addC);
+      (tp.regions||[]).forEach(function(id){
         addR(id);
         var c=countryOfRegion(id);
         if(c) addC(c);
       });
     }
+  }
+  if(activeTab==="past"){
+    manualCountries.forEach(addC);
+    manualRegions.forEach(function(id){
+      addR(id);
+      var c=countryOfRegion(id);
+      if(c) addC(c);
+    });
+    addTripSet("past");
+  } else if(activeTab==="future"){
+    addTripSet("future");
+  } else if(activeTab==="trips"){
+    addTripSet("past");
   }
   Object.keys(autoR).forEach(function(id){ var c=countryOfRegion(id); if(c && offCountries.indexOf(c)<0) addC(c); });
   visited=next;
@@ -3641,7 +3659,7 @@ function cmpDate(a, b){ return ((a&&a.date||"")+" "+(a&&a.time||"")).localeCompa
 function routeText(r){
   return '<div class="route-line" data-route-edit="'+r.id+'" style="color:'+modeColor(r.mode)+'">'+
     '<button type="button" class="route-x" data-route-del="'+r.id+'" title="'+t("Удалить")+'">×</button>'+
-    escLabel((r.from||"")+" → "+(r.to||""))+(r.date?" · "+escLabel(r.date):"")+'</div>';
+    escLabel(shownPlace(r.from||"")+" → "+shownPlace(r.to||""))+(r.date?" · "+escLabel(r.date):"")+'</div>';
 }
 function deleteRoute(id){
   if(!id) return;
@@ -3943,7 +3961,7 @@ function paintTripWindow(){
   var freeBox=document.getElementById("tw-free");
   if(freeBox){
     freeBox.innerHTML=show.map(function(r){
-      return '<button type="button" data-take="'+r.id+'" style="color:'+modeColor(r.mode)+'">'+escLabel((r.from||"")+" → "+(r.to||""))+'<div class="meta">'+(r.date||"")+"</div></button>";
+      return '<button type="button" data-take="'+r.id+'" style="color:'+modeColor(r.mode)+'">'+escLabel(shownPlace(r.from||"")+" → "+shownPlace(r.to||""))+'<div class="meta">'+(r.date||"")+"</div></button>";
     }).join("");
   }
   var more=document.getElementById("tw-free-more");
@@ -3953,7 +3971,7 @@ function paintTripWindow(){
     var ordered=tw.routes.map(function(r,i){ return {r:r,i:i}; }).sort(function(a,b){ return cmpDate(a.r,b.r); });
     box.innerHTML=ordered.map(function(item){
       var r=item.r;
-      return '<button type="button" data-drop-route="'+item.i+'" style="color:'+modeColor(r.mode)+'">'+escLabel((r.from||"")+" → "+(r.to||""))+'<div class="meta">'+(r.date||"")+"</div> ×</button>";
+      return '<button type="button" data-drop-route="'+item.i+'" style="color:'+modeColor(r.mode)+'">'+escLabel(shownPlace(r.from||"")+" → "+shownPlace(r.to||""))+'<div class="meta">'+(r.date||"")+"</div> ×</button>";
     }).join("");
   }
   var picked=document.getElementById("tw-picked");

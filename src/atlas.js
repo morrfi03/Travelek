@@ -35,7 +35,7 @@
   }
   (function mountAtlas() {
     var css = document.createElement("style");
-    css.textContent = "#flatBox,#globeBox{position:absolute;inset:0;overflow:hidden}#flatBox{background:#dde8ee}#globeBox{background:#0e1a24}#cvF,#cvG,#cvGgl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}#cvGgl{pointer-events:none;z-index:0}#cvG{z-index:1;background:transparent}#cvF.drag,#cvG.drag{cursor:grabbing}#tipF,#tipG{position:absolute;z-index:4;pointer-events:none;background:#1f2a26;color:#fff;padding:5px 9px;border-radius:6px;font:600 13px/1.3 system-ui,sans-serif;opacity:0;transform:translate(12px,12px);white-space:nowrap}#tipF small,#tipG small{display:block;opacity:.7;font-size:11px;font-weight:500}#atlas-html{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}";
+    css.textContent = "#flatBox,#globeBox{position:absolute;inset:0;overflow:hidden}#flatBox{background:#dde8ee}#globeBox{background:#0e1a24}#cvF,#cvG,#cvGgl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}#cvGgl{pointer-events:none;z-index:0}#cvG{z-index:1;background:transparent}#cvF.drag,#cvG.drag{cursor:grabbing}#tipF,#tipG{position:absolute;z-index:4;pointer-events:none;background:#1f2a26;color:#fff;padding:5px 9px;border-radius:6px;font:600 13px/1.3 Manrope,system-ui,sans-serif;opacity:0;transform:translate(12px,12px);white-space:nowrap}#tipF small,#tipG small{display:block;opacity:.7;font-size:11px;font-weight:500}#atlas-html{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}";
     document.head.appendChild(css);
     function box(id){ var d=document.createElement("div"); d.id=id; return d; }
     var fb=box("flatBox"), cv=document.createElement("canvas"); cv.id="cvF"; fb.appendChild(cv);
@@ -341,6 +341,15 @@
           c.fillStyle=marked?"rgba(196,92,40,.72)":"rgba(214,168,72,.38)";
           c.fill("evenodd");
         });
+      });
+      ["AB", "OS", "MC", "NR", "PN", "SX", "TV"].forEach(function (id) {
+        if (!washIso[id] && !markC[id]) return;
+        if (!traceFlat(c, id)) return;
+        c.fillStyle = "rgba(214,168,72,.62)";
+        c.fill("evenodd");
+        c.strokeStyle = "rgba(120,78,20,.8)";
+        c.lineWidth = 1.3 * lw;
+        c.stroke();
       });
       if (k >= 2.6) {
         c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) entPath(c, ents[i]); }); });
@@ -744,6 +753,28 @@
       }
       return true;
     }
+    function projectFull(e) {
+      for (var r = e.r0; r < e.r1; r++) {
+        if (!RVg[r]) continue;
+        var s0 = rStart[r], n = rLen[r], j, idx, X, Y, Z, x1, zz, y2, z;
+        for (j = 0; j < n; j++) {
+          idx = s0 + j;
+          X = VX[idx]; Y = VY[idx]; Z = VZ[idx];
+          x1 = X * cl - Z * sl; zz = X * sl + Z * cl; y2 = Y * cp - zz * sp; z = Y * sp + zz * cp;
+          if (z > 0.02) { ZV[idx] = 1; SX[idx] = cx + R * x1; SY[idx] = cy - R * y2; }
+          else ZV[idx] = 0;
+        }
+      }
+    }
+    function paintIso(id) {
+      if (!washIso[id] && !markC[id]) return;
+      if (!fillGeo(id)) return;
+      ctx.fillStyle = "rgba(214,168,72,.62)";
+      ctx.fill("evenodd");
+      ctx.strokeStyle = "rgba(120,78,20,.85)";
+      ctx.lineWidth = 1.1;
+      ctx.stroke();
+    }
     function draw(q, fast) {
       setCam();
       var glOn = bootGL();
@@ -780,11 +811,13 @@
         var e = ents[i];
         if (e.name === "Украина") {
           if (!(litCountry(e) || markC.UA || washIso.UA)) return;
+          if (fast) projectFull(e);
           ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill("evenodd");
           ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke();
           return;
         }
         if (!litCountry(e)) return;
+        if (fast) projectFull(e);
         ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill("evenodd");
         ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke();
       });
@@ -794,11 +827,15 @@
           var open=regionLayerOpen(e), marked=regionMarked(e);
           if(!open && !marked) return;
           if (fast && !marked) return;
+          if (fast) projectFull(e);
           ctx.beginPath(); fillRings(e);
           ctx.fillStyle=marked?"rgba(196,92,40,.72)":"rgba(214,168,72,.38)";
           ctx.fill("evenodd");
         });
       });
+      ["AB", "OS", "MC", "NR", "PN", "SX", "TV"].forEach(paintIso);
+      if (fast && (washIso.RU || markC.RU)) paintIso("RU");
+      if (fast && (washIso.CN || markC.CN)) paintIso("CN");
       [[hoverEnt, "rgba(60,110,85,.55)"], [selEnt, "rgba(196,98,45,.70)"]].forEach(function (h) {
         if (h[0] < 0) return;
         if (ents[h[0]].name === "Украина" && fillGeo("UA")) { ctx.fillStyle = h[1]; ctx.fill("evenodd"); return; }
