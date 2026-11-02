@@ -1,3 +1,4 @@
+"use strict";
 function safeSetItem(key, val){
   try{ localStorage.setItem(key, val); }catch(e){ alert("Не удалось сохранить дневник в браузере"); return false; }
   scheduleCloudSave();

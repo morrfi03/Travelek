@@ -1,3 +1,4 @@
+"use strict";
 /* map */
 var map;
 window.__onRoads=function(){
@@ -3992,9 +3993,6 @@ function bindTripWindow(){
   };
 }
 bindTripWindow();
-
-
-})();
 
 (function accountUi(){
   if(window.__TRAVELEK_READONLY) document.body.classList.add("ro");

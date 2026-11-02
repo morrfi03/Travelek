@@ -1,5 +1,4 @@
 
-(function(){
 "use strict";
 if(window.__travelekMap){
   try{ window.__travelekMap.remove(); }catch(e){}
