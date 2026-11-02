@@ -1484,7 +1484,7 @@
       if (!p) { f._el.style.display = "none"; return; }
       f._el.style.display = "block"; f._el.style.left = p.x + "px"; f._el.style.top = p.y + "px";
     }
-    /* leaflet-shaped constructors used by the diary */
+    /* фигуры маршрутов: свой слой карты, не Leaflet */
     function Feat(kind, ll, style) { this.kind = kind; this.ll = ll; this.style = style || {}; }
     Feat.prototype.addTo = function (t) { if (t && t.addLayer) t.addLayer(this); return this; };
     Feat.prototype.bringToFront = function () { return this; };
