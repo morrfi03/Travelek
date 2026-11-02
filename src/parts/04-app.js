@@ -1,7 +1,7 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=20";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=20";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=20";
-import { createMap } from "../atlas.js?v=20";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=21";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=21";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=21";
+import { createMap } from "../atlas.js?v=21";
 "use strict";
 /* map */
 export var map;
@@ -2017,11 +2017,26 @@ function canonRegion(id){
 }
 manualRegions=loadArr("travelek-regions").map(canonRegion);
 offRegions=loadArr("travelek-regions-off");
+function dropRegionsOfOffCountries(){
+  var kept=[], changed=false, i, id, parent;
+  for(i=0;i<manualRegions.length;i++){
+    id=manualRegions[i];
+    parent=countryOfRid(id);
+    if(parent && offCountries.indexOf(parent)>=0){
+      if(offRegions.indexOf(id)<0) offRegions.push(id);
+      changed=true;
+    } else kept.push(id);
+  }
+  if(!changed) return;
+  manualRegions=kept;
+  saveSets();
+}
 function reloadVisited(){
   manualCountries=loadArr("travelek-countries");
   offCountries=loadArr("travelek-countries-off");
   manualRegions=loadArr("travelek-regions").map(canonRegion);
   offRegions=loadArr("travelek-regions-off");
+  dropRegionsOfOffCountries();
   if(typeof syncVisited==="function") syncVisited();
   if(typeof drawCountries==="function") drawCountries();
   if(typeof renderCountryUi==="function") renderCountryUi();
@@ -2052,6 +2067,7 @@ window.__reloadVisited=reloadVisited;
   offRegions=offRegions.map(mapR);
   if(hadTw && manualRegions.indexOf("CN:Тайвань")<0) manualRegions.push("CN:Тайвань");
   if(beforeC!==manualCountries.join("\n")||beforeO!==offCountries.join("\n")||beforeR!==manualRegions.join("\n")||beforeRO!==offRegions.join("\n")) saveSets();
+  dropRegionsOfOffCountries();
 })();
 function ringHas(ring, lat, lng){
   var inside=false, j=ring.length-1, i, xi, yi, xj, yj, den;
@@ -2435,6 +2451,8 @@ export function syncVisited(){
   var nextR=[], seenR={};
   function addR(id){
     if(!id || seenR[id] || offRegions.indexOf(id)>=0) return;
+    var parent=countryOfRegion(id);
+    if(parent && offCountries.indexOf(parent)>=0) return;
     seenR[id]=1; nextR.push(id);
   }
   function countryOfRegion(id){
