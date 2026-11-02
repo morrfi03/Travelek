@@ -1,7 +1,7 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js";
-import { createMap } from "../atlas.js";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=20";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=20";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=20";
+import { createMap } from "../atlas.js?v=20";
 "use strict";
 /* map */
 export var map;
@@ -2712,7 +2712,8 @@ function renderCountryUi(){
     var regs=regionsFor(c.i);
     if(regs && regs.length){
       var rs=regionStatsFor(c.i);
-      return '<button type="button" class="'+(on?"on":"")+'" data-open="'+c.i+'"><span>'+countryLabel(c)+'</span><span>'+pctOf(rs.got, rs.total)+" · "+ofCount(rs.got, rs.total, t("регионов"))+'</span></button>';
+      var side=(on?"✓ · ":"")+pctOf(rs.got, rs.total)+" · "+ofCount(rs.got, rs.total, t("регионов"));
+      return '<button type="button" class="'+(on?"on":"")+'" data-open="'+c.i+'"><span>'+countryLabel(c)+'</span><span'+(on?' data-off="'+c.i+'"':"")+'>'+side+'</span></button>';
     }
     return '<button type="button" class="'+(on?"on":"")+'" data-iso="'+c.i+'"><span>'+countryLabel(c)+'</span><span>'+(on?"✓":"")+'</span></button>';
   }).join("") || '<p class="hint">'+t("Ничего не найдено")+'</p>';
@@ -3032,6 +3033,8 @@ var countryQ=document.getElementById("country-q");
 if(countryQ) countryQ.oninput=function(){ renderCountryUi(); };
 var countryList=document.getElementById("country-list");
 if(countryList) countryList.onclick=function(e){
+  var off=e.target.closest("[data-off]");
+  if(off){ unvisitCountry(off.getAttribute("data-off")); return; }
   var open=e.target.closest("[data-open]");
   if(open){ regionScope=open.getAttribute("data-open")||"RU"; var qEl=document.getElementById("country-q"); if(qEl) qEl.value=""; renderCountryUi(); return; }
   var b=e.target.closest("[data-iso]");
@@ -3080,7 +3083,7 @@ var countryPicked=document.getElementById("country-picked");
 if(countryPicked) countryPicked.onclick=function(e){
   var b=e.target.closest("button");
   if(!b) return;
-  toggleCountry(b.getAttribute("data-drop"));
+  unvisitCountry(b.getAttribute("data-drop"));
 };
 var fromRoutes=document.getElementById("countries-from-routes");
 if(fromRoutes) fromRoutes.onclick=function(){

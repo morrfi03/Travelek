@@ -1,5 +1,5 @@
 
-import { ATLAS_G as G } from "../geo/atlas-data.js";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=20";
 var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
@@ -1106,10 +1106,7 @@ var api = (function () {
   function isoOfName(name) {
     var n = String(name || "").toLowerCase().replace(/ё/g, "е");
     if (!n) return "";
-    if (nameIso[n]) return nameIso[n];
-    var k;
-    for (k in nameIso) if (nameClose(n, k)) return nameIso[k];
-    return "";
+    return nameIso[n] || "";
   }
   function nameClose(a, b) {
     if (a === b) return true;
@@ -1142,7 +1139,10 @@ var api = (function () {
     }
     return span < 0 || span < 320;
   }
+  var isoEpoch = 0, isoDone = -1;
   function stampIso() {
+    if (isoDone === isoEpoch) return 0;
+    isoDone = isoEpoch;
     var list = countryList;
     var by = {
       "россия": "RU", "российская федерация": "RU", "украина": "UA",
@@ -1168,7 +1168,7 @@ var api = (function () {
     ents.forEach(function (e) {
       var label = String((e.L === "W" ? e.name : (e.sub || e.name)) || "").toLowerCase().replace(/ё/g, "е");
       var iso = by[label] || "";
-      if (!iso && label) {
+      if (!iso && e.L === "W" && label) {
         for (k in by) if (nameClose(label, k)) { iso = by[k]; break; }
       }
       if (e.L === "R" || label === "россия") iso = "RU";
@@ -1214,14 +1214,7 @@ var api = (function () {
     stampIso();
     rebuildWash();
     views.flat.draw();
-    if (typeof countryAt !== "function") { if (mode === "globe") views.globe.draw(); return; }
-    var i = 0;
-    (function chunk() {
-      var end = Math.min(ents.length, i + 60);
-      for (; i < end; i++) tagOne(ents[i]);
-      if (i < ents.length) setTimeout(chunk, 16);
-      else { markRev++; views.flat.draw(); if (mode === "globe") views.globe.draw(); }
-    })();
+    if (mode === "globe") views.globe.draw();
   }
   function buildFacade() {
     var pane = document.getElementById("atlas-html");
@@ -1379,7 +1372,7 @@ var api = (function () {
         if (netWait[key]) { views.flat.setShow(key, !!on); return; }
         netWait[key] = 1;
         var s = document.createElement("script");
-        s.src = key === "rd" ? "geo/roads.js" : "geo/rails.js";
+        s.src = key === "rd" ? "geo/roads.js?v=20" : "geo/rails.js?v=20";
         s.onload = function () { ready(key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS); };
         s.onerror = function () { netWait[key] = 0; };
         document.head.appendChild(s);
@@ -1520,7 +1513,14 @@ var api = (function () {
     facade.pin = function (ll, st) { return new Feat("marker", ll, st); };
     facade.group = function () { return new Group(); };
     facade.htmlIcon = function (opts) { return { options: opts || {} }; };
-    facade.setCountryList = function (list) { countryList = list || null; };
+    facade.setCountryList = function (list) {
+      countryList = list || null;
+      isoEpoch++;
+      stampIso();
+      rebuildWash();
+      views.flat.draw();
+      if (mode === "globe") views.globe.draw();
+    };
     return facade;
   }
   if (window.ResizeObserver) new ResizeObserver(function () { views[mode].resize(); views[mode].draw(); }).observe(root);
