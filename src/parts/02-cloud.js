@@ -1,11 +1,13 @@
+import { AIRPORTS, CITIES, PORTS, PORT_ALIASES, PORT_BY_ID, STATIONS, findPortByQuery, flightAllowed, formatPortLabel, isPassengerPort, portCityKey, portPath } from "./01-catalog.js";
+import { countryAt, currentLang, drawCountries, globeOn, map, regionIn, render, syncVisited, t } from "./04-app.js";
 "use strict";
-function safeSetItem(key, val){
+export function safeSetItem(key, val){
   try{ localStorage.setItem(key, val); }catch(e){ alert("Не удалось сохранить дневник в браузере"); return false; }
   scheduleCloudSave();
   return true;
 }
 var cloudTimer=null;
-function scheduleCloudSave(){
+export function scheduleCloudSave(){
   if(window.__TRAVELEK_READONLY) return;
   if(typeof window.__cloudPush!=="function") return;
   clearTimeout(cloudTimer);
@@ -16,13 +18,13 @@ function scheduleCloudSave(){
     try{ window.__cloudPush(pack); }catch(e){}
   }, 500);
 }
-function saveExtra(list){ safeSetItem("travelek-extra", JSON.stringify(list||[])); }
-function saveDeleted(list){ safeSetItem("travelek-del", JSON.stringify(list||[])); }
-function loadAppSettings(){ try{ return JSON.parse(localStorage.getItem("travelek-app-settings")||"{}"); }catch(e){ return {}; } }
-function saveAppSettings(s){ safeSetItem("travelek-app-settings", JSON.stringify(s||{})); }
-function isStrictRoutes(){ return true; }
-function navLimitsOn(){ return loadAppSettings().navLimits!==false; }
-function navZonesOn(){ return !!loadAppSettings().navZones; }
+export function saveExtra(list){ safeSetItem("travelek-extra", JSON.stringify(list||[])); }
+export function saveDeleted(list){ safeSetItem("travelek-del", JSON.stringify(list||[])); }
+export function loadAppSettings(){ try{ return JSON.parse(localStorage.getItem("travelek-app-settings")||"{}"); }catch(e){ return {}; } }
+export function saveAppSettings(s){ safeSetItem("travelek-app-settings", JSON.stringify(s||{})); }
+export function isStrictRoutes(){ return true; }
+export function navLimitsOn(){ return loadAppSettings().navLimits!==false; }
+export function navZonesOn(){ return !!loadAppSettings().navZones; }
 var navZoneLayer=null;
 function shipBasin(p){
   if(!p) return "";
@@ -38,7 +40,7 @@ function shipBasin(p){
   if(lat>58 && lng>29 && lng<42) return "vb";
   return "sea";
 }
-function shipNavWarnings(pa, pb, dateStr){
+export function shipNavWarnings(pa, pb, dateStr){
   if(!navLimitsOn()) return [];
   var d=dateStr?new Date(dateStr+"T12:00:00"):new Date();
   if(isNaN(d.getTime())) d=new Date();
@@ -59,11 +61,11 @@ function shipNavWarnings(pa, pb, dateStr){
   });
   return w;
 }
-function drawNavZones(){
-  if(typeof map==="undefined" || !map || typeof L==="undefined") return;
+export function drawNavZones(){
+  if(typeof map==="undefined" || !map || !map.group) return;
   if(navZoneLayer){ try{ map.removeLayer(navZoneLayer); }catch(e){} navZoneLayer=null; }
   if(!navZonesOn()) return;
-  navZoneLayer=L.layerGroup();
+  navZoneLayer=map.group();
   var zones=[
     {lat:60.2,lng:32.5,r:180000,c:"#22d3ee"},
     {lat:56.65,lng:43.47,r:28000,c:"#fbbf24"},
@@ -76,14 +78,14 @@ function drawNavZones(){
     {lat:50.2,lng:136.2,r:260000,c:"#2dd4bf"}
   ];
   zones.forEach(function(z){
-    L.circle([z.lat,z.lng],{radius:z.r,color:z.c,weight:1,fillColor:z.c,fillOpacity:0.12,interactive:false}).addTo(navZoneLayer);
+    map.circle([z.lat,z.lng],{radius:z.r,color:z.c,weight:1,fillColor:z.c,fillOpacity:0.12,interactive:false}).addTo(navZoneLayer);
   });
   navZoneLayer.addTo(map);
   try{ navZoneLayer.bringToBack && map.getPane && null; }catch(e){}
 }
 
-function loadExtra(){ try{return JSON.parse(localStorage.getItem("travelek-extra")||"[]");}catch(e){return[];} }
-function loadDeleted(){ try{return JSON.parse(localStorage.getItem("travelek-del")||"[]");}catch(e){return[];} }
+export function loadExtra(){ try{return JSON.parse(localStorage.getItem("travelek-extra")||"[]");}catch(e){return[];} }
+export function loadDeleted(){ try{return JSON.parse(localStorage.getItem("travelek-del")||"[]");}catch(e){return[];} }
 function wipeRoutesOnce(){
   if(localStorage.getItem("travelek-wipe")==="2") return;
   var KEYS=["travelek-extra","travelek-del","travelek-countries","travelek-countries-off","travelek-regions","travelek-regions-off"];
@@ -730,13 +732,17 @@ wipeRoutesOnce();
     } else if(!ret && err) err.textContent=t("Неверный логин или пароль");
   };
 })();
-function assembleRoutes(){
+export function assembleRoutes(){
   var del=loadDeleted();
   var extra=loadExtra();
   return extra.filter(function(r){ return del.indexOf(r.id)<0; });
 }
-var deleted = loadDeleted();
-var ROUTES = assembleRoutes();
+export var deleted = loadDeleted();
+export var ROUTES = assembleRoutes();
+export function setRoutes(v){ ROUTES=v; }
+export function setDeleted(v){ deleted=v; }
+var railNearFn=null, railPathFn=null;
+export function bindRail(near, path){ railNearFn=near; railPathFn=path; }
 
 /* place lookup */
 var CITY_RU=null;
@@ -782,7 +788,7 @@ function ruAirportName(en, code){
   if(!ru) ru=translitRu(clean||en);
   return code? ru+" ("+code+")" : ru;
 }
-function shownPlace(name){
+export function shownPlace(name){
   if(!name) return "";
   if(typeof currentLang==="function" && currentLang()!=="ru") return name;
   if(/[А-Яа-яЁё]/.test(name)) return name;
@@ -814,8 +820,8 @@ function airportLabel(a){
   if(ru) return name;
   return ruAirportName(name, "");
 }
-function norm(s){ return (s||"").toLowerCase().replace(/\s+/g," ").trim(); }
-function nameHas(hay, needle){
+export function norm(s){ return (s||"").toLowerCase().replace(/\s+/g," ").trim(); }
+export function nameHas(hay, needle){
   if(!needle || !hay) return false;
   if(hay===needle) return true;
   var i=0, j, before, after;
@@ -827,7 +833,7 @@ function nameHas(hay, needle){
   }
   return false;
 }
-function place(name, code){
+export function place(name, code){
   var i, a, s, c, k, m;
   /* точка с карты: "Точка 55.1234, 37.5678" или "55.12, 37.56" */
   m = String(name||"").match(/(-?\d+\.?\d*)\s*,\s*(-?\d+\.?\d*)/);
@@ -917,7 +923,7 @@ function buildIdx(){
     return {n:c.n, key:norm(c.n), lat:c.lat, lng:c.lng};
   });
 }
-function searchCatalog(mode, q, fromHint){
+export function searchCatalog(mode, q, fromHint){
   buildIdx();
   q = norm(q);
   var out = [], i, it;
@@ -960,16 +966,16 @@ function searchCatalog(mode, q, fromHint){
     var fromRail=null;
     if(fromHint){
       var pf=place(fromHint);
-      if(pf && typeof railNear==="function") fromRail=railNear(pf);
+      if(pf && typeof railNearFn==="function") fromRail=railNearFn(pf);
     }
     for(i=0;i<IDX_ST.length && out.length<12;i++){
       it=IDX_ST[i];
       if(it.key.indexOf(q)<0) continue;
-      if(fromRail && typeof railPath==="function"){
+      if(fromRail && typeof railPathFn==="function"){
         var pr=place(it.n);
-        var toRail=pr && railNear(pr);
+        var toRail=pr && railNearFn(pr);
         if(!toRail || toRail===fromRail) continue;
-        if(!railPath(fromRail, toRail)) continue;
+        if(!railPathFn(fromRail, toRail)) continue;
       }
       push(it.n, it.n);
     }
@@ -1022,7 +1028,7 @@ function searchCatalog(mode, q, fromHint){
 }
 
 /* Мировой справочник: грузится после карты и ищется по первым буквам, без перебора на старте. */
-var WORLD={ready:false, loading:false, byCode:{}, ab:{}, cb:{}, air:null, cities:null};
+export var WORLD={ready:false, loading:false, byCode:{}, ab:{}, cb:{}, air:null, cities:null};
 function foldQ(s){ return norm(s).replace(/ё/g,"е"); }
 function worldBucket(map, key, idx){
   var b=map[key];
@@ -1160,7 +1166,7 @@ function worldPlace(name, code){
   return best;
 }
 var _wrmQ=null, _wrm=null;
-function worldRegionMap(q){
+export function worldRegionMap(q){
   var fq=foldQ(q);
   if(_wrm && _wrmQ===fq) return _wrm;
   _wrmQ=fq;
@@ -1205,7 +1211,7 @@ function loadWorldPlacesMain(){
     setTimeout(step, 0);
   }).catch(function(){ WORLD.loading=false; });
 }
-function loadWorldPlaces(){
+export function loadWorldPlaces(){
   if(WORLD.loading || WORLD.ready) return;
   WORLD.loading=true;
   if(!window.Worker){ WORLD.loading=false; loadWorldPlacesMain(); return; }

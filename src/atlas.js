@@ -1,14 +1,15 @@
 
-(function () {
+import { ATLAS_G as G } from "../geo/atlas-data.js";
+var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
   var root = document.getElementById("map");
-  var G = window.ATLAS_G;
-  if (!root || !G) return;
+  var countryList = null;
+  if (!root || !G) return {};
   var hooks = { click: null, move: null, afterView: null, paint: null };
   var markC = {}, markR = {}, markRev = 0, washIso = {}, nameIso = {};
   function countryRings(iso){
-    var list=(typeof COUNTRY_LIST!=="undefined")?COUNTRY_LIST:null, i, item, out=[], poly, ring;
+    var list=countryList, i, item, out=[], poly, ring;
     if(!list) return out;
     for(i=0;i<list.length;i++) if(list[i].i===iso){ item=list[i]; break; }
     if(!item || !item.p) return out;
@@ -1142,7 +1143,7 @@
     return span < 0 || span < 320;
   }
   function stampIso() {
-    var list = (typeof COUNTRY_LIST !== "undefined") ? COUNTRY_LIST : null;
+    var list = countryList;
     var by = {
       "россия": "RU", "российская федерация": "RU", "украина": "UA",
       "китай": "CN", "китайская народная республика": "CN",
@@ -1398,8 +1399,11 @@
     facade._paint = redraw;
     facade.addLayer = function (l) {
       if (!l) return facade;
-      if (l._isGroup) { if (facade._groups.indexOf(l) < 0) facade._groups.push(l); l._map = facade; }
-      else facade._extras.push(l);
+      if (l._isGroup) {
+        if (facade._groups.indexOf(l) < 0) facade._groups.push(l);
+        l._map = facade;
+        (l._layers || []).forEach(function (x) { if (x) x._map = facade; });
+      } else { facade._extras.push(l); l._map = facade; }
       redraw(); return facade;
     };
     facade.removeLayer = function (l) {
@@ -1487,11 +1491,17 @@
     /* фигуры маршрутов: свой слой карты, не Leaflet */
     function Feat(kind, ll, style) { this.kind = kind; this.ll = ll; this.style = style || {}; }
     Feat.prototype.addTo = function (t) { if (t && t.addLayer) t.addLayer(this); return this; };
+    Feat.prototype.setLatLng = function (ll) { this.ll = ll; if (this._map && this._map._paint) this._map._paint(); return this; };
     Feat.prototype.bringToFront = function () { return this; };
     Feat.prototype.bringToBack = function () { return this; };
     function Group() { this._isGroup = true; this._layers = []; this._map = null; }
     Group.prototype.addTo = function (m) { m.addLayer(this); return this; };
-    Group.prototype.addLayer = function (l) { this._layers.push(l); if (this._map) this._map._paint(); return this; };
+    Group.prototype.addLayer = function (l) {
+      this._layers.push(l);
+      if (l) l._map = this._map;
+      if (this._map) this._map._paint();
+      return this;
+    };
     Group.prototype.clearLayers = function () {
       this._layers.forEach(function (l) { if (l && l._el && l._el.parentNode) l._el.parentNode.removeChild(l._el); });
       this._layers.length = 0; if (this._map) this._map._paint();
@@ -1503,25 +1513,22 @@
       if (l && l._el && l._el.parentNode) l._el.parentNode.removeChild(l._el);
       if (this._map) this._map._paint();
     };
-    var Lref = window.L || {};
-    Lref.polyline = function (ll, st) { return new Feat("line", ll, st); };
-    Lref.polygon = function (ll, st) { return new Feat("polygon", ll, st); };
-    Lref.circle = function (ll, st) { return new Feat("circle", ll, st); };
-    Lref.circleMarker = function (ll, st) { return new Feat("circleMarker", ll, st); };
-    Lref.marker = function (ll, st) { return new Feat("marker", ll, st); };
-    Lref.layerGroup = function () { return new Group(); };
-    Lref.divIcon = function (opts) { return { options: opts || {} }; };
-    Lref.DomEvent = Lref.DomEvent || {
-      disableClickPropagation: function () {},
-      disableScrollPropagation: function () {},
-      stopPropagation: function () {},
-      preventDefault: function () {}
-    };
-    window.L = Lref;
+    facade.line = function (ll, st) { return new Feat("line", ll, st); };
+    facade.polygon = function (ll, st) { return new Feat("polygon", ll, st); };
+    facade.circle = function (ll, st) { return new Feat("circle", ll, st); };
+    facade.dot = function (ll, st) { return new Feat("circleMarker", ll, st); };
+    facade.pin = function (ll, st) { return new Feat("marker", ll, st); };
+    facade.group = function () { return new Group(); };
+    facade.htmlIcon = function (opts) { return { options: opts || {} }; };
+    facade.setCountryList = function (list) { countryList = list || null; };
     return facade;
   }
-  window.TravelekAtlas = { createMap: buildFacade, setVisited: setVisited, setMode: setMode };
   if (window.ResizeObserver) new ResizeObserver(function () { views[mode].resize(); views[mode].draw(); }).observe(root);
   window.addEventListener("resize", function () { views[mode].resize(); views[mode].draw(); });
   views.flat.resize(); views.flat.draw();
+  return { createMap: buildFacade, setVisited: setVisited, setMode: setMode };
 })();
+export var createMap = api.createMap;
+export var setVisited = api.setVisited;
+export var setMode = api.setMode;
+

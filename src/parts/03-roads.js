@@ -1,10 +1,8 @@
+import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js";
+import { ROUTES, bindRail, place } from "./02-cloud.js";
+import { activeTab, countryAt, countryLabel, countryRecord, globeOn, layer, loadTrips, map, ofCount, render, selectedTripId, shortPlaceLabel, t } from "./04-app.js";
 "use strict";
 /* geometry */
-function hav(a,b){
-  var R=6371,t=Math.PI/180,dLat=(b.lat-a.lat)*t,dLng=(b.lng-a.lng)*t;
-  var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dLng/2)*Math.sin(dLng/2);
-  return 2*R*Math.asin(Math.min(1,Math.sqrt(x)));
-}
 function flightArc(a,b,n){
   n=n||96;
   var rad=Math.PI/180, toDeg=180/Math.PI;
@@ -31,17 +29,6 @@ function flightArc(a,b,n){
   out[0]=[a.lat,a.lng]; out[out.length-1]=[b.lat,b.lng];
   return out;
 }
-function densify(coords, stepKm){
-  if(!coords||coords.length<2) return coords;
-  var out=[coords[0]],i,j,a,b,d,n,f;
-  for(i=1;i<coords.length;i++){
-    a={lat:coords[i-1][0],lng:coords[i-1][1]}; b={lat:coords[i][0],lng:coords[i][1]};
-    d=hav(a,b); n=Math.max(1,Math.round(d/stepKm));
-    for(j=1;j<=n;j++){ f=j/n; out.push([a.lat+(b.lat-a.lat)*f, a.lng+(b.lng-a.lng)*f]); }
-  }
-  return out;
-}
-
 /* rail graph */
 var RAIL_NODES = {};
 STATIONS.forEach(function(s){ RAIL_NODES[s.id]=[s.lat,s.lng]; });
@@ -333,7 +320,7 @@ var NO_ROAD = {
   "Анадырь":1,"Билибино":1,"Провидения":1,"Эвено-Бытантай":1,
   "Мирный":1,"Удачный":1,"Полярный":1,"Сретенск":1
 };
-function carAllowed(nameA, nameB){
+export function carAllowed(nameA, nameB){
   var a=(nameA||"").split(",")[0].trim();
   var b=(nameB||"").split(",")[0].trim();
   // strip extra
@@ -345,7 +332,7 @@ function carAllowed(nameA, nameB){
   if(NO_ROAD[a]||NO_ROAD[b]) return false;
   return true;
 }
-function trainAllowed(from, to){
+export function trainAllowed(from, to){
   var a=place(from), b=place(to);
   if(!a||!b) return false;
   var path=railPath(railNear(a), railNear(b));
@@ -508,11 +495,11 @@ function railCandidates(pt){
 }
 
 /* OSRM roads worldwide. Long hops are split so a failed request does not become one straight line. */
-var roadCache={};
+export var roadCache={};
 var roadWait={};
-var roadQueue=[];
+export var roadQueue=[];
 var roadActive=0;
-function roadKey(a,b){ return a.lat.toFixed(3)+","+a.lng.toFixed(3)+";"+b.lat.toFixed(3)+","+b.lng.toFixed(3); }
+export function roadKey(a,b){ return a.lat.toFixed(3)+","+a.lng.toFixed(3)+";"+b.lat.toFixed(3)+","+b.lng.toFixed(3); }
 function osrmUrls(a,b){
   var path=a.lng+","+a.lat+";"+b.lng+","+b.lat;
   var overview=hav(a,b)>900?"simplified":"full";
@@ -577,7 +564,7 @@ function fetchRoad(a,b,cb){
   }
   routeSmart(a,b,0,finish);
 }
-function pumpRoads(){
+export function pumpRoads(){
   while(roadActive<3 && roadQueue.length){
     var job=roadQueue.shift();
     roadActive++;
@@ -673,13 +660,14 @@ function pointAlong(coords, t){
 }
 var liveMarker=null;
 
-var yearFilter="all"; /* all | 2026 | ... */
-var modeFilter="all"; /* all | plane | train | car */
+export var yearFilter="all"; /* all | 2026 | ... */
+export var modeFilter="all"; /* all | plane | train | car */
+export function setModeFilter(v){ modeFilter=v; }
 var liveMarkers=[];
 var animMarkers={}; /* id -> marker for animated past trips when selected */
 var notifAsked=false;
 
-function updateLiveTrip(){
+export function updateLiveTrip(){
   var box=document.getElementById("live-trip");
   if(!box) return;
   var live=ROUTES.filter(isInProgress);
@@ -704,7 +692,7 @@ function updateLiveTrip(){
     if(g&&g.coords&&map){
       var pt=pointAlong(g.coords, p);
       if(pt){
-        var mk=L.circleMarker(pt,{radius:idx===0?8:6,color:"#fff",weight:2,fillColor:idx===0?"#6af":"#9cf",fillOpacity:1});
+        var mk=map.dot(pt,{radius:idx===0?8:6,color:"#fff",weight:2,fillColor:idx===0?"#6af":"#9cf",fillOpacity:1});
         mk.addTo(map);
         liveMarkers.push(mk);
       }
@@ -731,7 +719,7 @@ function animateRouteOnMap(r){
   var pt=pointAlong(g.coords, t);
   if(!pt) return;
   var col=r.mode==="plane"?"#5b9fff":(r.mode==="train"?"#3dd68c":(r.mode==="car"?"#f5a623":"#8af"));
-  animMarkers[id]=L.circleMarker(pt,{radius:7,color:"#fff",weight:2,fillColor:col,fillOpacity:1}).addTo(map);
+  animMarkers[id]=map.dot(pt,{radius:7,color:"#fff",weight:2,fillColor:col,fillOpacity:1}).addTo(map);
 }
 function clearAnimMarkers(){
   Object.keys(animMarkers).forEach(function(id){
@@ -773,7 +761,7 @@ function checkTripReminders(){
 function routeYear(r){
   return (r.date||"").slice(0,4);
 }
-function buildYearFilter(){
+export function buildYearFilter(){
   var el=document.getElementById("year-filter");
   if(!el) return;
   var years={}, i;
@@ -806,7 +794,7 @@ function buildYearFilter(){
   }
 }
 
-var tripPlay={on:false, raf:0, marker:null, timer:0, gen:0};
+export var tripPlay={on:false, raf:0, marker:null, timer:0, gen:0};
 function tripPlayRoutes(){
   var pool=ROUTES, ids=null, trips, i;
   if(selectedTripId){
@@ -1184,7 +1172,7 @@ function setPlayButton(on){
   btn.setAttribute("data-i18n", on?"Стоп":"Показать поездку");
   btn.textContent=t(on?"Стоп":"Показать поездку");
 }
-function stopTripPlay(){
+export function stopTripPlay(){
   tripPlay.on=false;
   if(tripPlay.raf){ cancelAnimationFrame(tripPlay.raf); tripPlay.raf=0; }
   if(tripPlay.timer){ clearTimeout(tripPlay.timer); tripPlay.timer=0; }
@@ -1194,7 +1182,7 @@ function stopTripPlay(){
   hideTripChrome();
   setPlayButton(false);
 }
-function startTripPlay(){
+export function startTripPlay(){
   stopTripPlay();
   var gen=++tripPlay.gen;
   var routes=tripPlayRoutes().filter(function(r){
@@ -1316,12 +1304,12 @@ function drawEndpointClusters(list){
     var b=buckets[k];
     if(b.n<2) return;
     var la=b.lat/b.n, ln=b.lng/b.n;
-    var icon=L.divIcon({
+    var icon=map.htmlIcon({
       className:"",
       html:'<div class="marker-cluster">'+b.n+"</div>",
       iconSize:[32,32], iconAnchor:[16,16]
     });
-    L.marker([la,ln],{icon:icon,interactive:false}).addTo(layer);
+    map.pin([la,ln],{icon:icon,interactive:false}).addTo(layer);
   });
 }
 
@@ -1400,7 +1388,7 @@ function registerOfflineSW(){
 /* Кэш тайлов на лету через плагин Leaflet (перехват img) */
 
 
-function isFuture(r){
+export function isFuture(r){
   if(!r) return false;
   var end=String(r.arrDate||r.date||"").trim();
   if(!end) return false;
@@ -1418,18 +1406,18 @@ function isFuture(r){
   if(!/^\d{2}:\d{2}$/.test(t)) t="23:59";
   return t>(two(now.getHours())+":"+two(now.getMinutes()));
 }
-function datedPast(r){
+export function datedPast(r){
   return !!(r && (r.arrDate||r.date)) && !isFuture(r);
 }
 
-function pathKm(coords){
+export function pathKm(coords){
   var km=0,i;
   for(i=1;i<coords.length;i++)
     km+=hav({lat:coords[i-1][0],lng:coords[i-1][1]},{lat:coords[i][0],lng:coords[i][1]});
   return km;
 }
 
-function buildGeoSync(r){
+export function buildGeoSync(r){
   var sig=[r.mode,r.from,r.to,r.fromCode||"",r.toCode||"",r.date||"",r.carPath||"",(r.waypoints&&r.waypoints.length)||0,(r.coords&&r.coords.length)||0,window.__roadGen||0].join("|");
   if(r._geo && r._geoSig===sig && r._geo.coords && !r._geo.needRoad) return r._geo;
   var g=computeGeo(r);
@@ -1505,10 +1493,10 @@ function computeGeo(r){
   return {coords:coords, km:pathKm(coords), a:a, b:b, needRoad:cached==null, hops:cached==null?[[a,b]]:[]};
 }
 
-var COLORS={plane:"#1d4ed8",train:"#15803d",car:"#c2410c",walk:"#7c3aed",bike:"#0f766e",ship:"#0369a1",future:"#6d28d9"};
+export var COLORS={plane:"#1d4ed8",train:"#15803d",car:"#c2410c",walk:"#7c3aed",bike:"#0f766e",ship:"#0369a1",future:"#6d28d9"};
 var ICONS={plane:"✈️",train:"🚂",car:"🚗",walk:"🚶",bike:"🚴",ship:"🚢"};
 /* подписи на карте — крупные города, не все 150+ */
-var CITY_LABELS = [
+export var CITY_LABELS = [
   {name:"Москва",lat:55.76,lng:37.62},{name:"Санкт-Петербург",lat:59.93,lng:30.34},
   {name:"Казань",lat:55.80,lng:49.11},{name:"Екатеринбург",lat:56.84,lng:60.61},
   {name:"Новосибирск",lat:55.01,lng:82.94},{name:"Владивосток",lat:43.12,lng:131.89},
@@ -1522,3 +1510,5 @@ var CITY_LABELS = [
   {name:"Пхукет",lat:7.88,lng:98.39},{name:"Стамбул",lat:41.01,lng:28.98}
 ];
 
+
+bindRail(railNear, railPath);

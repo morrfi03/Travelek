@@ -1,5 +1,23 @@
+import { WORLD, nameHas, norm } from "./02-cloud.js";
 
 "use strict";
+
+export function hav(a,b){
+  var R=6371,t=Math.PI/180,dLat=(b.lat-a.lat)*t,dLng=(b.lng-a.lng)*t;
+  var x=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(a.lat*t)*Math.cos(b.lat*t)*Math.sin(dLng/2)*Math.sin(dLng/2);
+  return 2*R*Math.asin(Math.min(1,Math.sqrt(x)));
+}
+export function densify(coords, stepKm){
+  if(!coords||coords.length<2) return coords;
+  var out=[coords[0]],i,j,a,b,d,n,f;
+  for(i=1;i<coords.length;i++){
+    a={lat:coords[i-1][0],lng:coords[i-1][1]}; b={lat:coords[i][0],lng:coords[i][1]};
+    d=hav(a,b); n=Math.max(1,Math.round(d/stepKm));
+    for(j=1;j<=n;j++){ f=j/n; out.push([a.lat+(b.lat-a.lat)*f, a.lng+(b.lng-a.lng)*f]); }
+  }
+  return out;
+}
+
 if(window.__travelekMap){
   try{ window.__travelekMap.remove(); }catch(e){}
   window.__travelekMap=null;
@@ -28,7 +46,7 @@ if(window.__travelekMap){
 })();
 
 /* ===== Каталоги ===== */
-var AIRPORTS = [
+export var AIRPORTS = [
   /* Россия */
   {code:"SVO",n:"Москва Шереметьево",lat:55.9726,lng:37.4146},
   {code:"DME",n:"Москва Домодедово",alias:"домоседа",lat:55.4088,lng:37.9063},
@@ -4447,7 +4465,7 @@ var FLIGHT_PAIRS = {
   
 };
 
-function airportCodeOf(p){
+export function airportCodeOf(p){
   if(!p) return null;
   for(var i=0;i<AIRPORTS.length;i++){
     var a=AIRPORTS[i];
@@ -4474,7 +4492,7 @@ var EXTRA_FLIGHT_PAIRS = [
   "DLM-SVO","DLM-DME","DLM-VKO","DLM-LED","DLM-AER","DLM-KZN","DLM-SVX","DLM-OVB","DLM-KRR","DLM-ROV","DLM-UFA","DLM-MRV","DLM-IST","DLM-SAW","DLM-AYT",
   "BKK-HAK","HKT-TFU","DME-UTP","SVO-UTP","VKO-UTP"
 ];
-function ensureFlightPairs(){
+export function ensureFlightPairs(){
   if(typeof FLIGHT_PAIRS==="undefined") window.FLIGHT_PAIRS={};
   EXTRA_FLIGHT_PAIRS.forEach(function(p){
     var parts=p.split("-");
@@ -4495,7 +4513,7 @@ var AIR_RISK = {
   GDZ:"Юг: возможные ограничения",
   SIP:"Возможны особые условия полётов"
 };
-function planeNavWarnings(codeA, codeB, dateStr){
+export function planeNavWarnings(codeA, codeB, dateStr){
   var w=[], c;
   [codeA,codeB].forEach(function(c){
     if(c && AIR_RISK[c]) w.push(c+": "+AIR_RISK[c]);
@@ -4522,7 +4540,7 @@ function airByCode(code){
   if(typeof WORLD!=="undefined" && WORLD.byCode && WORLD.byCode[code]) return WORLD.byCode[code];
   return null;
 }
-function flightAllowed(codeA, codeB){
+export function flightAllowed(codeA, codeB){
   if(!codeA||!codeB) return false;
   codeA=String(codeA).toUpperCase(); codeB=String(codeB).toUpperCase();
   if(codeA===codeB) return false;
@@ -4558,7 +4576,7 @@ function flightAllowed(codeA, codeB){
 }
 
 
-var STATIONS = [
+export var STATIONS = [
   {id:"samara",n:"Самара",lat:53.1870,lng:50.1220},
   {id:"tolyatti",n:"Тольятти",lat:53.5300,lng:49.3500},
   {id:"syzran",n:"Сызрань",lat:53.1580,lng:48.4680},
@@ -4925,7 +4943,7 @@ var STATIONS = [
 
 
 
-var PORTS = [
+export var PORTS = [
   /* ===== БАЛТИКА / НЕВА / ВОЛГО-БАЛТ ===== */
   {id:"spb",n:"Санкт-Петербург (Морской)",lat:59.882,lng:30.222},
   {id:"spb_river",n:"Санкт-Петербург (речной)",lat:59.944,lng:30.312},
@@ -5185,7 +5203,7 @@ var PORTS = [
 ];
 
 /* алиасы: «Ярославль» → речной порт */
-var PORT_ALIASES={
+export var PORT_ALIASES={
   "ярославль":"yar","мышкин":"myshkin","углич":"uglich","рыбинск":"rybinsk","кострома":"kostroma",
   "плёс":"ples","плес":"ples","кинешма":"kinema","нижегород":"nn","нижний":"nn","нижний новгород":"nn",
   "казань":"kazan","чебоксары":"cheboksary","самара":"samara","саратов":"saratov","волгоград":"volgograd",
@@ -5211,19 +5229,19 @@ PORT_ALIASES["адлер"]="adler_port";PORT_ALIASES["листвянка"]="list
 PORT_ALIASES["братск"]="bratsk";PORT_ALIASES["иркутск"]="irkutsk_r";PORT_ALIASES["дмитров"]="dmitrov";
 PORT_ALIASES["зеленодольск"]="zelenodolsk";PORT_ALIASES["свияжск"]="sviyazhsk";
 
-function portCityKey(n){
+export function portCityKey(n){
   /* «Ярославль (речной)» → ярославль */
   var s=norm(n).replace(/\s*\(.*?\)\s*/g," ").replace(/\s+/g," ").trim();
   return s;
 }
 
-function isPassengerPort(p){
+export function isPassengerPort(p){
   if(!p||!p.id) return false;
   var n=p.n||"";
   if(/фарватер|центр|^Балтика|^Каспий|^Чёрное|^Азовское|^Ладога|^Онега|^Японское|^Баренцево|^Белое|\bморе\b/i.test(n)) return false;
   return true;
 }
-function formatPortLabel(p){
+export function formatPortLabel(p){
   var n=p.n||"";
   if(/\((речной|порт|морской|море)\)/i.test(n)) return n;
   if(/порт|морской|речной/i.test(n)) return n;
@@ -5233,7 +5251,7 @@ function formatPortLabel(p){
   return n.indexOf("(")>=0?n:(n+" (речной)");
 }
 
-function findPortByQuery(q){
+export function findPortByQuery(q){
   q=norm(q);
   if(!q) return null;
   if(PORT_ALIASES[q] && PORT_BY_ID[PORT_ALIASES[q]] && isPassengerPort(PORT_BY_ID[PORT_ALIASES[q]]))
@@ -5250,7 +5268,7 @@ function findPortByQuery(q){
   return best;
 }
 
-var PORT_BY_ID={};
+export var PORT_BY_ID={};
 PORTS.forEach(function(p){ if(p.id) PORT_BY_ID[p.id]=p; });
 var PORT_EDGES=[
   /* Волго-Балт / Ладога / Онега */
@@ -5319,7 +5337,7 @@ function nearestPort(p){
   }
   return best;
 }
-function portPath(idA, idB){
+export function portPath(idA, idB){
   if(!idA||!idB) return null;
   if(idA===idB) return [idA];
   var q=[idA], prev={}, seen={}; seen[idA]=1; prev[idA]=null;
@@ -5340,7 +5358,7 @@ function portPath(idA, idB){
   }
   return null;
 }
-function shipCoords(a, b){
+export function shipCoords(a, b){
   var pa=a.portId && PORT_BY_ID[a.portId] ? PORT_BY_ID[a.portId] : nearestPort(a);
   var pb=b.portId && PORT_BY_ID[b.portId] ? PORT_BY_ID[b.portId] : nearestPort(b);
   if(pa && pb){
@@ -5378,7 +5396,7 @@ function shipCoords(a, b){
 
 
 
-var CITIES = [
+export var CITIES = [
   {n:"Москва",lat:55.7558,lng:37.6173},{n:"Санкт-Петербург",lat:59.9343,lng:30.3351},
   {n:"Новосибирск",lat:55.0084,lng:82.9357},{n:"Екатеринбург",lat:56.8389,lng:60.6057},
   {n:"Казань",lat:55.7961,lng:49.1064},{n:"Нижний Новгород",lat:56.2965,lng:43.9361},
@@ -5685,7 +5703,7 @@ var CITIES = [
   {n:"Сальск",lat:46.475,lng:41.541}
 ];
 
-var BUILTIN = [
+export var BUILTIN = [
   {id:"f1",mode:"plane",flight:"W4 6927",from:"Неаполь (NAP)",to:"Ереван (EVN)",fromCode:"NAP",toCode:"EVN",date:"2026-09-28",time:"06:00"},
   {id:"f2",mode:"plane",flight:"SU 1861",from:"Ереван (EVN)",to:"Москва (SVO)",fromCode:"EVN",toCode:"SVO",date:"2026-09-28",time:"19:45"},
   {id:"p1",mode:"plane",flight:"W4 6456",from:"Ереван (EVN)",to:"Милан (MXP)",fromCode:"EVN",toCode:"MXP",date:"2026-09-17",duration:"4ч 40м"},
