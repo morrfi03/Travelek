@@ -1,5 +1,5 @@
 
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=34";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=35";
 var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
@@ -292,25 +292,7 @@ var api = (function () {
     var box = $("flatBox"), cv = $("cvF"), ctx = cv.getContext("2d"), tip = $("tipF");
     var cw = 800, ch = 350, dpr = 1, k = 1, tx = 0, ty = 0, KMAX = 170, raf = 0;
     function kMin(){ var need = HF / WID * cw; return Math.max(0.4, Math.min(1, ch / Math.max(1, need))); }
-    var texF = new Image(); texF.onload = function () { texData = null; schedule(); }; texF.src = G.tf;
-    var texData = null, texW = 0, texH = 0;
-    function ensureTexData() {
-      if (texData || !texF.complete || !texF.naturalWidth) return;
-      var c = document.createElement("canvas");
-      texW = c.width = texF.naturalWidth; texH = c.height = texF.naturalHeight;
-      var g = c.getContext("2d", { willReadFrequently: true });
-      g.drawImage(texF, 0, 0);
-      texData = g.getImageData(0, 0, texW, texH).data;
-    }
-    function texAt(fx, fy) {
-      ensureTexData();
-      if (!texData) return null;
-      var ix = Math.max(0, Math.min(texW - 1, Math.round(fx / WID * texW)));
-      var iy = Math.max(0, Math.min(texH - 1, Math.round(fy / HF * texH)));
-      var o = (iy * texW + ix) * 4;
-      return [texData[o], texData[o + 1], texData[o + 2]];
-    }
-    function isSeaPix(col) { return col[2] > col[0] + 10 && col[2] > col[1] + 2; }
+    var texF = new Image(); texF.onload = function () { schedule(); }; texF.src = G.tf;
     var show = { rd: false, rl: false, rv: true };
     var LAYERS = [];
     function addTiers(key, arr, ths, style) {
@@ -359,61 +341,10 @@ var api = (function () {
       c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, bc.width, bc.height); c.setTransform(dpr, 0, 0, dpr, 0, 0);
       c.save(); c.translate(tx, ty); c.scale(kk, kk);
       var vx0 = -tx / kk, vx1 = (cw - tx) / kk, vy0 = -ty / kk, vy1 = (ch - ty) / kk, px1 = 1.4 / kk;
-      var mag = kk * dpr, texA = mag <= 2.1 ? 1 : mag >= 4.2 ? 0 : (4.2 - mag) / 2.1;
-      c.fillStyle = "#4e8cb2";
-      c.fillRect(vx0 - 8, vy0 - 8, (vx1 - vx0) + 16, (vy1 - vy0) + 16);
+      c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
+      if (texF.complete && texF.naturalWidth) c.drawImage(texF, 0, 0, WID, HF);
       stampIso();
       for (var r = 0; r < NR; r++) RV[r] = (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1 || (rbx1[r] - rbx0[r] < px1 && rby1[r] - rby0[r] < px1)) ? 0 : 1;
-      if (texA < 1) {
-        var acc = {}, ngrid = 10, gx, gy, ll, col, wi, id, bucket, br, bn, s0, cnt, ax, ay, step, ii, fx, fy;
-        var dx = (vx1 - vx0) / ngrid, dy = (vy1 - vy0) / ngrid;
-        for (gy = vy0 + dy * 0.5; gy < vy1; gy += dy) {
-          for (gx = vx0 + dx * 0.5; gx < vx1; gx += dx) {
-            ll = unflat(gx, gy);
-            col = texAt(gx, gy);
-            if (!ll || !col || isSeaPix(col)) continue;
-            id = -1;
-            for (wi = 0; wi < byLayer.W.length; wi++) if (inside(ents[byLayer.W[wi]], ll[0], ll[1])) { id = byLayer.W[wi]; break; }
-            if (id < 0) continue;
-            bucket = acc[id] || (acc[id] = [0, 0, 0, 0]);
-            bucket[0] += col[0]; bucket[1] += col[1]; bucket[2] += col[2]; bucket[3]++;
-          }
-        }
-        byLayer.W.forEach(function (i) {
-          var e = ents[i], vis = false, rr;
-          for (rr = e.r0; rr < e.r1; rr++) if (RV[rr]) { vis = true; break; }
-          if (!vis) return;
-          if (!acc[i]) {
-            bn = 0; br = e.r0;
-            for (rr = e.r0; rr < e.r1; rr++) if (rLen[rr] > bn) { bn = rLen[rr]; br = rr; }
-            s0 = rStart[br]; step = Math.max(1, Math.floor(bn / 24)); ax = 0; ay = 0; cnt = 0;
-            for (ii = 0; ii < bn; ii += step) { ax += FXv[s0 + ii]; ay += FYv[s0 + ii]; cnt++; }
-            ax /= cnt || 1; ay /= cnt || 1;
-            for (ii = 0; ii < bn; ii += step) {
-              fx = FXv[s0 + ii] * 0.3 + ax * 0.7; fy = FYv[s0 + ii] * 0.3 + ay * 0.7;
-              col = texAt(fx, fy);
-              if (col && !isSeaPix(col)) { acc[i] = [col[0], col[1], col[2], 1]; break; }
-            }
-          }
-          bucket = acc[i];
-          var lr = bucket ? bucket[0] / bucket[3] : 134, lg = bucket ? bucket[1] / bucket[3] : 158, lb = bucket ? bucket[2] / bucket[3] : 114;
-          lr = lr * 0.62 + 214 * 0.38; lg = lg * 0.62 + 216 * 0.38; lb = lb * 0.62 + 198 * 0.38;
-          c.beginPath(); entPath(c, e);
-          c.fillStyle = "rgb(" + (lr | 0) + "," + (lg | 0) + "," + (lb | 0) + ")";
-          c.fill("evenodd");
-          c.strokeStyle = "rgba(36,48,40,.55)";
-          c.lineWidth = 1.15 / kk;
-          c.stroke();
-        });
-      }
-      if (texA > 0 && texF.complete && texF.naturalWidth) {
-        c.globalAlpha = texA;
-        c.imageSmoothingEnabled = kk < 1.6;
-        c.imageSmoothingQuality = "high";
-        c.drawImage(texF, 0, 0, WID, HF);
-        c.globalAlpha = 1;
-        c.imageSmoothingEnabled = true;
-      }
       var lw = 1 / kk; c.lineJoin = "round"; c.lineCap = "round";
       function showSmall(e){
         for (var r = e.r0; r < e.r1; r++){
@@ -1479,7 +1410,7 @@ var api = (function () {
         if (netWait[key]) { views.flat.setShow(key, !!on); return; }
         netWait[key] = 1;
         var s = document.createElement("script");
-        s.src = key === "rd" ? "geo/roads.js?v=34" : "geo/rails.js?v=34";
+        s.src = key === "rd" ? "geo/roads.js?v=35" : "geo/rails.js?v=35";
         s.onload = function () { ready(key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS); };
         s.onerror = function () { netWait[key] = 0; };
         document.head.appendChild(s);
