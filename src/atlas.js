@@ -1,5 +1,5 @@
 
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=31";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=32";
 var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
@@ -36,7 +36,7 @@ var api = (function () {
   }
   (function mountAtlas() {
     var css = document.createElement("style");
-    css.textContent = "#flatBox,#globeBox{position:absolute;inset:0;overflow:hidden}#flatBox{background:#dde8ee}#globeBox{background:#0e1a24}#cvF,#cvG,#cvGgl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}#cvGgl{pointer-events:none;z-index:0}#cvG{z-index:1;background:transparent}#cvF.drag,#cvG.drag{cursor:grabbing}#tipF,#tipG{position:absolute;z-index:4;pointer-events:none;background:#1f2a26;color:#fff;padding:5px 9px;border-radius:6px;font:600 13px/1.3 Manrope,system-ui,sans-serif;opacity:0;transform:translate(12px,12px);white-space:nowrap}#tipF small,#tipG small{display:block;opacity:.7;font-size:11px;font-weight:500}#atlas-html{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}";
+    css.textContent = "#flatBox,#globeBox{position:absolute;inset:0;overflow:hidden}#flatBox{background:#4e8cb2}#globeBox{background:#16324a}#cvF,#cvG,#cvGgl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}#cvGgl{pointer-events:none;z-index:0}#cvG{z-index:1;background:transparent}#cvF.drag,#cvG.drag{cursor:grabbing}#tipF,#tipG{position:absolute;z-index:4;pointer-events:none;background:#1f2a26;color:#fff;padding:5px 9px;border-radius:6px;font:600 13px/1.3 Manrope,system-ui,sans-serif;opacity:0;transform:translate(12px,12px);white-space:nowrap}#tipF small,#tipG small{display:block;opacity:.7;font-size:11px;font-weight:500}#atlas-html{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}";
     document.head.appendChild(css);
     function box(id){ var d=document.createElement("div"); d.id=id; return d; }
     var fb=box("flatBox"), cv=document.createElement("canvas"); cv.id="cvF"; fb.appendChild(cv);
@@ -44,7 +44,7 @@ var api = (function () {
     var gb=box("globeBox"); gb.hidden=true; var cv2=document.createElement("canvas"); cv2.id="cvG"; gb.appendChild(cv2);
     var tip2=document.createElement("div"); tip2.id="tipG"; gb.appendChild(tip2); root.appendChild(gb);
     var htmlPane=document.createElement("div"); htmlPane.id="atlas-html"; root.appendChild(htmlPane);
-    root.style.background="#dde8ee";
+    root.style.background="#4e8cb2";
   })();
 
   // ===================== общая распаковка =====================
@@ -293,13 +293,17 @@ var api = (function () {
     var cw = 800, ch = 350, dpr = 1, k = 1, tx = 0, ty = 0, KMAX = 170, raf = 0;
     function kMin(){ var need = HF / WID * cw; return Math.max(0.4, Math.min(1, ch / Math.max(1, need))); }
     var texF = new Image(); texF.onload = function () { schedule(); }; texF.src = G.tf;
-    var show = { rd: false, rl: false, rv: false };
+    var show = { rd: false, rl: false, rv: true };
     var LAYERS = [];
     function addTiers(key, arr, ths, style) {
       if (!arr || !arr.length) return;
       arr.forEach(function (b, i) { LAYERS.push({ key: key, b64: b, th: ths[i], style: style, ready: false, rank: i }); });
     }
-    addTiers("rv", G.rv, [2, 4, 8, 14], { c: "#7fa6bd", w: 0.7, a: 1 });
+    addTiers("rv", G.rv, [0.4, 1.45, 3.1, 6.5], { c: "#145f96", w: 1.55, a: 0.95 });
+    LAYERS.forEach(function (L) {
+      if (L.key !== "rv") return;
+      L.style = { c: "#145f96", w: [1.7, 1.35, 1.05, 0.8][L.rank] || 1, a: 0.95 };
+    });
     function load(L) {
       var rd = reader(L.b64), n = rd.next(), ps = new Int32Array(n), pl = new Int32Array(n), bx = new Float32Array(n * 4), px = [], py = [], gx = [], gy = [];
       for (var i = 0; i < n; i++) {
@@ -989,7 +993,7 @@ var api = (function () {
         if (!layers) return;
         layers.forEach(function (L) {
           if (!views.flat.netOn(L.key)) return;
-          var need = (L.key === "rv" ? [1.2, 1.9, 2.8, 3.8] : [1.05, 1.7, 2.6, 3.8])[L.rank || 0] || 4;
+          var need = (L.key === "rv" ? [0.55, 1.25, 2.2, 3.4] : [1.05, 1.7, 2.6, 3.8])[L.rank || 0] || 4;
           if (zoom < need) return;
           views.flat.ensure(L);
           if (!L.gx) return;
@@ -1105,7 +1109,7 @@ var api = (function () {
     }
     $("flatBox").hidden = m !== "flat";
     $("globeBox").hidden = m !== "globe";
-    root.style.background = m === "globe" ? "#0e1a24" : "#dde8ee";
+    root.style.background = m === "globe" ? "#16324a" : "#4e8cb2";
     mode = m; hoverEnt = -1;
     requestAnimationFrame(function () {
       to.resize();
@@ -1401,7 +1405,7 @@ var api = (function () {
         if (netWait[key]) { views.flat.setShow(key, !!on); return; }
         netWait[key] = 1;
         var s = document.createElement("script");
-        s.src = key === "rd" ? "geo/roads.js?v=31" : "geo/rails.js?v=31";
+        s.src = key === "rd" ? "geo/roads.js?v=32" : "geo/rails.js?v=32";
         s.onload = function () { ready(key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS); };
         s.onerror = function () { netWait[key] = 0; };
         document.head.appendChild(s);
