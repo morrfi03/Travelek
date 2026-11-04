@@ -1,7 +1,7 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=24";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=24";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=24";
-import { createMap } from "../atlas.js?v=24";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=25";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=25";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=25";
+import { createMap } from "../atlas.js?v=25";
 "use strict";
 /* map */
 export var map;
@@ -2058,7 +2058,7 @@ window.__reloadVisited=reloadVisited;
   offCountries=uniq(offCountries.map(function(id){
     if(id==="CN-TW"||id==="TW"||id==="TWN") return "CN";
     return iso[id]||id;
-  })).filter(function(id){ return id!=="TR"; });
+  }));
   function mapR(id){
     if(id==="Тайвань"||id==="CN-TW"||id==="TW"||id==="TWN") return "CN:Тайвань";
     return id;
@@ -2338,6 +2338,11 @@ function confirmVisitedPlace(){
   }else if(manualCountries.indexOf(cid)<0) manualCountries.push(cid);
   offCountries=offCountries.filter(function(id){return id!==cid;});
   saveSets();
+  if(activeTab!=="past"){
+    activeTab="past";
+    var tabs=document.querySelectorAll(".tab");
+    for(var ti=0;ti<tabs.length;ti++) tabs[ti].classList.toggle("on", tabs[ti].getAttribute("data-tab")==="past");
+  }
   syncVisited();
   closeVisitPrompt();
   hoverKey="";
@@ -2521,9 +2526,8 @@ export function syncVisited(){
     }
   }
   if(activeTab==="past"){
-    manualCountries.forEach(function(id){ if(!futureOnlyC(id)) addC(id); });
+    manualCountries.forEach(addC);
     manualRegions.forEach(function(id){
-      if(futureOnlyR(id)) return;
       addR(id);
       promote(id);
     });
@@ -3063,7 +3067,11 @@ if(countryList) countryList.onclick=function(e){
   var off=e.target.closest("[data-off]");
   if(off){ unvisitCountry(off.getAttribute("data-off")); return; }
   var open=e.target.closest("[data-open]");
-  if(open){ regionScope=open.getAttribute("data-open")||"RU"; var qEl=document.getElementById("country-q"); if(qEl) qEl.value=""; renderCountryUi(); return; }
+  if(open){
+    var oid=open.getAttribute("data-open")||"RU";
+    if(visited.indexOf(oid)<0){ toggleCountry(oid); return; }
+    regionScope=oid; var qEl=document.getElementById("country-q"); if(qEl) qEl.value=""; renderCountryUi(); return;
+  }
   var b=e.target.closest("[data-iso]");
   if(!b) return;
   toggleCountry(b.getAttribute("data-iso"));
