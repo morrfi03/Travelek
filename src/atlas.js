@@ -1,5 +1,5 @@
 
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=21";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=22";
 var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
@@ -166,6 +166,31 @@ var api = (function () {
     }
     return false;
   }
+  function segDist2(px, py, ax, ay, bx, by) {
+    var dx = bx - ax, dy = by - ay, l2 = dx * dx + dy * dy, t;
+    if (!l2) { dx = px - ax; dy = py - ay; return dx * dx + dy * dy; }
+    t = ((px - ax) * dx + (py - ay) * dy) / l2;
+    if (t < 0) t = 0; else if (t > 1) t = 1;
+    dx = px - (ax + t * dx); dy = py - (ay + t * dy);
+    return dx * dx + dy * dy;
+  }
+  function nearestRegion(list, lo, la) {
+    var best = -1, bestD = 1e18, i, e, r, s, n, j, d, pad = 250;
+    for (i = 0; i < list.length; i++) {
+      e = ents[list[i]];
+      if (lo < e.bb[0] - pad || lo > e.bb[2] + pad || la < e.bb[1] - pad || la > e.bb[3] + pad) continue;
+      for (r = e.r0; r < e.r1; r++) {
+        s = rStart[r]; n = rLen[r];
+        if (n < 2) continue;
+        for (j = 1; j < n; j++) {
+          d = segDist2(lo, la, LX[s + j - 1], LY[s + j - 1], LX[s + j], LY[s + j]);
+          if (d < bestD) { bestD = d; best = list[i]; }
+        }
+      }
+    }
+    if (bestD > 250 * 250) return -1;
+    return best;
+  }
   function pickLL(lo, la) {
     var country = -1, i, L = byLayer.W;
     for (i = 0; i < L.length; i++) if (inside(ents[L[i]], lo, la)) { country = L[i]; break; }
@@ -192,6 +217,10 @@ var api = (function () {
         }
       }
       return best;
+    }
+    if (list.length) {
+      var near = nearestRegion(list, lo, la);
+      if (near >= 0) return near;
     }
     if (country < 0) {
       var order = ["R", "C", "G"], k;
@@ -1372,7 +1401,7 @@ var api = (function () {
         if (netWait[key]) { views.flat.setShow(key, !!on); return; }
         netWait[key] = 1;
         var s = document.createElement("script");
-        s.src = key === "rd" ? "geo/roads.js?v=21" : "geo/rails.js?v=21";
+        s.src = key === "rd" ? "geo/roads.js?v=22" : "geo/rails.js?v=22";
         s.onload = function () { ready(key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS); };
         s.onerror = function () { netWait[key] = 0; };
         document.head.appendChild(s);

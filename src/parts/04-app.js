@@ -1,7 +1,7 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=21";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=21";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=21";
-import { createMap } from "../atlas.js?v=21";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=22";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=22";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=22";
+import { createMap } from "../atlas.js?v=22";
 "use strict";
 /* map */
 export var map;
@@ -2410,7 +2410,10 @@ export function syncVisited(){
         if(!rid && id) rid=regionIdByName(id, h.name);
       }
     }
-    if(id) autoC[id]=1;
+    if(id){
+      var onlyRegion=rid && (id==="KZ" || id==="TR");
+      if(!onlyRegion) autoC[id]=1;
+    }
     if(rid) autoR[rid]=1;
   }
   (typeof ROUTES!=="undefined"?ROUTES:[]).forEach(function(r){
@@ -2706,9 +2709,14 @@ function renderCountryUi(){
     return;
   }
   if(!picked||!list) return;
+  var shown={};
+  visited.forEach(function(id){ shown[id]=1; });
+  (visitedRegions||[]).forEach(function(id){ var c=countryOfRid(id); if(c) shown[c]=1; });
   var by={};
   COUNTRY_LIST.forEach(function(c){ by[c.i]=countryLabel(c); });
-  picked.innerHTML=visited.map(function(id){
+  var chipIds=visited.filter(function(id){ return shown[id]; });
+  COUNTRY_LIST.forEach(function(c){ if(shown[c.i] && chipIds.indexOf(c.i)<0) chipIds.push(c.i); });
+  picked.innerHTML=chipIds.map(function(id){
     return '<button type="button" data-drop="'+id+'">'+(by[id]||id)+' ×</button>';
   }).join("");
   var rows=COUNTRY_LIST.filter(function(c){
@@ -2716,7 +2724,7 @@ function renderCountryUi(){
     return (c.n||"").toLowerCase().indexOf(q)>=0 || countryLabel(c).toLowerCase().indexOf(q)>=0 || c.i.toLowerCase().indexOf(q)>=0;
   });
   rows.sort(function(a,b){
-    var as=visited.indexOf(a.i)>=0?0:1, bs=visited.indexOf(b.i)>=0?0:1;
+    var as=shown[a.i]?0:1, bs=shown[b.i]?0:1;
     if(as!==bs) return as-bs;
     if(a.i==="RU") return -1;
     if(b.i==="RU") return 1;
@@ -2726,7 +2734,7 @@ function renderCountryUi(){
   });
   if(q) rows=rows.slice(0,80);
   list.innerHTML=rows.map(function(c){
-    var on=visited.indexOf(c.i)>=0;
+    var on=!!shown[c.i];
     var regs=regionsFor(c.i);
     if(regs && regs.length){
       var rs=regionStatsFor(c.i);
