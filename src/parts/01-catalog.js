@@ -1,4 +1,4 @@
-import { WORLD, nameHas, norm } from "./02-cloud.js?v=37";
+import { WORLD, nameHas, norm } from "./02-cloud.js?v=38";
 
 "use strict";
 

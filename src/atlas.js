@@ -1,5 +1,5 @@
 
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=37";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=38";
 var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
@@ -135,6 +135,104 @@ var api = (function () {
     }
   })();
   lx = ly = null;
+  var edgeCut = {};
+  (function buildEdgeCuts() {
+    var cell = 100, grid = {}, EX0 = [], EY0 = [], EX1 = [], EY1 = [], EOwn = [], EAt = [];
+    function bucketAdd(id, x0, y0, x1, y1) {
+      var i, j, k, xa = x0 < x1 ? x0 : x1, xb = x0 < x1 ? x1 : x0, ya = y0 < y1 ? y0 : y1, yb = y0 < y1 ? y1 : y0;
+      for (i = (xa / cell) | 0; i <= (xb / cell) | 0; i++) {
+        for (j = (ya / cell) | 0; j <= (yb / cell) | 0; j++) {
+          k = i + ":" + j;
+          (grid[k] || (grid[k] = [])).push(id);
+        }
+      }
+    }
+    byLayer.W.forEach(function (ei) {
+      var e = ents[ei], r, s, n, i, a, b, id;
+      for (r = e.r0; r < e.r1; r++) {
+        s = rStart[r]; n = rLen[r];
+        for (i = 0; i < n; i++) {
+          a = s + i; b = s + ((i + 1) % n); id = EX0.length;
+          EX0.push(LX[a]); EY0.push(LY[a]); EX1.push(LX[b]); EY1.push(LY[b]);
+          EOwn.push(ei); EAt.push(a);
+          bucketAdd(id, LX[a], LY[a], LX[b], LY[b]);
+        }
+      }
+    });
+    function cross(ax, ay, bx, by, cx, cy) { return (bx - ax) * (cy - ay) - (by - ay) * (cx - ax); }
+    function hitT(a, b) {
+      var ax = EX0[a], ay = EY0[a], bx = EX1[a], by = EY1[a];
+      var cx = EX0[b], cy = EY0[b], dx = EX1[b], dy = EY1[b];
+      var d1 = cross(cx, cy, dx, dy, ax, ay), d2 = cross(cx, cy, dx, dy, bx, by);
+      var d3 = cross(ax, ay, bx, by, cx, cy), d4 = cross(ax, ay, bx, by, dx, dy);
+      if (!(((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) && ((d3 > 0 && d4 < 0) || (d3 < 0 && d4 > 0)))) return null;
+      var den = d1 - d2;
+      if (!den) return null;
+      var t = d1 / den;
+      return (t > 0.01 && t < 0.99) ? t : null;
+    }
+    function deepIn(oe, x, y, ex, ey) {
+      var len = Math.hypot(ex, ey) || 1, nx = -ey / len * 1.1, ny = ex / len * 1.1;
+      return inside(oe, x + nx, y + ny) && inside(oe, x - nx, y - ny);
+    }
+    var cuts = {}, seen = {}, id, xa, xb, ya, yb, i, j, bucket, m, other, t, pair;
+    var piece = [], cutIds = {};
+    for (id = 0; id < EX0.length; id++) {
+      xa = EX0[id] < EX1[id] ? EX0[id] : EX1[id]; xb = EX0[id] < EX1[id] ? EX1[id] : EX0[id];
+      ya = EY0[id] < EY1[id] ? EY0[id] : EY1[id]; yb = EY0[id] < EY1[id] ? EY1[id] : EY0[id];
+      for (i = (xa / cell) | 0; i <= (xb / cell) | 0; i++) {
+        for (j = (ya / cell) | 0; j <= (yb / cell) | 0; j++) {
+          bucket = grid[i + ":" + j];
+          if (!bucket) continue;
+          for (m = 0; m < bucket.length; m++) {
+            other = bucket[m];
+            if (other <= id || EOwn[other] === EOwn[id]) continue;
+            pair = id + ":" + other;
+            if (seen[pair]) continue;
+            seen[pair] = 1;
+            t = hitT(id, other);
+            if (t == null) continue;
+            (cuts[id] || (cuts[id] = [])).push(t);
+            t = hitT(other, id);
+            if (t != null) (cuts[other] || (cuts[other] = [])).push(t);
+          }
+        }
+      }
+    }
+    Object.keys(cuts).forEach(function (sid) {
+      var idn = +sid, ts = cuts[sid], u = [], last = -1, prev = 0, ei = EOwn[idn], k, mid, x, y, o, oe;
+      cutIds[idn] = 1;
+      ts.sort(function (a, b) { return a - b; });
+      for (k = 0; k < ts.length; k++) if (ts[k] - last > 0.012) { u.push(ts[k]); last = ts[k]; }
+      u.push(1);
+      for (k = 0; k < u.length; k++) {
+        mid = (prev + u[k]) * 0.5;
+        x = EX0[idn] + (EX1[idn] - EX0[idn]) * mid;
+        y = EY0[idn] + (EY1[idn] - EY0[idn]) * mid;
+        var drop = false;
+        if (u[k] - prev > 0.02) {
+          for (o = 0; o < byLayer.W.length; o++) {
+            if (byLayer.W[o] <= ei) continue;
+            oe = ents[byLayer.W[o]];
+            if (inside(oe, x, y) && deepIn(oe, x, y, EX1[idn] - EX0[idn], EY1[idn] - EY0[idn])) { drop = true; break; }
+          }
+        }
+        piece.push({ id: idn, t0: prev, t1: u[k], drop: drop });
+        prev = u[k];
+      }
+    });
+    var spansBy = {};
+    piece.forEach(function (p) {
+      if (p.drop || p.t1 - p.t0 < 0.015) return;
+      (spansBy[p.id] || (spansBy[p.id] = [])).push(p.t0, p.t1);
+    });
+    Object.keys(cutIds).forEach(function (sid) {
+      var idn = +sid, spans = spansBy[idn];
+      if (!spans) { edgeCut[EAt[idn]] = []; return; }
+      if (spans.length === 2 && spans[0] < 0.012 && spans[1] > 0.988) return;
+      edgeCut[EAt[idn]] = spans;
+    });
+  })();
   var NR = rStart.length;
 
   // ---------- общее состояние ----------
@@ -292,10 +390,10 @@ var api = (function () {
     var box = $("flatBox"), cv = $("cvF"), ctx = cv.getContext("2d"), tip = $("tipF");
     var cw = 800, ch = 350, dpr = 1, k = 1, tx = 0, ty = 0, KMAX = 170, raf = 0;
     function kMin(){ var need = HF / WID * cw; return Math.max(0.4, Math.min(1, ch / Math.max(1, need))); }
-    var texF = new Image(); texF.onload = function () { texPix = null; schedule(); }; texF.src = G.tf;
+    var texF = new Image(); texF.onload = function () { texPix = null; byLayer.W.forEach(function (i) { ents[i]._fill = null; }); schedule(); }; texF.src = G.tf;
     var relF = new Image();
     var texPix = null, texPW = 0, texPH = 0, relPix = null, relW = 0, relH = 0, seaRGB = [78, 140, 178];
-    if (G.rs) { relF.onload = function () { relPix = null; schedule(); }; relF.src = G.rs; }
+    if (G.rs) { relF.onload = function () { relPix = null; relMips = null; schedule(); }; relF.src = G.rs; }
     function grab(img) {
       if (!img.complete || !img.naturalWidth) return null;
       var cv = document.createElement("canvas");
@@ -329,6 +427,7 @@ var api = (function () {
     function countryFill(e) {
       if (e._fill) return e._fill;
       ensurePix();
+      if (!texPix) return "#8eae74";
       var best = 0, br = e.r0, r, s, n, step, i, ax = 0, ay = 0, cnt = 0, acc = [0, 0, 0, 0], col, fx, fy;
       for (r = e.r0; r < e.r1; r++) if (rLen[r] > best) { best = rLen[r]; br = r; }
       s = rStart[br]; n = best; step = Math.max(1, (n / 28) | 0);
@@ -344,15 +443,36 @@ var api = (function () {
       e._fill = acc[3] ? ("rgb(" + ((acc[0] / acc[3]) | 0) + "," + ((acc[1] / acc[3]) | 0) + "," + ((acc[2] / acc[3]) | 0) + ")") : "#8eae74";
       return e._fill;
     }
-    function shadeOf(lng, lat) {
+    var relMips = null;
+    function buildMips() {
+      if (!relPix || relMips) return;
+      function down(f) {
+        var w = Math.max(1, (relW / f) | 0), h = Math.max(1, (relH / f) | 0), d = new Uint8Array(w * h), y, x, yy, xx, acc, c, sy, sx;
+        for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+          acc = 0; c = 0;
+          for (yy = 0; yy < f; yy++) for (xx = 0; xx < f; xx++) {
+            sy = y * f + yy; sx = x * f + xx;
+            if (sy >= relH || sx >= relW) continue;
+            acc += relPix[(sy * relW + sx) * 4]; c++;
+          }
+          d[y * w + x] = c ? (acc / c) | 0 : 0;
+        }
+        return { d: d, w: w, h: h };
+      }
+      relMips = [down(4), down(16)];
+    }
+    function shadeOf(lng, lat, mip) {
+      var pix, pw, ph, stride;
       if (!relPix) return 214;
-      var u = ((lng + 180) / 360) * relW, v = ((90 - lat) / 180) * relH;
-      if (v < 0) v = 0; else if (v > relH - 1.001) v = relH - 1.001;
-      u = ((u % relW) + relW) % relW;
-      var x0 = u | 0, y0 = v | 0, x1 = (x0 + 1) % relW, y1 = y0 + 1 < relH ? y0 + 1 : y0;
+      if (mip) { pix = mip.d; pw = mip.w; ph = mip.h; stride = 1; }
+      else { pix = relPix; pw = relW; ph = relH; stride = 4; }
+      var u = ((lng + 180) / 360) * pw, v = ((90 - lat) / 180) * ph;
+      if (v < 0) v = 0; else if (v > ph - 1.001) v = ph - 1.001;
+      u = ((u % pw) + pw) % pw;
+      var x0 = u | 0, y0 = v | 0, x1 = (x0 + 1) % pw, y1 = y0 + 1 < ph ? y0 + 1 : y0;
       var fx = u - x0, fy = v - y0;
-      var a = relPix[(y0 * relW + x0) * 4], b = relPix[(y0 * relW + x1) * 4];
-      var c0 = relPix[(y1 * relW + x0) * 4], d0 = relPix[(y1 * relW + x1) * 4];
+      var a = pix[(y0 * pw + x0) * stride], b = pix[(y0 * pw + x1) * stride];
+      var c0 = pix[(y1 * pw + x0) * stride], d0 = pix[(y1 * pw + x1) * stride];
       var v0 = a * (1 - fx) * (1 - fy) + b * fx * (1 - fy) + c0 * (1 - fx) * fy + d0 * fx * fy;
       var n = 226 + (v0 - 190) * 0.62;
       if (n < 96) n = 96; else if (n > 242) n = 242;
@@ -374,15 +494,18 @@ var api = (function () {
         c.fill("evenodd");
       });
       if (!relPix || !shown.length) return;
+      buildMips();
       var w = Math.max(2, Math.round(cw)), h = Math.max(2, Math.round(ch)), kk = cw / WID * k, cap = 650000;
       if (w * h > cap) { var sc = Math.sqrt(cap / (w * h)); w = Math.max(2, Math.round(w * sc)); h = Math.max(2, Math.round(h * sc)); }
       if (shCanvas.width !== w || shCanvas.height !== h) { shCanvas.width = w; shCanvas.height = h; }
+      var pixSpan = relW / Math.max(1, k * w), mip = null;
+      if (relMips) { if (pixSpan > 14) mip = relMips[1]; else if (pixSpan > 4) mip = relMips[0]; }
       var img = shCtx.createImageData(w, h), d = img.data, y, x, ll, s, o;
       for (y = 0; y < h; y++) {
         var my = (((y + 0.5) * ch / h) - ty) / kk;
         for (x = 0; x < w; x++) {
           ll = unflat((((x + 0.5) * cw / w) - tx) / kk, my);
-          s = ll ? shadeOf(ll[0] / 100, ll[1] / 100) : 220;
+          s = ll ? shadeOf(ll[0] / 100, ll[1] / 100, mip) : 220;
           o = (y * w + x) * 4;
           d[o] = d[o + 1] = d[o + 2] = s; d[o + 3] = 255;
         }
@@ -438,6 +561,27 @@ var api = (function () {
       for (var i = 1; i < n; i++) { var x = FXv[s + i], y = FYv[s + i], dx = x - px, dy = y - py; if (dx * dx + dy * dy < thr2 && i < n - 1) continue; c.lineTo(x, y); px = x; py = y; }
       c.closePath();
     }
+    function ringStrokeFlat(c, r) {
+      var s = rStart[r], n = rLen[r], i, a, b, cut, k, t0, t1, drawing = false;
+      if (n < 2) return;
+      for (i = 0; i < n; i++) {
+        a = s + i; b = s + ((i + 1) % n);
+        cut = edgeCut[a];
+        if (!cut) {
+          if (!drawing) { c.moveTo(FXv[a], FYv[a]); drawing = true; }
+          c.lineTo(FXv[b], FYv[b]);
+        } else if (!cut.length) drawing = false;
+        else {
+          for (k = 0; k < cut.length; k += 2) {
+            t0 = cut[k]; t1 = cut[k + 1];
+            c.moveTo(FXv[a] + (FXv[b] - FXv[a]) * t0, FYv[a] + (FYv[b] - FYv[a]) * t0);
+            c.lineTo(FXv[a] + (FXv[b] - FXv[a]) * t1, FYv[a] + (FYv[b] - FYv[a]) * t1);
+          }
+          drawing = false;
+        }
+      }
+    }
+    function entStrokeFlat(c, e) { for (var r = e.r0; r < e.r1; r++) if (RV[r]) ringStrokeFlat(c, r); }
     function entPath(c, e) { for (var r = e.r0; r < e.r1; r++) if (RV[r]) ringPath(c, r); }
     function entPathFull(c, e) { for (var r = e.r0; r < e.r1; r++) ringPath(c, r); }
     var bc = document.createElement("canvas"), bctx = bc.getContext("2d"), bkey = "", snapTx = 0, snapTy = 0, snapK = 1, hold = 0, zoomIdle = 0;
@@ -449,15 +593,7 @@ var api = (function () {
       var vx0 = -tx / kk, vx1 = (cw - tx) / kk, vy0 = -ty / kk, vy1 = (ch - ty) / kk, px1 = 1.4 / kk;
       stampIso();
       for (var r = 0; r < NR; r++) RV[r] = (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1 || (rbx1[r] - rbx0[r] < px1 && rby1[r] - rby0[r] < px1)) ? 0 : 1;
-      var mag = kk * dpr, texA = mag <= 1.45 ? 1 : mag >= 2.7 ? 0 : (2.7 - mag) / 1.25;
-      if (texA < 1) paintCrisp(c, vx0, vy0, vx1, vy1);
-      if (texA > 0 && texF.complete && texF.naturalWidth) {
-        c.globalAlpha = texA;
-        c.imageSmoothingEnabled = true;
-        c.imageSmoothingQuality = "high";
-        c.drawImage(texF, 0, 0, WID, HF);
-        c.globalAlpha = 1;
-      }
+      paintCrisp(c, vx0, vy0, vx1, vy1);
       var lw = 1 / kk; c.lineJoin = "round"; c.lineCap = "round";
       function showSmall(e){
         for (var r = e.r0; r < e.r1; r++){
@@ -497,7 +633,7 @@ var api = (function () {
         c.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) entPath(c, ents[i]); }); });
         c.strokeStyle = "rgba(250,252,251,.55)"; c.lineWidth = 0.4 * lw; c.stroke();
       }
-      c.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name!=="Украина") entPath(c, ents[i]); }); byLayer.B.forEach(function (i) { entPath(c, ents[i]); });
+      c.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name!=="Украина") entStrokeFlat(c, ents[i]); }); byLayer.B.forEach(function (i) { entPath(c, ents[i]); });
       c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke();
       if (traceFlat(c, "UA")) { c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke(); }
       (function paintFlatOverlays(){
@@ -587,7 +723,22 @@ var api = (function () {
       var kk = cw / WID * k; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.save(); ctx.translate(tx, ty); ctx.scale(kk, kk); ctx.lineJoin = "round";
       [[hoverEnt, "rgba(255,255,255,.46)"], [selEnt, "rgba(255,236,190,.55)"]].forEach(function (h) {
         if (h[0] < 0) return;
-        var e = ents[h[0]];
+        var e = ents[h[0]], wi, w, iso;
+        if (e.L !== "W") {
+          iso = entityIso(e);
+          if (iso) for (wi = 0; wi < byLayer.W.length; wi++) {
+            w = ents[byLayer.W[wi]];
+            if ((w.iso || entityIso(w)) !== iso) continue;
+            if (w.name === "Украина" && traceFlat(ctx, "UA")) {
+              ctx.fillStyle = "rgba(255,255,255,.22)"; ctx.fill("evenodd");
+              ctx.strokeStyle = "#102033"; ctx.lineWidth = 2 / kk; ctx.stroke();
+              continue;
+            }
+            ctx.beginPath(); entPathFull(ctx, w);
+            ctx.fillStyle = "rgba(255,255,255,.22)"; ctx.fill("evenodd");
+            ctx.strokeStyle = "#102033"; ctx.lineWidth = 2 / kk; ctx.stroke();
+          }
+        }
         if (e.name === "Украина" && traceFlat(ctx, "UA")) {
           ctx.fillStyle = h[1]; ctx.fill("evenodd");
           ctx.strokeStyle = h[0] === selEnt ? "#8a3d12" : "#102033"; ctx.lineWidth = 2.4 / kk; ctx.stroke();
@@ -942,20 +1093,35 @@ var api = (function () {
         if (started) ctx.closePath();
       }
     }
+    function projHundreds(x, y) {
+      var lo = x * D2R, la = y * D2R, X = Math.cos(la) * Math.sin(lo), Y = Math.sin(la), Z = Math.cos(la) * Math.cos(lo);
+      var x1 = X * cl - Z * sl, zz = X * sl + Z * cl, y2 = Y * cp - zz * sp, z = Y * sp + zz * cp;
+      if (z <= 0.02) return null;
+      return [cx + R * x1, cy - R * y2];
+    }
     function strokeRings(e, min2) {
       min2 = min2 || 0;
       for (var r = e.r0; r < e.r1; r++) {
         if (!RVg[r]) continue;
-        var s = rStart[r], n = rLen[r], prev = false, px = 0, py = 0;
-        for (var i = 0; i < n; i++) {
-          var j = s + i;
-          if (!ZV[j]) { prev = false; continue; }
-          if (prev) {
-            var dx = SX[j] - px, dy = SY[j] - py;
-            if (min2 && dx * dx + dy * dy < min2 && i < n - 1) continue;
-            ctx.lineTo(SX[j], SY[j]);
-          } else ctx.moveTo(SX[j], SY[j]);
-          prev = true; px = SX[j]; py = SY[j];
+        var s = rStart[r], n = rLen[r], i, a, b, cut, drawing = false, px = 0, py = 0, x, y, dx, dy, k, p0, p1;
+        for (i = 0; i < n; i++) {
+          a = s + i; b = s + ((i + 1) % n);
+          cut = e.L === "W" ? edgeCut[a] : undefined;
+          if (cut) {
+            drawing = false;
+            for (k = 0; k < cut.length; k += 2) {
+              p0 = projHundreds(LX[a] + (LX[b] - LX[a]) * cut[k], LY[a] + (LY[b] - LY[a]) * cut[k]);
+              p1 = projHundreds(LX[a] + (LX[b] - LX[a]) * cut[k + 1], LY[a] + (LY[b] - LY[a]) * cut[k + 1]);
+              if (!p0 || !p1) continue;
+              ctx.moveTo(p0[0], p0[1]); ctx.lineTo(p1[0], p1[1]);
+            }
+            continue;
+          }
+          if (!ZV[a] || !ZV[b]) { drawing = false; continue; }
+          if (!drawing) { ctx.moveTo(SX[a], SY[a]); drawing = true; px = SX[a]; py = SY[a]; }
+          x = SX[b]; y = SY[b];
+          if (min2) { dx = x - px; dy = y - py; if (dx * dx + dy * dy < min2 && i < n - 1) continue; }
+          ctx.lineTo(x, y); px = x; py = y;
         }
       }
     }
@@ -1101,12 +1267,29 @@ var api = (function () {
       });
       [[hoverEnt, "rgba(255,255,255,.5)"], [selEnt, "rgba(255,236,190,.62)"]].forEach(function (h) {
         if (h[0] < 0) return;
-        if (ents[h[0]].name === "Украина" && fillGeo("UA")) {
+        var e = ents[h[0]], iso, wi, w;
+        if (e.L !== "W") {
+          iso = entityIso(e);
+          if (iso) for (wi = 0; wi < byLayer.W.length; wi++) {
+            w = ents[byLayer.W[wi]];
+            if ((w.iso || entityIso(w)) !== iso) continue;
+            if (w.name === "Украина" && fillGeo("UA")) {
+              ctx.fillStyle = "rgba(255,255,255,.24)"; ctx.fill("evenodd");
+              ctx.strokeStyle = "#102033"; ctx.lineWidth = 1.6; ctx.stroke();
+              continue;
+            }
+            projectFull(w);
+            ctx.beginPath(); fillRings(w);
+            ctx.fillStyle = "rgba(255,255,255,.24)"; ctx.fill("evenodd");
+            ctx.strokeStyle = "#102033"; ctx.lineWidth = 1.6; ctx.stroke();
+          }
+        }
+        if (e.name === "Украина" && fillGeo("UA")) {
           ctx.fillStyle = h[1]; ctx.fill("evenodd");
           ctx.strokeStyle = h[0] === selEnt ? "#8a3d12" : "#102033"; ctx.lineWidth = 2; ctx.stroke();
           return;
         }
-        ctx.beginPath(); fillRings(ents[h[0]]); ctx.fillStyle = h[1]; ctx.fill("evenodd");
+        ctx.beginPath(); fillRings(e); ctx.fillStyle = h[1]; ctx.fill("evenodd");
         ctx.strokeStyle = h[0] === selEnt ? "#8a3d12" : "#102033"; ctx.lineWidth = 2; ctx.stroke();
       });
       if (zoom >= 1.6 && hoverEnt >= 0) {
@@ -1553,7 +1736,7 @@ var api = (function () {
         if (netWait[key]) { views.flat.setShow(key, !!on); return; }
         netWait[key] = 1;
         var s = document.createElement("script");
-        s.src = key === "rd" ? "geo/roads.js?v=37" : "geo/rails.js?v=37";
+        s.src = key === "rd" ? "geo/roads.js?v=38" : "geo/rails.js?v=38";
         s.onload = function () { ready(key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS); };
         s.onerror = function () { netWait[key] = 0; };
         document.head.appendChild(s);
