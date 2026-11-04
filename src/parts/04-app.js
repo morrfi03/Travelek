@@ -1,7 +1,7 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=28";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=28";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=28";
-import { createMap } from "../atlas.js?v=28";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=29";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=29";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=29";
+import { createMap } from "../atlas.js?v=29";
 "use strict";
 /* map */
 export var map;
@@ -2755,21 +2755,8 @@ function paintPoly(poly, style){
 }
 export function drawCountries(){
   if(map && map._isAtlas && map.setVisited){
-    if(!countryLayer && map.group) countryLayer=map.group().addTo(map);
     if(countryLayer) countryLayer.clearLayers();
-    var atlasRegions=[], covers=[], i, id, rec, parent;
-    for(i=0;i<(visitedRegions||[]).length;i++){
-      id=visitedRegions[i];
-      rec=regionRecord(id);
-      parent=countryOfRid(id);
-      if(rec && rec.p && parent && parent!=="RU" && parent!=="CN" && parent!=="KZ") covers.push(rec);
-      else atlasRegions.push(id);
-    }
-    map.setVisited(visited||[], atlasRegions);
-    var gold={color:"rgba(120,78,20,.85)", weight:0, opacity:0, lineJoin:"round", fillColor:"#c45c28", fillOpacity:.72, interactive:false, smoothFactor:0};
-    covers.forEach(function(reg){
-      polysOf(reg).forEach(function(poly){ paintPoly(poly, gold); });
-    });
+    map.setVisited(visited||[], visitedRegions||[]);
     return;
   }
   countryLayer.clearLayers();

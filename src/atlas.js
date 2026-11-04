@@ -1,5 +1,5 @@
 
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=28";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=29";
 var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
@@ -96,6 +96,42 @@ var api = (function () {
       e.r1 = rStart.length; ents.push(e); byLayer[L].push(ents.length - 1); idx++;
     }
   });
+  (function extendIstanbulCoast(){
+    function retie(r, e){
+      var s = rStart[r], n = rLen[r], sx = 0, sy = 0, sz = 0, pts = [], fx0 = 1e9, fy0 = 1e9, fx1 = -1e9, fy1 = -1e9;
+      var i, x, y, la, lo, c, X, Y, Z, f, k, dt, cmin, m;
+      for (i = 0; i < n; i++) {
+        x = lx[s + i]; y = ly[s + i];
+        if (x < e.bb[0]) e.bb[0] = x; if (y < e.bb[1]) e.bb[1] = y; if (x > e.bb[2]) e.bb[2] = x; if (y > e.bb[3]) e.bb[3] = y;
+        la = y * D2R; lo = x * D2R; c = Math.cos(la);
+        X = c * Math.sin(lo); Y = Math.sin(la); Z = c * Math.cos(lo);
+        pts.push(X, Y, Z); sx += X; sy += Y; sz += Z;
+        f = flatXY(lo, la);
+        if (f[0] < fx0) fx0 = f[0]; if (f[0] > fx1) fx1 = f[0]; if (f[1] < fy0) fy0 = f[1]; if (f[1] > fy1) fy1 = f[1];
+      }
+      m = Math.hypot(sx, sy, sz) || 1; sx /= m; sy /= m; sz /= m; cmin = 1;
+      for (k = 0; k < pts.length; k += 3) { dt = pts[k] * sx + pts[k + 1] * sy + pts[k + 2] * sz; if (dt < cmin) cmin = dt; }
+      rCx[r] = sx; rCy[r] = sy; rCz[r] = sz; rSin[r] = Math.sin(Math.acos(Math.max(-1, Math.min(1, cmin))));
+      rbx0[r] = fx0; rby0[r] = fy0; rbx1[r] = fx1; rby1[r] = fy1;
+    }
+    function bulge(e, r, ax, ay, extra, liftNext){
+      var s = rStart[r], n = rLen[r], i, at = -1, add, k, rr;
+      for (i = 0; i < n; i++) if (lx[s + i] === ax && ly[s + i] === ay) { at = i; break; }
+      if (at < 0) return;
+      if (liftNext && at + 1 < n) ly[s + at + 1] = Math.max(ly[s + at + 1], liftNext);
+      add = extra.length;
+      for (k = extra.length - 1; k >= 0; k--) { lx.splice(s + at + 1, 0, extra[k][0]); ly.splice(s + at + 1, 0, extra[k][1]); }
+      rLen[r] += add;
+      for (rr = r + 1; rr < rStart.length; rr++) rStart[rr] += add;
+      retie(r, e);
+    }
+    var ei, e;
+    for (ei = 0; ei < ents.length; ei++) {
+      e = ents[ei];
+      if (e.L === "W" && e.name === "Турция") bulge(e, e.r0 + 1, 2823, 4152, [[2845,4168],[2865,4156],[2885,4144]], 4136);
+      if (e.L === "G" && e.name === "Стамбул" && e.sub === "Турция") bulge(e, e.r0, 2820, 4154, [[2840,4166],[2860,4154],[2880,4142]], 4140);
+    }
+  })();
   var NV = lx.length, LX = Int32Array.from(lx), LY = Int32Array.from(ly), VX = new Float32Array(NV), VY = new Float32Array(NV), VZ = new Float32Array(NV), FXv = new Float32Array(NV), FYv = new Float32Array(NV);
   for (var i = 0; i < NV; i++) { var la = LY[i] * D2R, lo = LX[i] * D2R, c = Math.cos(la); VX[i] = c * Math.sin(lo); VY[i] = Math.sin(la); VZ[i] = c * Math.cos(lo); var f = flatXY(lo, la); FXv[i] = f[0]; FYv[i] = f[1]; }
   function ringContains(r, x, y) {
@@ -1401,7 +1437,7 @@ var api = (function () {
         if (netWait[key]) { views.flat.setShow(key, !!on); return; }
         netWait[key] = 1;
         var s = document.createElement("script");
-        s.src = key === "rd" ? "geo/roads.js?v=28" : "geo/rails.js?v=28";
+        s.src = key === "rd" ? "geo/roads.js?v=29" : "geo/rails.js?v=29";
         s.onload = function () { ready(key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS); };
         s.onerror = function () { netWait[key] = 0; };
         document.head.appendChild(s);
