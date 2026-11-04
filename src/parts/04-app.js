@@ -1,7 +1,7 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=26";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=26";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=26";
-import { createMap } from "../atlas.js?v=26";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=27";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=27";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=27";
+import { createMap } from "../atlas.js?v=27";
 "use strict";
 /* map */
 export var map;
@@ -2334,6 +2334,57 @@ function snapRegion(lat, lng, code, maxD){
   }
   return best?best.id:null;
 }
+function regionCountry(reg){
+  if(!reg) return "";
+  if(reg.c) return reg.c;
+  var s=String(reg.id||""), cut=s.indexOf(":");
+  return cut>0?s.slice(0,cut):"";
+}
+function eachRegion(fn){
+  var code, list, i;
+  if(typeof REGIONS_BY==="undefined" || !REGIONS_BY) return;
+  for(code in REGIONS_BY){
+    list=REGIONS_BY[code]||[];
+    for(i=0;i<list.length;i++) fn(list[i]);
+  }
+}
+function regionHit(lat, lng){
+  var best=null, bestA=1e18;
+  eachRegion(function(reg){
+    if(!regionCovers(reg, lat, lng)) return;
+    var b=reg.b||[0,0,0,0];
+    var area=Math.max(1e-6, (b[2]-b[0])*Math.min(360, Math.abs((b[3]-b[1]))));
+    if(area<bestA){ bestA=area; best=reg; }
+  });
+  return best;
+}
+function nearestCountry(lat, lng, maxD){
+  if(typeof COUNTRY_LIST==="undefined" || !COUNTRY_LIST) return null;
+  var best=null, bd=maxD, i, c, d, polys, k;
+  for(i=0;i<COUNTRY_LIST.length;i++){
+    c=COUNTRY_LIST[i];
+    if(!c || !c.b) continue;
+    if(lat<c.b[0]-maxD || lat>c.b[2]+maxD || lng<c.b[1]-maxD || lng>c.b[3]+maxD) continue;
+    if(c.i!=="RU"){
+      polys=polysOf(c);
+      for(k=0;k<polys.length;k++) if(polyHas(polys[k], lat, lng)) return c.i;
+    }
+    d=regionEdgeDist(c, lat, lng);
+    if(d<bd){ bd=d; best=c.i; }
+  }
+  return best;
+}
+function nearestRegion(lat, lng, maxD){
+  var best=null, bd=maxD;
+  eachRegion(function(reg){
+    var b=reg.b;
+    if(!b) return;
+    if(lat<b[0]-maxD || lat>b[2]+maxD || lng<b[1]-maxD || lng>b[3]+maxD) return;
+    var d=regionCovers(reg, lat, lng)?0:regionEdgeDist(reg, lat, lng);
+    if(d<bd){ bd=d; best=reg; }
+  });
+  return best;
+}
 function resolveVisitPoint(lat, lng){
   var id=null, rid=null;
   if(typeof countryAt==="function") id=countryAt(lat, lng);
@@ -2378,6 +2429,27 @@ function resolveVisitPoint(lat, lng){
   if(!rid && id){
     var snapped=snapRegion(lat, lng, id, 0.35);
     if(snapped) rid=snapped;
+  }
+  if(!rid){
+    var held=regionHit(lat, lng);
+    if(held){
+      var hc=regionCountry(held)||countryOfRid(held.id);
+      if(!id || !hc || hc===id){
+        rid=held.id;
+        if(!id) id=hc;
+      }
+    }
+  }
+  if(!rid){
+    var nearR=nearestRegion(lat, lng, 0.12);
+    if(nearR){
+      var rc=regionCountry(nearR)||countryOfRid(nearR.id);
+      var nc=id||nearestCountry(lat, lng, 0.3);
+      if(!nc || !rc || nc===rc){
+        rid=nearR.id;
+        if(!id) id=rc;
+      }
+    }
   }
   return {id:id, rid:rid};
 }

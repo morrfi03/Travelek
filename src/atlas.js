@@ -1,5 +1,5 @@
 
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=26";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=27";
 var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
@@ -1401,7 +1401,7 @@ var api = (function () {
         if (netWait[key]) { views.flat.setShow(key, !!on); return; }
         netWait[key] = 1;
         var s = document.createElement("script");
-        s.src = key === "rd" ? "geo/roads.js?v=26" : "geo/rails.js?v=26";
+        s.src = key === "rd" ? "geo/roads.js?v=27" : "geo/rails.js?v=27";
         s.onload = function () { ready(key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS); };
         s.onerror = function () { netWait[key] = 0; };
         document.head.appendChild(s);
