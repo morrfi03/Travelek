@@ -1,5 +1,5 @@
 
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=29";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=30";
 var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
@@ -128,8 +128,14 @@ var api = (function () {
     var ei, e;
     for (ei = 0; ei < ents.length; ei++) {
       e = ents[ei];
-      if (e.L === "W" && e.name === "Турция") bulge(e, e.r0 + 1, 2823, 4152, [[2845,4168],[2865,4156],[2885,4144]], 4136);
-      if (e.L === "G" && e.name === "Стамбул" && e.sub === "Турция") bulge(e, e.r0, 2820, 4154, [[2840,4166],[2860,4154],[2880,4142]], 4140);
+      if (e.L === "W" && e.name === "Турция") {
+        bulge(e, e.r0 + 1, 2823, 4152, [[2850,4185],[2875,4172],[2900,4158]], 4155);
+        bulge(e, e.r0, 2917, 4123, [[2945,4164],[2985,4152]], 4148);
+      }
+      if (e.L === "G" && e.name === "Стамбул" && e.sub === "Турция") {
+        bulge(e, e.r0, 2820, 4154, [[2845,4188],[2870,4176],[2895,4162]], 4165);
+        bulge(e, e.r0 + 1, 2917, 4123, [[2940,4160],[2975,4148]], 4142);
+      }
     }
   })();
   var NV = lx.length, LX = Int32Array.from(lx), LY = Int32Array.from(ly), VX = new Float32Array(NV), VY = new Float32Array(NV), VZ = new Float32Array(NV), FXv = new Float32Array(NV), FYv = new Float32Array(NV);
@@ -1437,7 +1443,7 @@ var api = (function () {
         if (netWait[key]) { views.flat.setShow(key, !!on); return; }
         netWait[key] = 1;
         var s = document.createElement("script");
-        s.src = key === "rd" ? "geo/roads.js?v=29" : "geo/rails.js?v=29";
+        s.src = key === "rd" ? "geo/roads.js?v=30" : "geo/rails.js?v=30";
         s.onload = function () { ready(key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS); };
         s.onerror = function () { netWait[key] = 0; };
         document.head.appendChild(s);

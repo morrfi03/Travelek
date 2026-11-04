@@ -1,7 +1,7 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=29";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=29";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=29";
-import { createMap } from "../atlas.js?v=29";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=30";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=30";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=30";
+import { createMap } from "../atlas.js?v=30";
 "use strict";
 /* map */
 export var map;
@@ -2441,10 +2441,10 @@ function resolveVisitPoint(lat, lng){
     }
   }
   if(!rid){
-    var nearR=nearestRegion(lat, lng, 0.12);
+    var nearR=nearestRegion(lat, lng, 0.55);
     if(nearR){
       var rc=regionCountry(nearR)||countryOfRid(nearR.id);
-      var nc=id||nearestCountry(lat, lng, 0.3);
+      var nc=id||nearestCountry(lat, lng, 0.7);
       if(!nc || !rc || nc===rc){
         rid=nearR.id;
         if(!id) id=rc;
@@ -2654,14 +2654,16 @@ export function syncVisited(){
   });
   var next=[], seen={};
   function addC(id){
-    if(!id || seen[id] || offCountries.indexOf(id)>=0) return;
+    if(!id || seen[id]) return;
+    if(offCountries.indexOf(id)>=0 && !autoC[id]) return;
     seen[id]=1; next.push(id);
   }
   var nextR=[], seenR={};
   function addR(id){
-    if(!id || seenR[id] || offRegions.indexOf(id)>=0) return;
+    if(!id || seenR[id]) return;
+    if(offRegions.indexOf(id)>=0 && !autoR[id]) return;
     var parent=countryOfRegion(id);
-    if(parent && offCountries.indexOf(parent)>=0) return;
+    if(parent && offCountries.indexOf(parent)>=0 && !autoC[parent] && !autoR[id]) return;
     seenR[id]=1; nextR.push(id);
   }
   function countryOfRegion(id){
