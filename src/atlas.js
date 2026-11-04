@@ -1,5 +1,5 @@
 
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=38";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=39";
 var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
@@ -135,6 +135,11 @@ var api = (function () {
     }
   })();
   lx = ly = null;
+  var rSkip = new Uint8Array(rStart.length);
+  ents.forEach(function (e) {
+    if (e.name !== "Армения" && e.name !== "Азербайджан") return;
+    for (var r = e.r0; r < e.r1; r++) if (rLen[r] < 4) rSkip[r] = 1;
+  });
   var edgeCut = {};
   (function buildEdgeCuts() {
     var cell = 100, grid = {}, EX0 = [], EY0 = [], EX1 = [], EY1 = [], EOwn = [], EAt = [];
@@ -241,6 +246,7 @@ var api = (function () {
     var bb = e.bb; if (lo < bb[0] || lo > bb[2] || la < bb[1] || la > bb[3]) return false;
     var c = false;
     for (var r = e.r0; r < e.r1; r++) {
+      if (rSkip[r]) continue;
       var s = rStart[r], n = rLen[r];
       for (var i = 0, j = n - 1; i < n; j = i++) {
         var xi = LX[s + i], yi = LY[s + i], xj = LX[s + j], yj = LY[s + j];
@@ -385,6 +391,28 @@ var api = (function () {
   }
   function pinchDist(a, b) { return Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY); }
 
+  function hostEntities(e) {
+    var iso = entityIso(e), out = [], seen = {}, i, w, id, wiso, sub;
+    if (!e) return out;
+    if (e.L === "R" || iso === "RU") {
+      for (i = 0; i < byLayer.R.length; i++) out.push(ents[byLayer.R[i]]);
+      return out;
+    }
+    sub = e.L === "W" ? (e.name || "") : (e.sub || "");
+    for (i = 0; i < byLayer.W.length; i++) {
+      id = byLayer.W[i];
+      if (seen[id]) continue;
+      w = ents[id];
+      wiso = w.iso || entityIso(w);
+      if (w === e || (iso && wiso === iso) || (sub && w.name === sub)) {
+        seen[id] = 1;
+        out.push(w);
+      }
+    }
+    if (!out.length && e.L !== "W") out.push(e);
+    return out;
+  }
+
   // ===================== ПЛОСКАЯ КАРТА =====================
   views.flat = (function () {
     var box = $("flatBox"), cv = $("cvF"), ctx = cv.getContext("2d"), tip = $("tipF");
@@ -474,52 +502,92 @@ var api = (function () {
       var a = pix[(y0 * pw + x0) * stride], b = pix[(y0 * pw + x1) * stride];
       var c0 = pix[(y1 * pw + x0) * stride], d0 = pix[(y1 * pw + x1) * stride];
       var v0 = a * (1 - fx) * (1 - fy) + b * fx * (1 - fy) + c0 * (1 - fx) * fy + d0 * fx * fy;
-      var n = 226 + (v0 - 190) * 0.62;
-      if (n < 96) n = 96; else if (n > 242) n = 242;
+      var n = 220 + (v0 - 190) * 0.45;
+      if (n < 165) n = 165; else if (n > 242) n = 242;
       return n;
     }
     var shCanvas = document.createElement("canvas"), shCtx = shCanvas.getContext("2d", { willReadFrequently: true });
+    var maskCanvas = document.createElement("canvas"), maskCtx = maskCanvas.getContext("2d");
     function paintCrisp(c, vx0, vy0, vx1, vy1) {
       ensurePix();
-      c.fillStyle = "rgb(" + seaRGB[0] + "," + seaRGB[1] + "," + seaRGB[2] + ")";
-      c.fillRect(vx0 - 30, vy0 - 30, (vx1 - vx0) + 60, (vy1 - vy0) + 60);
-      var shown = [];
-      byLayer.W.forEach(function (i) {
-        var e = ents[i], r, on = false;
-        for (r = e.r0; r < e.r1; r++) if (RV[r]) { on = true; break; }
-        if (!on) return;
-        shown.push(e);
-        c.beginPath(); entPathFull(c, e);
-        c.fillStyle = countryFill(e);
-        c.fill("evenodd");
-      });
-      if (!relPix || !shown.length) return;
-      buildMips();
-      var w = Math.max(2, Math.round(cw)), h = Math.max(2, Math.round(ch)), kk = cw / WID * k, cap = 650000;
-      if (w * h > cap) { var sc = Math.sqrt(cap / (w * h)); w = Math.max(2, Math.round(w * sc)); h = Math.max(2, Math.round(h * sc)); }
-      if (shCanvas.width !== w || shCanvas.height !== h) { shCanvas.width = w; shCanvas.height = h; }
-      var pixSpan = relW / Math.max(1, k * w), mip = null;
-      if (relMips) { if (pixSpan > 14) mip = relMips[1]; else if (pixSpan > 4) mip = relMips[0]; }
-      var img = shCtx.createImageData(w, h), d = img.data, y, x, ll, s, o;
-      for (y = 0; y < h; y++) {
-        var my = (((y + 0.5) * ch / h) - ty) / kk;
-        for (x = 0; x < w; x++) {
-          ll = unflat((((x + 0.5) * cw / w) - tx) / kk, my);
-          s = ll ? shadeOf(ll[0] / 100, ll[1] / 100, mip) : 220;
-          o = (y * w + x) * 4;
-          d[o] = d[o + 1] = d[o + 2] = s; d[o + 3] = 255;
-        }
+      var sea = "rgb(" + seaRGB[0] + "," + seaRGB[1] + "," + seaRGB[2] + ")";
+      function fillShown(list) {
+        list.forEach(function (i) {
+          var e = ents[i], r, on = false;
+          for (r = e.r0; r < e.r1; r++) if (RV[r]) { on = true; break; }
+          if (!on) return;
+          c.beginPath(); entPathFull(c, e);
+          c.fillStyle = countryFill(e);
+          c.fill("evenodd");
+        });
       }
-      shCtx.putImageData(img, 0, 0);
-      c.save();
-      c.beginPath();
-      shown.forEach(function (e) { entPathFull(c, e); });
-      c.clip("evenodd");
+      if (!texF.complete || !texF.naturalWidth) {
+        c.fillStyle = sea;
+        c.fillRect(vx0 - 40, vy0 - 40, (vx1 - vx0) + 80, (vy1 - vy0) + 80);
+        fillShown(byLayer.W);
+        fillShown(byLayer.R);
+        return;
+      }
       c.imageSmoothingEnabled = true;
       c.imageSmoothingQuality = "high";
-      c.globalCompositeOperation = "multiply";
-      c.drawImage(shCanvas, vx0, vy0, vx1 - vx0, vy1 - vy0);
-      c.globalCompositeOperation = "source-over";
+      c.drawImage(texF, 0, 0, WID, HF);
+      if (relPix) {
+        buildMips();
+        var w = Math.max(2, Math.round(cw)), h = Math.max(2, Math.round(ch)), kk = cw / WID * k, cap = 650000;
+        if (w * h > cap) { var sc = Math.sqrt(cap / (w * h)); w = Math.max(2, Math.round(w * sc)); h = Math.max(2, Math.round(h * sc)); }
+        if (shCanvas.width !== w || shCanvas.height !== h) { shCanvas.width = w; shCanvas.height = h; }
+        var pixSpan = relW / Math.max(1, k * w), mip = null;
+        if (relMips) { if (pixSpan > 14) mip = relMips[1]; else if (pixSpan > 4) mip = relMips[0]; }
+        var img = shCtx.createImageData(w, h), d = img.data, y, x, ll, s, o;
+        for (y = 0; y < h; y++) {
+          var my = (((y + 0.5) * ch / h) - ty) / kk;
+          for (x = 0; x < w; x++) {
+            ll = unflat((((x + 0.5) * cw / w) - tx) / kk, my);
+            s = ll ? shadeOf(ll[0] / 100, ll[1] / 100, mip) : 220;
+            o = (y * w + x) * 4;
+            d[o] = d[o + 1] = d[o + 2] = s; d[o + 3] = 255;
+          }
+        }
+        shCtx.putImageData(img, 0, 0);
+        c.save();
+        c.globalCompositeOperation = "multiply";
+        c.drawImage(shCanvas, vx0, vy0, vx1 - vx0, vy1 - vy0);
+        c.restore();
+      }
+      var mw = Math.max(2, Math.round(cw * dpr)), mh = Math.max(2, Math.round(ch * dpr));
+      if (maskCanvas.width !== mw || maskCanvas.height !== mh) { maskCanvas.width = mw; maskCanvas.height = mh; }
+      maskCtx.setTransform(1, 0, 0, 1, 0, 0);
+      maskCtx.clearRect(0, 0, mw, mh);
+      maskCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      maskCtx.save();
+      maskCtx.translate(tx, ty);
+      maskCtx.scale(cw / WID * k, cw / WID * k);
+      maskCtx.fillStyle = "#fff";
+      function stamp(list) {
+        var i, e, r, on;
+        for (i = 0; i < list.length; i++) {
+          e = ents[list[i]]; on = false;
+          for (r = e.r0; r < e.r1; r++) {
+            if (rSkip[r]) continue;
+            if (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1) continue;
+            on = true; break;
+          }
+          if (!on) continue;
+          maskCtx.beginPath();
+          entPathFull(maskCtx, e);
+          maskCtx.fill("evenodd");
+        }
+      }
+      stamp(byLayer.W);
+      stamp(byLayer.R);
+      maskCtx.restore();
+      c.save();
+      c.setTransform(dpr, 0, 0, dpr, 0, 0);
+      c.globalCompositeOperation = "destination-in";
+      c.drawImage(maskCanvas, 0, 0, cw, ch);
+      c.globalCompositeOperation = "destination-over";
+      c.fillStyle = sea;
+      c.fillRect(0, 0, cw, ch);
       c.restore();
     }
     var show = { rd: false, rl: false, rv: true };
@@ -557,11 +625,13 @@ var api = (function () {
     var RV = new Uint8Array(NR);
     var thr2 = 0;     // вершины ближе порога (в долях пикселя) пропускаются: на мелком масштабе их не видно
     function ringPath(c, r) {
+      if (rSkip[r]) return;
       var s = rStart[r], n = rLen[r], px = FXv[s], py = FYv[s]; c.moveTo(px, py);
       for (var i = 1; i < n; i++) { var x = FXv[s + i], y = FYv[s + i], dx = x - px, dy = y - py; if (dx * dx + dy * dy < thr2 && i < n - 1) continue; c.lineTo(x, y); px = x; py = y; }
       c.closePath();
     }
     function ringStrokeFlat(c, r) {
+      if (rSkip[r]) return;
       var s = rStart[r], n = rLen[r], i, a, b, cut, k, t0, t1, drawing = false;
       if (n < 2) return;
       for (i = 0; i < n; i++) {
@@ -721,24 +791,25 @@ var api = (function () {
       paintNets(ctx);
       if (!settled) return;
       var kk = cw / WID * k; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.save(); ctx.translate(tx, ty); ctx.scale(kk, kk); ctx.lineJoin = "round";
-      [[hoverEnt, "rgba(255,255,255,.46)"], [selEnt, "rgba(255,236,190,.55)"]].forEach(function (h) {
+      [[hoverEnt, "rgba(255,248,220,.66)"], [selEnt, "rgba(255,214,140,.72)"]].forEach(function (h) {
         if (h[0] < 0) return;
-        var e = ents[h[0]], wi, w, iso;
-        if (e.L !== "W") {
-          iso = entityIso(e);
-          if (iso) for (wi = 0; wi < byLayer.W.length; wi++) {
-            w = ents[byLayer.W[wi]];
-            if ((w.iso || entityIso(w)) !== iso) continue;
-            if (w.name === "Украина" && traceFlat(ctx, "UA")) {
-              ctx.fillStyle = "rgba(255,255,255,.22)"; ctx.fill("evenodd");
-              ctx.strokeStyle = "#102033"; ctx.lineWidth = 2 / kk; ctx.stroke();
-              continue;
-            }
-            ctx.beginPath(); entPathFull(ctx, w);
-            ctx.fillStyle = "rgba(255,255,255,.22)"; ctx.fill("evenodd");
-            ctx.strokeStyle = "#102033"; ctx.lineWidth = 2 / kk; ctx.stroke();
+        var e = ents[h[0]], hi, host;
+        var hosts = hostEntities(e);
+        for (hi = 0; hi < hosts.length; hi++) {
+          host = hosts[hi];
+          if (e.L !== "W" && host === e) continue;
+          if (host.name === "Украина" && traceFlat(ctx, "UA")) {
+            ctx.fillStyle = e.L === "W" ? h[1] : "rgba(125,198,255,.46)";
+            ctx.fill("evenodd");
+            ctx.strokeStyle = "#17324f"; ctx.lineWidth = 2.2 / kk; ctx.stroke();
+            continue;
           }
+          ctx.beginPath(); entPathFull(ctx, host);
+          ctx.fillStyle = e.L === "W" ? h[1] : "rgba(125,198,255,.46)";
+          ctx.fill("evenodd");
+          ctx.strokeStyle = "#17324f"; ctx.lineWidth = 2.2 / kk; ctx.stroke();
         }
+        if (e.L === "W") return;
         if (e.name === "Украина" && traceFlat(ctx, "UA")) {
           ctx.fillStyle = h[1]; ctx.fill("evenodd");
           ctx.strokeStyle = h[0] === selEnt ? "#8a3d12" : "#102033"; ctx.lineWidth = 2.4 / kk; ctx.stroke();
@@ -1074,7 +1145,7 @@ var api = (function () {
     }
     function fillRings(e) {
       for (var r = e.r0; r < e.r1; r++) {
-        if (!RVg[r]) continue;
+        if (rSkip[r] || !RVg[r]) continue;
         var s = rStart[r], n = rLen[r];
         if (n < 3) continue;
         var started = false;
@@ -1102,7 +1173,7 @@ var api = (function () {
     function strokeRings(e, min2) {
       min2 = min2 || 0;
       for (var r = e.r0; r < e.r1; r++) {
-        if (!RVg[r]) continue;
+        if (rSkip[r] || !RVg[r]) continue;
         var s = rStart[r], n = rLen[r], i, a, b, cut, drawing = false, px = 0, py = 0, x, y, dx, dy, k, p0, p1;
         for (i = 0; i < n; i++) {
           a = s + i; b = s + ((i + 1) % n);
@@ -1265,30 +1336,31 @@ var api = (function () {
           ctx.fill("evenodd");
         });
       });
-      [[hoverEnt, "rgba(255,255,255,.5)"], [selEnt, "rgba(255,236,190,.62)"]].forEach(function (h) {
+      [[hoverEnt, "rgba(255,248,220,.66)"], [selEnt, "rgba(255,214,140,.72)"]].forEach(function (h) {
         if (h[0] < 0) return;
-        var e = ents[h[0]], iso, wi, w;
-        if (e.L !== "W") {
-          iso = entityIso(e);
-          if (iso) for (wi = 0; wi < byLayer.W.length; wi++) {
-            w = ents[byLayer.W[wi]];
-            if ((w.iso || entityIso(w)) !== iso) continue;
-            if (w.name === "Украина" && fillGeo("UA")) {
-              ctx.fillStyle = "rgba(255,255,255,.24)"; ctx.fill("evenodd");
-              ctx.strokeStyle = "#102033"; ctx.lineWidth = 1.6; ctx.stroke();
-              continue;
-            }
-            projectFull(w);
-            ctx.beginPath(); fillRings(w);
-            ctx.fillStyle = "rgba(255,255,255,.24)"; ctx.fill("evenodd");
-            ctx.strokeStyle = "#102033"; ctx.lineWidth = 1.6; ctx.stroke();
+        var e = ents[h[0]], hi, host, hosts = hostEntities(e);
+        for (hi = 0; hi < hosts.length; hi++) {
+          host = hosts[hi];
+          if (e.L !== "W" && host === e) continue;
+          if (host.name === "Украина" && fillGeo("UA")) {
+            ctx.fillStyle = e.L === "W" ? h[1] : "rgba(125,198,255,.48)";
+            ctx.fill("evenodd");
+            ctx.strokeStyle = "#17324f"; ctx.lineWidth = 1.7; ctx.stroke();
+            continue;
           }
+          projectFull(host);
+          ctx.beginPath(); fillRings(host);
+          ctx.fillStyle = e.L === "W" ? h[1] : "rgba(125,198,255,.48)";
+          ctx.fill("evenodd");
+          ctx.strokeStyle = "#17324f"; ctx.lineWidth = 1.7; ctx.stroke();
         }
+        if (e.L === "W") return;
         if (e.name === "Украина" && fillGeo("UA")) {
           ctx.fillStyle = h[1]; ctx.fill("evenodd");
           ctx.strokeStyle = h[0] === selEnt ? "#8a3d12" : "#102033"; ctx.lineWidth = 2; ctx.stroke();
           return;
         }
+        projectFull(e);
         ctx.beginPath(); fillRings(e); ctx.fillStyle = h[1]; ctx.fill("evenodd");
         ctx.strokeStyle = h[0] === selEnt ? "#8a3d12" : "#102033"; ctx.lineWidth = 2; ctx.stroke();
       });
@@ -1736,7 +1808,7 @@ var api = (function () {
         if (netWait[key]) { views.flat.setShow(key, !!on); return; }
         netWait[key] = 1;
         var s = document.createElement("script");
-        s.src = key === "rd" ? "geo/roads.js?v=38" : "geo/rails.js?v=38";
+        s.src = key === "rd" ? "geo/roads.js?v=39" : "geo/rails.js?v=39";
         s.onload = function () { ready(key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS); };
         s.onerror = function () { netWait[key] = 0; };
         document.head.appendChild(s);
