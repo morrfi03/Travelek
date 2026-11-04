@@ -1,5 +1,5 @@
 
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=36";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=37";
 var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
@@ -292,7 +292,113 @@ var api = (function () {
     var box = $("flatBox"), cv = $("cvF"), ctx = cv.getContext("2d"), tip = $("tipF");
     var cw = 800, ch = 350, dpr = 1, k = 1, tx = 0, ty = 0, KMAX = 170, raf = 0;
     function kMin(){ var need = HF / WID * cw; return Math.max(0.4, Math.min(1, ch / Math.max(1, need))); }
-    var texF = new Image(); texF.onload = function () { schedule(); }; texF.src = G.tf;
+    var texF = new Image(); texF.onload = function () { texPix = null; schedule(); }; texF.src = G.tf;
+    var relF = new Image();
+    var texPix = null, texPW = 0, texPH = 0, relPix = null, relW = 0, relH = 0, seaRGB = [78, 140, 178];
+    if (G.rs) { relF.onload = function () { relPix = null; schedule(); }; relF.src = G.rs; }
+    function grab(img) {
+      if (!img.complete || !img.naturalWidth) return null;
+      var cv = document.createElement("canvas");
+      cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+      var g = cv.getContext("2d", { willReadFrequently: true });
+      g.drawImage(img, 0, 0);
+      return { d: g.getImageData(0, 0, cv.width, cv.height).data, w: cv.width, h: cv.height };
+    }
+    function pixAt(f) {
+      if (!texPix || !f) return null;
+      var x = Math.max(0, Math.min(texPW - 1, Math.round(f[0] / WID * texPW)));
+      var y = Math.max(0, Math.min(texPH - 1, Math.round(f[1] / HF * texPH)));
+      var o = (y * texPW + x) * 4;
+      return [texPix[o], texPix[o + 1], texPix[o + 2]];
+    }
+    function isWater(col) { return col && col[2] > col[0] + 10 && col[2] > col[1] + 2; }
+    function ensurePix() {
+      if (!texPix) {
+        var t = grab(texF);
+        if (t) {
+          texPix = t.d; texPW = t.w; texPH = t.h;
+          var sea = pixAt(flatXY(-40 * PI / 180, 25 * PI / 180));
+          if (sea && isWater(sea)) seaRGB = sea;
+        }
+      }
+      if (!relPix && G.rs) {
+        var r = grab(relF);
+        if (r) { relPix = r.d; relW = r.w; relH = r.h; }
+      }
+    }
+    function countryFill(e) {
+      if (e._fill) return e._fill;
+      ensurePix();
+      var best = 0, br = e.r0, r, s, n, step, i, ax = 0, ay = 0, cnt = 0, acc = [0, 0, 0, 0], col, fx, fy;
+      for (r = e.r0; r < e.r1; r++) if (rLen[r] > best) { best = rLen[r]; br = r; }
+      s = rStart[br]; n = best; step = Math.max(1, (n / 28) | 0);
+      for (i = 0; i < n; i += step) { ax += FXv[s + i]; ay += FYv[s + i]; cnt++; }
+      ax /= cnt || 1; ay /= cnt || 1;
+      for (i = 0; i < n; i += step) {
+        fx = FXv[s + i] * 0.22 + ax * 0.78; fy = FYv[s + i] * 0.22 + ay * 0.78;
+        col = pixAt([fx, fy]);
+        if (!col || isWater(col)) continue;
+        acc[0] += col[0]; acc[1] += col[1]; acc[2] += col[2]; acc[3]++;
+        if (acc[3] >= 8) break;
+      }
+      e._fill = acc[3] ? ("rgb(" + ((acc[0] / acc[3]) | 0) + "," + ((acc[1] / acc[3]) | 0) + "," + ((acc[2] / acc[3]) | 0) + ")") : "#8eae74";
+      return e._fill;
+    }
+    function shadeOf(lng, lat) {
+      if (!relPix) return 214;
+      var u = ((lng + 180) / 360) * relW, v = ((90 - lat) / 180) * relH;
+      if (v < 0) v = 0; else if (v > relH - 1.001) v = relH - 1.001;
+      u = ((u % relW) + relW) % relW;
+      var x0 = u | 0, y0 = v | 0, x1 = (x0 + 1) % relW, y1 = y0 + 1 < relH ? y0 + 1 : y0;
+      var fx = u - x0, fy = v - y0;
+      var a = relPix[(y0 * relW + x0) * 4], b = relPix[(y0 * relW + x1) * 4];
+      var c0 = relPix[(y1 * relW + x0) * 4], d0 = relPix[(y1 * relW + x1) * 4];
+      var v0 = a * (1 - fx) * (1 - fy) + b * fx * (1 - fy) + c0 * (1 - fx) * fy + d0 * fx * fy;
+      var n = 226 + (v0 - 190) * 0.62;
+      if (n < 96) n = 96; else if (n > 242) n = 242;
+      return n;
+    }
+    var shCanvas = document.createElement("canvas"), shCtx = shCanvas.getContext("2d", { willReadFrequently: true });
+    function paintCrisp(c, vx0, vy0, vx1, vy1) {
+      ensurePix();
+      c.fillStyle = "rgb(" + seaRGB[0] + "," + seaRGB[1] + "," + seaRGB[2] + ")";
+      c.fillRect(vx0 - 30, vy0 - 30, (vx1 - vx0) + 60, (vy1 - vy0) + 60);
+      var shown = [];
+      byLayer.W.forEach(function (i) {
+        var e = ents[i], r, on = false;
+        for (r = e.r0; r < e.r1; r++) if (RV[r]) { on = true; break; }
+        if (!on) return;
+        shown.push(e);
+        c.beginPath(); entPathFull(c, e);
+        c.fillStyle = countryFill(e);
+        c.fill("evenodd");
+      });
+      if (!relPix || !shown.length) return;
+      var w = Math.max(2, Math.round(cw)), h = Math.max(2, Math.round(ch)), kk = cw / WID * k, cap = 650000;
+      if (w * h > cap) { var sc = Math.sqrt(cap / (w * h)); w = Math.max(2, Math.round(w * sc)); h = Math.max(2, Math.round(h * sc)); }
+      if (shCanvas.width !== w || shCanvas.height !== h) { shCanvas.width = w; shCanvas.height = h; }
+      var img = shCtx.createImageData(w, h), d = img.data, y, x, ll, s, o;
+      for (y = 0; y < h; y++) {
+        var my = (((y + 0.5) * ch / h) - ty) / kk;
+        for (x = 0; x < w; x++) {
+          ll = unflat((((x + 0.5) * cw / w) - tx) / kk, my);
+          s = ll ? shadeOf(ll[0] / 100, ll[1] / 100) : 220;
+          o = (y * w + x) * 4;
+          d[o] = d[o + 1] = d[o + 2] = s; d[o + 3] = 255;
+        }
+      }
+      shCtx.putImageData(img, 0, 0);
+      c.save();
+      c.beginPath();
+      shown.forEach(function (e) { entPathFull(c, e); });
+      c.clip("evenodd");
+      c.imageSmoothingEnabled = true;
+      c.imageSmoothingQuality = "high";
+      c.globalCompositeOperation = "multiply";
+      c.drawImage(shCanvas, vx0, vy0, vx1 - vx0, vy1 - vy0);
+      c.globalCompositeOperation = "source-over";
+      c.restore();
+    }
     var show = { rd: false, rl: false, rv: true };
     var LAYERS = [];
     function addTiers(key, arr, ths, style) {
@@ -341,10 +447,17 @@ var api = (function () {
       c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, bc.width, bc.height); c.setTransform(dpr, 0, 0, dpr, 0, 0);
       c.save(); c.translate(tx, ty); c.scale(kk, kk);
       var vx0 = -tx / kk, vx1 = (cw - tx) / kk, vy0 = -ty / kk, vy1 = (ch - ty) / kk, px1 = 1.4 / kk;
-      c.imageSmoothingEnabled = true; c.imageSmoothingQuality = "high";
-      if (texF.complete && texF.naturalWidth) c.drawImage(texF, 0, 0, WID, HF);
       stampIso();
       for (var r = 0; r < NR; r++) RV[r] = (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1 || (rbx1[r] - rbx0[r] < px1 && rby1[r] - rby0[r] < px1)) ? 0 : 1;
+      var mag = kk * dpr, texA = mag <= 1.45 ? 1 : mag >= 2.7 ? 0 : (2.7 - mag) / 1.25;
+      if (texA < 1) paintCrisp(c, vx0, vy0, vx1, vy1);
+      if (texA > 0 && texF.complete && texF.naturalWidth) {
+        c.globalAlpha = texA;
+        c.imageSmoothingEnabled = true;
+        c.imageSmoothingQuality = "high";
+        c.drawImage(texF, 0, 0, WID, HF);
+        c.globalAlpha = 1;
+      }
       var lw = 1 / kk; c.lineJoin = "round"; c.lineCap = "round";
       function showSmall(e){
         for (var r = e.r0; r < e.r1; r++){
@@ -452,7 +565,7 @@ var api = (function () {
     function draw() {
       var dragging = cv.classList.contains("drag");
       var settled = !dragging && !hold;
-      var key = [cw, ch, dpr, Math.round(k * 1000), settled ? Math.round(tx) : "m", settled ? Math.round(ty) : "m", show.rd ? 1 : 0, show.rl ? 1 : 0, show.rv ? 1 : 0, texF.complete ? 1 : 0, markRev].join("|");
+      var key = [cw, ch, dpr, Math.round(k * 1000), settled ? Math.round(tx) : "m", settled ? Math.round(ty) : "m", show.rd ? 1 : 0, show.rl ? 1 : 0, show.rv ? 1 : 0, texF.complete ? 1 : 0, relF.complete ? 1 : 0, markRev].join("|");
       if (bc.width !== cv.width || bc.height !== cv.height) { bc.width = cv.width; bc.height = cv.height; rc.width = cv.width; rc.height = cv.height; bkey = ""; }
       if (settled && key !== bkey) { base(); bkey = key; snapTx = tx; snapTy = ty; snapK = k; }
       if (settled) {
@@ -1440,7 +1553,7 @@ var api = (function () {
         if (netWait[key]) { views.flat.setShow(key, !!on); return; }
         netWait[key] = 1;
         var s = document.createElement("script");
-        s.src = key === "rd" ? "geo/roads.js?v=36" : "geo/rails.js?v=36";
+        s.src = key === "rd" ? "geo/roads.js?v=37" : "geo/rails.js?v=37";
         s.onload = function () { ready(key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS); };
         s.onerror = function () { netWait[key] = 0; };
         document.head.appendChild(s);
