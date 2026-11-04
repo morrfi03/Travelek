@@ -1,5 +1,5 @@
-import { AIRPORTS, CITIES, PORTS, PORT_ALIASES, PORT_BY_ID, STATIONS, findPortByQuery, flightAllowed, formatPortLabel, isPassengerPort, portCityKey, portPath } from "./01-catalog.js?v=33";
-import { countryAt, currentLang, drawCountries, globeOn, map, regionIn, render, syncVisited, t } from "./04-app.js?v=33";
+import { AIRPORTS, CITIES, PORTS, PORT_ALIASES, PORT_BY_ID, STATIONS, findPortByQuery, flightAllowed, formatPortLabel, isPassengerPort, portCityKey, portPath } from "./01-catalog.js?v=34";
+import { countryAt, currentLang, drawCountries, globeOn, map, regionIn, render, syncVisited, t } from "./04-app.js?v=34";
 "use strict";
 export function safeSetItem(key, val){
   try{ localStorage.setItem(key, val); }catch(e){ alert("Не удалось сохранить дневник в браузере"); return false; }

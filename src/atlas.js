@@ -1,5 +1,5 @@
 
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=33";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=34";
 var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
@@ -359,7 +359,7 @@ var api = (function () {
       c.setTransform(1, 0, 0, 1, 0, 0); c.clearRect(0, 0, bc.width, bc.height); c.setTransform(dpr, 0, 0, dpr, 0, 0);
       c.save(); c.translate(tx, ty); c.scale(kk, kk);
       var vx0 = -tx / kk, vx1 = (cw - tx) / kk, vy0 = -ty / kk, vy1 = (ch - ty) / kk, px1 = 1.4 / kk;
-      var mag = kk * dpr, texA = mag <= 1.35 ? 1 : mag >= 2.7 ? 0 : (2.7 - mag) / 1.35;
+      var mag = kk * dpr, texA = mag <= 2.1 ? 1 : mag >= 4.2 ? 0 : (4.2 - mag) / 2.1;
       c.fillStyle = "#4e8cb2";
       c.fillRect(vx0 - 8, vy0 - 8, (vx1 - vx0) + 16, (vy1 - vy0) + 16);
       stampIso();
@@ -396,9 +396,14 @@ var api = (function () {
             }
           }
           bucket = acc[i];
+          var lr = bucket ? bucket[0] / bucket[3] : 134, lg = bucket ? bucket[1] / bucket[3] : 158, lb = bucket ? bucket[2] / bucket[3] : 114;
+          lr = lr * 0.62 + 214 * 0.38; lg = lg * 0.62 + 216 * 0.38; lb = lb * 0.62 + 198 * 0.38;
           c.beginPath(); entPath(c, e);
-          c.fillStyle = bucket ? ("rgb(" + (bucket[0] / bucket[3] | 0) + "," + (bucket[1] / bucket[3] | 0) + "," + (bucket[2] / bucket[3] | 0) + ")") : "#86ae72";
+          c.fillStyle = "rgb(" + (lr | 0) + "," + (lg | 0) + "," + (lb | 0) + ")";
           c.fill("evenodd");
+          c.strokeStyle = "rgba(36,48,40,.55)";
+          c.lineWidth = 1.15 / kk;
+          c.stroke();
         });
       }
       if (texA > 0 && texF.complete && texF.naturalWidth) {
@@ -518,16 +523,16 @@ var api = (function () {
       } else { ctx.drawImage(bc, 0, 0); ctx.drawImage(rc, 0, 0); }
       if (!settled) return;
       var kk = cw / WID * k; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.save(); ctx.translate(tx, ty); ctx.scale(kk, kk); ctx.lineJoin = "round";
-      [[hoverEnt, "rgba(60,100,80,.38)"], [selEnt, "rgba(196,98,45,.65)"]].forEach(function (h) {
+      [[hoverEnt, "rgba(255,255,255,.46)"], [selEnt, "rgba(255,236,190,.55)"]].forEach(function (h) {
         if (h[0] < 0) return;
         var e = ents[h[0]];
         if (e.name === "Украина" && traceFlat(ctx, "UA")) {
           ctx.fillStyle = h[1]; ctx.fill("evenodd");
-          ctx.strokeStyle = h[0] === selEnt ? "rgba(120,50,15,.9)" : "rgba(30,60,45,.7)"; ctx.lineWidth = 1.2 / kk; ctx.stroke();
+          ctx.strokeStyle = h[0] === selEnt ? "#8a3d12" : "#102033"; ctx.lineWidth = 2.4 / kk; ctx.stroke();
           return;
         }
         ctx.beginPath(); entPathFull(ctx, e); ctx.fillStyle = h[1]; ctx.fill("evenodd");
-        ctx.strokeStyle = h[0] === selEnt ? "rgba(120,50,15,.9)" : "rgba(30,60,45,.7)"; ctx.lineWidth = 1.2 / kk; ctx.stroke();
+        ctx.strokeStyle = h[0] === selEnt ? "#8a3d12" : "#102033"; ctx.lineWidth = 2.4 / kk; ctx.stroke();
       });
       if (k >= 2.2 && hoverEnt >= 0) {
         var hIso = entityIso(ents[hoverEnt]), regs = regionsOf(hIso), hi;
@@ -815,7 +820,7 @@ var api = (function () {
     function project(step) {
       step = step || 1;
       for (var r = 0; r < NR; r++) {
-        var z1 = rCx[r] * sl + rCz[r] * cl, z2 = rCy[r] * sp + z1 * cp, vis = z2 > -rSin[r] ? 1 : 0;
+        var z1 = rCx[r] * sl + rCz[r] * cl, z2 = rCy[r] * sp + z1 * cp, vis = z2 > -rSin[r] - 0.35 ? 1 : 0;
         RVg[r] = vis;
         if (!vis) continue;
         var s0 = rStart[r], e0 = s0 + rLen[r], j;
@@ -988,7 +993,7 @@ var api = (function () {
         } else {
           initTex();
           if (tex) {
-            relief(fast ? 0.42 : (q || hq()), !!fast);
+            relief(fast ? 0.85 : (q || hq()), !!fast);
             ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
             ctx.imageSmoothingEnabled = true;
             ctx.imageSmoothingQuality = fast ? "low" : "high";
@@ -1004,8 +1009,8 @@ var api = (function () {
       }
       ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI);
       ctx.strokeStyle = "rgba(170,200,230,.45)"; ctx.lineWidth = fast ? 1.5 : 2.2; ctx.stroke();
-      var stride = (fast && !glOn) ? (zoom >= 2.4 ? 1 : (zoom >= 1.45 ? 2 : 3)) : 1;
-      var min2 = (fast && !glOn) ? (zoom >= 2.2 ? 1.6 : 3.4) : 0.45;
+      var stride = 1;
+      var min2 = fast ? 0.8 : 0.45;
       project(stride); stampIso(); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
       byLayer.W.forEach(function (i) {
         var e = ents[i];
@@ -1026,19 +1031,23 @@ var api = (function () {
           var e = ents[i];
           var open=regionLayerOpen(e), marked=regionMarked(e);
           if(!open && !marked) return;
-          if (fast && L === "G" && !marked) return;
           projectFull(e);
           ctx.beginPath(); fillRings(e);
           ctx.fillStyle=marked?"rgba(196,92,40,.72)":"rgba(214,168,72,.38)";
           ctx.fill("evenodd");
         });
       });
-      [[hoverEnt, "rgba(60,110,85,.55)"], [selEnt, "rgba(196,98,45,.70)"]].forEach(function (h) {
+      [[hoverEnt, "rgba(255,255,255,.5)"], [selEnt, "rgba(255,236,190,.62)"]].forEach(function (h) {
         if (h[0] < 0) return;
-        if (ents[h[0]].name === "Украина" && fillGeo("UA")) { ctx.fillStyle = h[1]; ctx.fill("evenodd"); return; }
+        if (ents[h[0]].name === "Украина" && fillGeo("UA")) {
+          ctx.fillStyle = h[1]; ctx.fill("evenodd");
+          ctx.strokeStyle = h[0] === selEnt ? "#8a3d12" : "#102033"; ctx.lineWidth = 2; ctx.stroke();
+          return;
+        }
         ctx.beginPath(); fillRings(ents[h[0]]); ctx.fillStyle = h[1]; ctx.fill("evenodd");
+        ctx.strokeStyle = h[0] === selEnt ? "#8a3d12" : "#102033"; ctx.lineWidth = 2; ctx.stroke();
       });
-      if (!fast && zoom >= 1.6 && hoverEnt >= 0) {
+      if (zoom >= 1.6 && hoverEnt >= 0) {
         var hIso = entityIso(ents[hoverEnt]), regs = regionsOf(hIso), hi;
         if (regs.length) {
           ctx.beginPath();
@@ -1046,14 +1055,14 @@ var api = (function () {
           ctx.strokeStyle = "rgba(255,255,255,.75)"; ctx.lineWidth = 0.6; ctx.lineJoin = "round"; ctx.stroke();
         }
       }
-      if (!fast && zoom >= 2.2) {
+      if (zoom >= 2.2) {
         ctx.beginPath(); ["R", "C", "G"].forEach(function (L) { byLayer[L].forEach(function (i) { if (regionLayerOpen(ents[i])) strokeRings(ents[i], min2); }); });
         ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 0.45; ctx.lineJoin = "round"; ctx.stroke();
       }
       ctx.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name!=="Украина") strokeRings(ents[i], min2); }); byLayer.B.forEach(function (i) { strokeRings(ents[i], min2); });
       ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke();
-      if (!fast && fillGeo("UA")) { ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke(); }
-      if (!fast) (function strokeNets() {
+      if (fillGeo("UA")) { ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke(); }
+      (function strokeNets() {
         var layers = views.flat.netLayers();
         if (!layers) return;
         layers.forEach(function (L) {
@@ -1470,7 +1479,7 @@ var api = (function () {
         if (netWait[key]) { views.flat.setShow(key, !!on); return; }
         netWait[key] = 1;
         var s = document.createElement("script");
-        s.src = key === "rd" ? "geo/roads.js?v=33" : "geo/rails.js?v=33";
+        s.src = key === "rd" ? "geo/roads.js?v=34" : "geo/rails.js?v=34";
         s.onload = function () { ready(key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS); };
         s.onerror = function () { netWait[key] = 0; };
         document.head.appendChild(s);
