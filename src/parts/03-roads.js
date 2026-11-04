@@ -1,6 +1,6 @@
-import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js?v=27";
-import { ROUTES, bindRail, place } from "./02-cloud.js?v=27";
-import { activeTab, countryAt, countryLabel, countryRecord, globeOn, layer, loadTrips, map, ofCount, render, selectedTripId, shortPlaceLabel, t } from "./04-app.js?v=27";
+import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js?v=28";
+import { ROUTES, bindRail, place } from "./02-cloud.js?v=28";
+import { activeTab, countryAt, countryLabel, countryRecord, globeOn, layer, loadTrips, map, ofCount, render, selectedTripId, shortPlaceLabel, t } from "./04-app.js?v=28";
 "use strict";
 /* geometry */
 function flightArc(a,b,n){
