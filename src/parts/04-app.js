@@ -1,7 +1,7 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=23";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=23";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=23";
-import { createMap } from "../atlas.js?v=23";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=24";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=24";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=24";
+import { createMap } from "../atlas.js?v=24";
 "use strict";
 /* map */
 export var map;
@@ -2031,20 +2031,11 @@ function dropRegionsOfOffCountries(){
   manualRegions=kept;
   saveSets();
 }
-function dropTurkeyRegions(){
-  var next=manualRegions.filter(function(id){ return countryOfRid(id)!=="TR"; });
-  var nextO=offRegions.filter(function(id){ return countryOfRid(id)!=="TR"; });
-  if(next.length===manualRegions.length && nextO.length===offRegions.length) return;
-  manualRegions=next;
-  offRegions=nextO;
-  saveSets();
-}
 function reloadVisited(){
   manualCountries=loadArr("travelek-countries");
   offCountries=loadArr("travelek-countries-off");
   manualRegions=loadArr("travelek-regions").map(canonRegion);
   offRegions=loadArr("travelek-regions-off");
-  dropTurkeyRegions();
   dropRegionsOfOffCountries();
   if(typeof syncVisited==="function") syncVisited();
   if(typeof drawCountries==="function") drawCountries();
@@ -2067,7 +2058,7 @@ window.__reloadVisited=reloadVisited;
   offCountries=uniq(offCountries.map(function(id){
     if(id==="CN-TW"||id==="TW"||id==="TWN") return "CN";
     return iso[id]||id;
-  }));
+  })).filter(function(id){ return id!=="TR"; });
   function mapR(id){
     if(id==="Тайвань"||id==="CN-TW"||id==="TW"||id==="TWN") return "CN:Тайвань";
     return id;
@@ -2076,7 +2067,6 @@ window.__reloadVisited=reloadVisited;
   offRegions=offRegions.map(mapR);
   if(hadTw && manualRegions.indexOf("CN:Тайвань")<0) manualRegions.push("CN:Тайвань");
   if(beforeC!==manualCountries.join("\n")||beforeO!==offCountries.join("\n")||beforeR!==manualRegions.join("\n")||beforeRO!==offRegions.join("\n")) saveSets();
-  dropTurkeyRegions();
   dropRegionsOfOffCountries();
 })();
 function ringHas(ring, lat, lng){
@@ -2424,7 +2414,7 @@ export function syncVisited(){
       var onlyRegion=rid && id==="KZ";
       if(!onlyRegion) autoC[id]=1;
     }
-    if(rid && id!=="TR") autoR[rid]=1;
+    if(rid) autoR[rid]=1;
   }
   (typeof ROUTES!=="undefined"?ROUTES:[]).forEach(function(r){
     var fut=typeof isFuture==="function" && isFuture(r);
@@ -2465,7 +2455,6 @@ export function syncVisited(){
   function addR(id){
     if(!id || seenR[id] || offRegions.indexOf(id)>=0) return;
     var parent=countryOfRegion(id);
-    if(parent==="TR") return;
     if(parent && offCountries.indexOf(parent)>=0) return;
     seenR[id]=1; nextR.push(id);
   }
@@ -2502,7 +2491,8 @@ export function syncVisited(){
   function futureOnlyR(id){ return !!(futEv && futEv.r[id] && !(pastEv && pastEv.r[id])); }
   function promote(id){
     var c=countryOfRegion(id);
-    if(c==="RU" || c==="CN") addC(c);
+    if(!c || c==="KZ") return;
+    addC(c);
   }
   function addTripSet(tab){
     var trips=typeof loadTrips==="function"?loadTrips():[], ti, tp, ids, ri, rr, futN, pastN;
@@ -2904,7 +2894,7 @@ function indexRegions(){
   function add(list, code){
     (list||[]).forEach(function(r){
       if(!r.c) r.c=code || (String(r.id).indexOf(":")>0?String(r.id).split(":")[0]:code);
-      if(!r.c || r.c==="TR") return;
+      if(!r.c) return;
       (REGIONS_BY[r.c]=REGIONS_BY[r.c]||[]).push(r);
     });
   }
@@ -2914,7 +2904,6 @@ function indexRegions(){
   if(map && map.collectRegions){
     var have={}, code;
     for(code in REGIONS_BY) if(REGIONS_BY[code] && REGIONS_BY[code].length) have[code]=1;
-    have.TR=1;
     map.collectRegions(have).forEach(function(r){
       if(!r || !r.c || have[r.c]) return;
       (REGIONS_BY[r.c]=REGIONS_BY[r.c]||[]).push(r);
