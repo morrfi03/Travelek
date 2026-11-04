@@ -1,7 +1,7 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=25";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=25";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=25";
-import { createMap } from "../atlas.js?v=25";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=26";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=26";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=26";
+import { createMap } from "../atlas.js?v=26";
 "use strict";
 /* map */
 export var map;
@@ -2238,6 +2238,149 @@ export function regionIn(code, lat, lng){
   if(!list) return null;
   return regionAtList(list, lat, lng, 0.2);
 }
+function foldName(s){
+  return String(s||"").toLowerCase().replace(/ё/g,"е").replace(/\s+/g," ").trim();
+}
+function regionCovers(reg, lat, lng){
+  if(!reg) return false;
+  var b=reg.b, wraps=b && (b[3]-b[1])>180;
+  if(b){
+    if(lat<b[0] || lat>b[2]) return false;
+    if(!wraps && (lng<b[1] || lng>b[3])) return false;
+  }
+  var polys=polysOf(reg), k;
+  for(k=0;k<polys.length;k++) if(polyHas(polys[k], lat, lng)) return true;
+  return false;
+}
+var AIRPORT_CELL=null;
+function airportsNear(lat, lng){
+  if(typeof AIRPORTS==="undefined" || !AIRPORTS) return [];
+  if(!AIRPORT_CELL){
+    AIRPORT_CELL={};
+    AIRPORTS.forEach(function(a){
+      if(!a || a.lat==null || a.lng==null) return;
+      var key=Math.round(a.lat)+":"+Math.round(a.lng);
+      (AIRPORT_CELL[key]=AIRPORT_CELL[key]||[]).push(a);
+    });
+  }
+  var out=[], la=Math.round(lat), lo=Math.round(lng), dla, dlo, list, i, a, d;
+  for(dla=-1;dla<=1;dla++) for(dlo=-1;dlo<=1;dlo++){
+    list=AIRPORT_CELL[(la+dla)+":"+(lo+dlo)];
+    if(!list) continue;
+    for(i=0;i<list.length;i++){
+      a=list[i];
+      d=Math.hypot(a.lat-lat, (a.lng-lng));
+      if(d<=0.04) out.push({a:a, d:d});
+    }
+  }
+  out.sort(function(x,y){ return x.d-y.d; });
+  return out;
+}
+var REGION_NAME_INDEX=null, REGION_NAME_N=-1;
+function regionNameIndex(){
+  var n=0, code;
+  if(typeof REGIONS_BY!=="undefined" && REGIONS_BY){
+    for(code in REGIONS_BY) n+=(REGIONS_BY[code]||[]).length;
+  }
+  if(REGION_NAME_INDEX && REGION_NAME_N===n && n) return REGION_NAME_INDEX;
+  var idx={};
+  if(typeof REGIONS_BY!=="undefined" && REGIONS_BY){
+    for(code in REGIONS_BY) (REGIONS_BY[code]||[]).forEach(function(reg){
+      var rn=foldName(reg && reg.n);
+      if(rn.length<4) return;
+      (idx[rn]=idx[rn]||[]).push(reg);
+    });
+  }
+  REGION_NAME_INDEX=idx; REGION_NAME_N=n;
+  return idx;
+}
+function regionForAirportName(raw, lat, lng, country){
+  var idx=regionNameIndex();
+  var parts=foldName(raw).split(" ");
+  var k, phrase, regs, i, reg, c, d, best=null, bestLen=0;
+  if(!parts[0]) return null;
+  for(k=parts.length;k>=1;k--){
+    phrase=parts.slice(0,k).join(" ");
+    if(phrase.length<4) break;
+    regs=idx[phrase];
+    if(!regs) continue;
+    for(i=0;i<regs.length;i++){
+      reg=regs[i];
+      c=reg.c || (String(reg.id||"").indexOf(":")>0 ? String(reg.id).split(":")[0] : "");
+      if(country && c && c!==country) continue;
+      d=regionCovers(reg, lat, lng)?0:regionEdgeDist(reg, lat, lng);
+      if(d>0.5) continue;
+      if(!best || phrase.length>bestLen || (phrase.length===bestLen && d<best.d)){
+        best={reg:reg, d:d}; bestLen=phrase.length;
+      }
+    }
+    if(best) break;
+  }
+  return best?best.reg:null;
+}
+function snapRegion(lat, lng, code, maxD){
+  var list=regionsFor(code);
+  if(!list) return null;
+  var best=null, bd=maxD, i, reg, d, b, wraps;
+  for(i=0;i<list.length;i++){
+    reg=list[i]; b=reg.b;
+    if(!b) continue;
+    wraps=(b[3]-b[1])>180;
+    if(lat<b[0]-maxD || lat>b[2]+maxD) continue;
+    if(!wraps && (lng<b[1]-maxD || lng>b[3]+maxD)) continue;
+    if(regionCovers(reg, lat, lng)) return reg.id;
+    d=regionEdgeDist(reg, lat, lng);
+    if(d<bd){ bd=d; best=reg; }
+  }
+  return best?best.id:null;
+}
+function resolveVisitPoint(lat, lng){
+  var id=null, rid=null;
+  if(typeof countryAt==="function") id=countryAt(lat, lng);
+  if(id) rid=regionIn(id, lat, lng);
+  if(!rid && typeof regionAt==="function"){
+    var ru=regionAt(lat, lng);
+    if(ru){ rid=ru; if(!id) id="RU"; }
+  }
+  if(!rid && typeof chinaRegionAt==="function"){
+    var cn=chinaRegionAt(lat, lng);
+    if(cn){ rid=cn; if(!id) id="CN"; }
+  }
+  if((!id || !rid) && typeof map!=="undefined" && map && map.regionAt){
+    var h=map.regionAt(lat, lng);
+    if(h && h.layer && h.layer!=="W" && h.name){
+      if(!id){
+        if(h.sub==="Россия" || h.layer==="R") id="RU";
+        else if(h.sub==="Китай" || h.layer==="C") id="CN";
+        else if(h.iso) id=h.iso;
+        else if(h.sub && typeof COUNTRY_LIST!=="undefined" && COUNTRY_LIST){
+          for(var ci=0; ci<COUNTRY_LIST.length; ci++) if(COUNTRY_LIST[ci].n===h.sub){ id=COUNTRY_LIST[ci].i; break; }
+        }
+      }
+      if(!rid && id){
+        var list=regionsFor(id), ri, rn, want=foldName(h.name);
+        if(list) for(ri=0;ri<list.length;ri++){
+          rn=foldName(list[ri].n);
+          if(rn===want || (want.length>=4 && (rn.indexOf(want)>=0 || want.indexOf(rn)>=0))){ rid=list[ri].id; break; }
+        }
+      }
+    }
+  }
+  var nearA=airportsNear(lat, lng), ai, named;
+  for(ai=0;ai<nearA.length;ai++){
+    named=regionForAirportName(nearA[ai].a.n, lat, lng, id);
+    if(!named) continue;
+    rid=named.id;
+    if(named.c) id=named.c;
+    else if(!id) id=countryOfRid(named.id);
+    break;
+  }
+  if(!rid && id){
+    var snapped=snapRegion(lat, lng, id, 0.35);
+    if(snapped) rid=snapped;
+  }
+  return {id:id, rid:rid};
+}
 
 var hoverLayer=null, hoverKey="", pendingVisit=null;
 function ensureHoverLayer(){
@@ -2399,22 +2542,8 @@ export function syncVisited(){
   }
   function hit(lat, lng){
     if(lat==null || lng==null || isNaN(lat) || isNaN(lng)) return;
-    var id=countryAt(lat, lng);
-    var rid=id?regionIn(id, lat, lng):null;
-    if((!id || !rid) && map && map.regionAt){
-      var h=map.regionAt(lat, lng);
-      if(h && h.layer && h.layer!=="W" && h.name){
-        if(!id){
-          if(h.sub==="Россия" || h.layer==="R") id="RU";
-          else if(h.sub==="Китай" || h.layer==="C") id="CN";
-          else if(h.iso) id=h.iso;
-          else if(h.sub && COUNTRY_LIST){
-            for(var ci=0; ci<COUNTRY_LIST.length; ci++) if(COUNTRY_LIST[ci].n===h.sub){ id=COUNTRY_LIST[ci].i; break; }
-          }
-        }
-        if(!rid && id) rid=regionIdByName(id, h.name);
-      }
-    }
+    var got=resolveVisitPoint(+lat, +lng);
+    var id=got.id, rid=got.rid;
     if(id){
       var onlyRegion=rid && id==="KZ";
       if(!onlyRegion) autoC[id]=1;
@@ -3235,30 +3364,8 @@ function endpointBag(r){
   function hit(lat, lng){
     if(lat==null || lng==null || isNaN(lat) || isNaN(lng) || typeof countryAt!=="function") return;
     lat=+lat; lng=+lng;
-    var cid=typeof countryAt==="function"?countryAt(lat, lng):null;
-    var rid=cid && typeof regionIn==="function"?regionIn(cid, lat, lng):null;
-    if(!rid && typeof regionAt==="function") rid=regionAt(lat, lng);
-    if(!rid && typeof chinaRegionAt==="function") rid=chinaRegionAt(lat, lng);
-    if((!cid || !rid) && typeof map!=="undefined" && map && map.regionAt){
-      var h=map.regionAt(lat, lng);
-      if(h && h.layer && h.layer!=="W" && h.name){
-        if(!cid){
-          if(h.sub==="Россия" || h.layer==="R") cid="RU";
-          else if(h.sub==="Китай" || h.layer==="C") cid="CN";
-          else if(h.iso) cid=h.iso;
-          else if(h.sub && typeof COUNTRY_LIST!=="undefined" && COUNTRY_LIST){
-            for(var ci=0; ci<COUNTRY_LIST.length; ci++) if(COUNTRY_LIST[ci].n===h.sub){ cid=COUNTRY_LIST[ci].i; break; }
-          }
-        }
-        if(!rid && cid && typeof regionRecord==="function"){
-          var list=typeof regionsFor==="function"?regionsFor(cid):null, ri, rn, want=String(h.name).toLowerCase().replace(/ё/g,"е");
-          if(list) for(ri=0;ri<list.length;ri++){
-            rn=String(list[ri].n||"").toLowerCase().replace(/ё/g,"е");
-            if(rn===want || rn.indexOf(want)>=0 || want.indexOf(rn)>=0){ rid=list[ri].id; break; }
-          }
-        }
-      }
-    }
+    var got=resolveVisitPoint(lat, lng);
+    var cid=got.id, rid=got.rid;
     if(!cid && rid && typeof countryOfRid==="function") cid=countryOfRid(rid);
     if(cid && !sc[cid]){ sc[cid]=1; countries.push(cid); }
     if(rid && !sr[rid]){ sr[rid]=1; regions.push(rid); }
