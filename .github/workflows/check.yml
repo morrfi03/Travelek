@@ -12,3 +12,7 @@ jobs:
           node-version: "22"
       - run: node build.mjs
       - run: node --test
+      - name: types
+        run: |
+          npm install --prefix "$RUNNER_TEMP/ts" typescript@5.6.3
+          "$RUNNER_TEMP/ts/node_modules/typescript/bin/tsc" -p tsconfig.json --noEmit --pretty false

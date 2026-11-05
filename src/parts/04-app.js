@@ -1,8 +1,9 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=44";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=44";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=44";
-import { createMap } from "../atlas.js?v=44";
-import { bindScreen } from "../screen.js?v=44";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=45";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=45";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=45";
+import { createMap } from "../atlas.js?v=45";
+import { bindScreen } from "../screen.js?v=45";
+import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=45";
 "use strict";
 /* map */
 export var map;
@@ -785,22 +786,15 @@ function filtered(){
       (tp.routes||[]).forEach(function(id){ tripIds[id]=1; });
     });
   }
-  return ROUTES.filter(function(r){
+  return filterRoutes(ROUTES.filter(function(r){
     if(tripIds){ if(!tripIds[r.id]) return false; }
     else if(selectedTripId){
       var only=null, trips=loadTrips(), ti;
       for(ti=0;ti<trips.length;ti++) if(trips[ti].id===selectedTripId) only=trips[ti];
       if(only && (only.routes||[]).indexOf(r.id)<0) return false;
     }
-    else {
-      var fut=isFuture(r);
-      if(activeTab==="future") { if(!fut) return false; }
-      else if(activeTab==="past") { if(fut) return false; }
-    }
-    if(activeTab!=="trips" && typeof yearFilter!=="undefined" && yearFilter!=="all" && (r.date||"").slice(0,4)!==yearFilter) return false;
-    if(typeof modeFilter!=="undefined" && modeFilter!=="all" && r.mode!==modeFilter) return false;
     return true;
-  }).slice().sort(function(a,b){ return ((a.date||"")+" "+(a.time||"")).localeCompare((b.date||"")+" "+(b.time||"")); });
+  }), activeTab==="trips"?"all":activeTab, { year: typeof yearFilter!=="undefined"?yearFilter:"all", mode: typeof modeFilter!=="undefined"?modeFilter:"all" });
 }
 
 function routeRepeatKey(r){
@@ -3537,8 +3531,9 @@ function routeText(r){
 }
 function deleteRoute(id){
   if(!id) return;
-  if(deleted.indexOf(id)<0){ deleted.push(id); saveDeleted(deleted); }
-  saveExtra(loadExtra().filter(function(x){ return x.id!==id; }));
+  rememberDeleted(deleted, id).forEach(function(x){ if(deleted.indexOf(x)<0) deleted.push(x); });
+  saveDeleted(deleted);
+  saveExtra(withoutRoute(loadExtra(), id));
   setRoutes(assembleRoutes());
   if(selectedId===id) selectedId=null;
   render();
@@ -4220,10 +4215,8 @@ function bindTripWindow(){
       if(!title && tw.routes.length) title=(tw.routes[0].from||"")+" → "+(tw.routes[0].to||"");
       if(!title) title=t("Поездка");
     }
-    var list=loadTrips().filter(function(tp){ return tp.id!==tw.id; });
     var tid=tw.id||("j"+Date.now());
-    list.unshift({id:tid, title:title, countries:tw.countries.slice(), regions:tw.regions.slice(), routes:ids});
-    saveTrips(list);
+    saveTrips(upsertTrip(loadTrips(), {id:tid, title:title, countries:tw.countries.slice(), regions:tw.regions.slice(), routes:ids}));
     closeTripWindow();
     render();
     });
@@ -4231,7 +4224,7 @@ function bindTripWindow(){
   document.getElementById("tw-delete").onclick=function(){
     if(!tw.id) return;
     if(!confirm(t("Удалить поездку")+"?")) return;
-    saveTrips(loadTrips().filter(function(tp){ return tp.id!==tw.id; }));
+    saveTrips(removeTrip(loadTrips(), tw.id));
     if(selectedTripId===tw.id) selectedTripId=null;
     closeTripWindow();
     render();
