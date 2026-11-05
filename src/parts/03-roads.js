@@ -1,6 +1,8 @@
-import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js?v=39";
-import { ROUTES, bindRail, place } from "./02-cloud.js?v=39";
-import { activeTab, countryAt, countryLabel, countryRecord, globeOn, layer, loadTrips, map, ofCount, render, selectedTripId, shortPlaceLabel, t } from "./04-app.js?v=39";
+import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js?v=40";
+import { ROUTES, bindRail, place } from "./02-cloud.js?v=40";
+import { activeTab, countryAt, countryLabel, countryRecord, globeOn, layer, loadTrips, map, ofCount, render, selectedTripId, shortPlaceLabel, t } from "./04-app.js?v=40";
+import { datedPast, isFuture } from "../when.js?v=40";
+export { datedPast, isFuture };
 "use strict";
 /* geometry */
 function flightArc(a,b,n){
@@ -1386,29 +1388,6 @@ function registerOfflineSW(){
   }catch(e){}
 }
 /* Кэш тайлов на лету через плагин Leaflet (перехват img) */
-
-
-export function isFuture(r){
-  if(!r) return false;
-  var end=String(r.arrDate||r.date||"").trim();
-  if(!end) return false;
-  var day=end.slice(0,10);
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(day)){
-    var parsed=new Date(end);
-    return !isNaN(parsed.getTime()) && parsed.getTime()>Date.now();
-  }
-  var now=new Date();
-  function two(n){ return (n<10?"0":"")+n; }
-  var today=now.getFullYear()+"-"+two(now.getMonth()+1)+"-"+two(now.getDate());
-  if(day>today) return true;
-  if(day<today) return false;
-  var t=String(r.arrTime||r.time||"23:59").slice(0,5);
-  if(!/^\d{2}:\d{2}$/.test(t)) t="23:59";
-  return t>(two(now.getHours())+":"+two(now.getMinutes()));
-}
-export function datedPast(r){
-  return !!(r && (r.arrDate||r.date)) && !isFuture(r);
-}
 
 export function pathKm(coords){
   var km=0,i;

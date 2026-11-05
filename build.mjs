@@ -12,9 +12,11 @@ const files = [
   "src/parts/03-roads.js",
   "src/parts/04-app.js",
   "src/atlas.js",
+  "src/when.js",
   "src/main.js",
   "src/gate.js",
-  "src/accounts.js"
+  "src/accounts.js",
+  "src/places.worker.js"
 ];
 let bad = 0;
 for (const file of files) {
