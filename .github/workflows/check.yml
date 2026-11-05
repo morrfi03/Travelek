@@ -12,7 +12,12 @@ jobs:
           node-version: "22"
       - run: node build.mjs
       - run: node --test
-      - name: types
+      - name: types and generated javascript
         run: |
           npm install --prefix "$RUNNER_TEMP/ts" typescript@5.6.3
-          "$RUNNER_TEMP/ts/node_modules/typescript/bin/tsc" -p tsconfig.json --noEmit --pretty false
+          TSC="$RUNNER_TEMP/ts/node_modules/typescript/bin/tsc"
+          "$TSC" -p tsconfig.json --noEmit --pretty false
+          "$TSC" -p tsconfig.worker.json --noEmit --pretty false
+          node scripts/check-emit.mjs "$TSC"
+      - name: working tree stays clean
+        run: git diff --exit-code

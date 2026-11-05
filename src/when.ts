@@ -1,9 +1,6 @@
-export type DatedLeg = {
-  date?: string;
-  time?: string;
-  arrDate?: string;
-  arrTime?: string;
-};
+import type { DatedLeg } from "./model.js";
+
+export type { DatedLeg };
 
 function two(n: number): string {
   return (n < 10 ? "0" : "") + n;

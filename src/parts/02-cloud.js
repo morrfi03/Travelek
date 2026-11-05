@@ -2,6 +2,7 @@ import { AIRPORTS, CITIES, PORTS, PORT_ALIASES, PORT_BY_ID, STATIONS, findPortBy
 import { nameHas, norm } from "../text.js?v=46";
 import { WORLD } from "../world.js?v=46";
 import { ui } from "../screen.js?v=46";
+import { mergeUsers, nickIsAdmin, preferPack, readStoreDocument, repairVlad } from "../store.js?v=46";
 export { nameHas, norm, WORLD };
 "use strict";
 export function safeSetItem(key, val) {
@@ -217,103 +218,6 @@ wipeRoutesOnce();
         catch (e) { }
         return d;
     }
-    function extraCount(pack) { try {
-        var a = JSON.parse((pack && pack["travelek-extra"]) || "[]");
-        return Array.isArray(a) ? a.length : 0;
-    }
-    catch (e) {
-        return 0;
-    } }
-    function packRev(pack) { var n = parseInt(pack && pack["travelek-rev"], 10); return isNaN(n) ? 0 : n; }
-    function markCount(pack) {
-        function n(k) { try {
-            var a = JSON.parse((pack && pack[k]) || "[]");
-            return Array.isArray(a) ? a.length : 0;
-        }
-        catch (e) {
-            return 0;
-        } }
-        return n("travelek-countries") + n("travelek-regions") + n("travelek-extra");
-    }
-    function preferPack(a, b) {
-        if (!a)
-            return b || null;
-        if (!b)
-            return a;
-        var ar = packRev(a), br = packRev(b);
-        if (ar !== br)
-            return ar > br ? a : b;
-        return markCount(a) >= markCount(b) ? a : b;
-    }
-    function copyUser(user) {
-        var login = String(user.login || user.email || "").replace(/@travelek\.app$/, "").trim();
-        return {
-            id: user.id,
-            login: login,
-            name: user.name || login,
-            password: user.password,
-            role: nickIsAdmin(user) ? "admin" : "user",
-            mustChange: !!user.mustChange,
-            rev: user.rev || 0,
-            vladReset: user.vladReset || ""
-        };
-    }
-    var VLAD_HASH = "ef797c8118f02dfb649607dd5d3f8c7623048c9c063d532cc95c5ed7a898a64f";
-    function repairVlad(list) {
-        var changed = false, i, u;
-        for (i = 0; i < (list || []).length; i++) {
-            u = list[i];
-            if (!u || String(u.login || "").toLowerCase() !== "vlad100" || u.vladReset === "1")
-                continue;
-            u.password = VLAD_HASH;
-            u.mustChange = false;
-            u.role = "user";
-            u.rev = Date.now();
-            u.vladReset = "1";
-            changed = true;
-        }
-        return changed;
-    }
-    function mergeUsers(remoteUsers, remoteDeleted) {
-        var del = {}, out = [], by = {}, i, u, t, local;
-        (remoteDeleted || []).forEach(function (id) { if (id)
-            del[id] = 1; });
-        function addRemote(user) {
-            if (!user || !user.id || del[user.id])
-                return;
-            t = copyUser(user);
-            by[t.id] = t;
-            out.push(t);
-        }
-        (remoteUsers || []).forEach(addRemote);
-        local = users();
-        for (i = 0; i < local.length; i++) {
-            u = local[i];
-            if (!u || !u.id || del[u.id])
-                continue;
-            if (!by[u.id]) {
-                t = copyUser(u);
-                by[t.id] = t;
-                out.push(t);
-                continue;
-            }
-            if ((u.rev || 0) > (by[u.id].rev || 0)) {
-                t = by[u.id];
-                if (u.login)
-                    t.login = u.login;
-                if (u.name)
-                    t.name = u.name;
-                if (u.password)
-                    t.password = u.password;
-                t.role = nickIsAdmin(u) ? "admin" : "user";
-                t.mustChange = !!u.mustChange;
-                t.rev = u.rev;
-                if (u.vladReset)
-                    t.vladReset = u.vladReset;
-            }
-        }
-        return { users: out, deleted: Object.keys(del) };
-    }
     function sha256(text) {
         if (!window.crypto || !crypto.subtle || !window.TextEncoder)
             return Promise.resolve(String(text || ""));
@@ -339,13 +243,14 @@ wipeRoutesOnce();
                 throw new Error("load");
             return r.json();
         }).then(function (data) {
-            if (!data || typeof data !== "object" || !Array.isArray(data.users))
+            var doc = readStoreDocument(data);
+            if (!doc)
                 throw new Error("load");
-            var deleted = Array.isArray(data.deleted) ? data.deleted.slice() : [];
+            var deleted = doc.deleted;
             drop.forEach(function (id) { if (id && deleted.indexOf(id) < 0)
                 deleted.push(id); });
-            var merged = mergeUsers(data.users, deleted);
-            var remoteVault = data.vault && typeof data.vault === "object" && !Array.isArray(data.vault) ? data.vault : {};
+            var merged = mergeUsers(doc.users, deleted, users());
+            var remoteVault = doc.vault;
             var localVault = vault();
             var vaultOut = {};
             Object.keys(remoteVault).forEach(function (id) { if (merged.deleted.indexOf(id) < 0)
@@ -413,7 +318,7 @@ wipeRoutesOnce();
                 return 0;
             } }
             if (Array.isArray(data.users)) {
-                var merged = mergeUsers(data.users, Array.isArray(data.deleted) ? data.deleted : []);
+                var merged = mergeUsers(data.users, Array.isArray(data.deleted) ? data.deleted : [], users());
                 merged.users.forEach(function (ru) { if (ru)
                     ru.role = nickIsAdmin(ru) ? "admin" : "user"; });
                 try {
@@ -496,7 +401,7 @@ wipeRoutesOnce();
             var repaired = repairVlad(data.users);
             if (!data.vault || typeof data.vault !== "object" || Array.isArray(data.vault))
                 data.vault = {};
-            var merged = mergeUsers(data.users, Array.isArray(data.deleted) ? data.deleted : []);
+            var merged = mergeUsers(data.users, Array.isArray(data.deleted) ? data.deleted : [], users());
             return hashList(merged.users).then(function () {
                 if (me) {
                     var n;
@@ -562,12 +467,6 @@ wipeRoutesOnce();
         }
     }
     function kmOf(text) { var m = String(text || "").replace(/\s/g, "").match(/([\d.]+)км/i); return m ? Number(m[1]) || 0 : 0; }
-    function nickIsAdmin(u) {
-        if (!u)
-            return false;
-        var login = String(u.login || u.email || "").toLowerCase().replace(/@travelek\.app$/, "").trim();
-        return login === "admin";
-    }
     function grantNamedAdmin(list) {
         var changed = false, n;
         for (n = 0; n < (list || []).length; n++) {

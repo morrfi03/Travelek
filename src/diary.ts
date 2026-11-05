@@ -1,21 +1,7 @@
-import { isFuture, type DatedLeg } from "./when.js";
+import { isFuture } from "./when.js";
+import type { Trip, TripRoute } from "./model.js";
 
-export type TripRoute = DatedLeg & {
-  id: string;
-  from?: string;
-  to?: string;
-  mode?: string;
-  fromCode?: string;
-  toCode?: string;
-};
-
-export type Trip = {
-  id: string;
-  title: string;
-  countries: string[];
-  regions: string[];
-  routes: string[];
-};
+export type { Trip, TripRoute };
 
 export function upsertTrip(trips: Trip[], trip: Trip): Trip[] {
   return [trip].concat(trips.filter(function (item) { return item.id !== trip.id; }));
