@@ -913,9 +913,96 @@ export function render(){
   if(yf) yf.style.display=activeTab==="trips"?"none":"";
   var add2=document.getElementById("add-btn-2");
   if(add2) add2.textContent=t("Добавить поездку");
+  try{ fillAnalytics(); fillUpcoming(); }catch(e){}
 }
 
 
+
+
+function fillAnalytics(){
+  var cards=document.getElementById("an-cards");
+  if(!cards) return;
+  var past=(ROUTES||[]).filter(function(r){ return !isFuture(r); });
+  var years={} as any, months={} as any, modes={} as any;
+  var firstYear="", lastDate="", cities={} as any;
+  past.forEach(function(r){
+    var d=String(r.date||"").slice(0,10);
+    var y=d.slice(0,4), m=d.slice(5,7);
+    if(y){ years[y]=(years[y]||0)+1; if(!firstYear||y<firstYear) firstYear=y; }
+    if(m) months[m]=(months[m]||0)+1;
+    var md=r.mode||"other"; modes[md]=(modes[md]||0)+1;
+    if(d && (!lastDate||d>lastDate)) lastDate=d;
+    if(r.from) cities[r.from]=1;
+    if(r.to) cities[r.to]=1;
+  });
+  var trips=typeof loadTrips==="function"?loadTrips().length:0;
+  var countries=typeof visited!=="undefined"&&visited?visited.length:0;
+  var ru=typeof regionStats==="function"?regionStats():{got:0,total:0};
+  var totalKm=0;
+  past.forEach(function(r){ var g=buildGeoSync(r); if(g&&g.km) totalKm+=g.km; });
+  var modeN=Object.keys(modes).length;
+  var items=[
+    [String(trips),"поездок"],
+    [String(countries),"стран"],
+    [String(Object.keys(cities).length),"городов"],
+    [String(ru.got),"регионов РФ"],
+    [Math.round(totalKm).toLocaleString("ru-RU"),"км"],
+    [String(modeN),"видов транспорта"],
+    [firstYear||"—","первый год"],
+    [lastDate||"—","последняя"]
+  ];
+  cards.innerHTML=items.map(function(it){ return '<div class="an-card"><b>'+it[0]+'</b><span>'+it[1]+'</span></div>'; }).join("");
+  var yKeys=Object.keys(years).sort();
+  var yMax=yKeys.reduce(function(a,k){ return Math.max(a,years[k]); },1);
+  var yBox=document.getElementById("an-years");
+  if(yBox) yBox.innerHTML=yKeys.length?yKeys.map(function(k){ var w=Math.round(100*years[k]/yMax); return '<div class="bar-row"><span>'+k+'</span><div class="bar"><i style="width:'+w+'%"></i></div><b>'+years[k]+'</b></div>'; }).join(""):'<p class="up-empty">Нет состоявшихся поездок</p>';
+  var mNames=["01","02","03","04","05","06","07","08","09","10","11","12"];
+  var mMax=mNames.reduce(function(a,k){ return Math.max(a,months[k]||0); },1);
+  var mBox=document.getElementById("an-months");
+  if(mBox) mBox.innerHTML=mNames.map(function(k){ var n=months[k]||0; var w=mMax?Math.round(100*n/mMax):0; return '<div class="bar-row"><span>'+k+'</span><div class="bar"><i style="width:'+w+'%"></i></div><b>'+n+'</b></div>'; }).join("");
+  var modeNames={plane:"Самолёт",train:"Поезд",car:"Авто",walk:"Пешком",bike:"Вело",ship:"Паром"};
+  var mKeys=Object.keys(modes);
+  var mTotal=mKeys.reduce(function(a,k){ return a+modes[k]; },0)||1;
+  var moBox=document.getElementById("an-modes");
+  if(moBox) moBox.innerHTML=mKeys.length?mKeys.map(function(k){ var n=modes[k]; var w=Math.round(100*n/mTotal); return '<div class="bar-row"><span>'+(modeNames[k]||k)+'</span><div class="bar"><i style="width:'+w+'%"></i></div><b>'+n+'</b></div>'; }).join(""):'<p class="up-empty">Нет данных</p>';
+  var cTotal=typeof COUNTRY_LIST!=="undefined"&&COUNTRY_LIST?COUNTRY_LIST.length:0;
+  var cPct=cTotal?Math.round(100*countries/cTotal):0;
+  var rPct=ru.total?Math.round(100*ru.got/ru.total):0;
+  var rc=document.getElementById("ring-countries"); if(rc) rc.style.setProperty("--p",String(cPct));
+  var rr=document.getElementById("ring-regions"); if(rr) rr.style.setProperty("--p",String(rPct));
+  var pc=document.getElementById("prog-countries"); if(pc) pc.textContent=countries+" из "+cTotal+" · "+cPct+"%";
+  var pr=document.getElementById("prog-regions"); if(pr) pr.textContent=ru.got+" из "+ru.total+" · "+rPct+"%";
+  var badges=[];
+  if(past.length) badges.push("Первая поездка");
+  if(modes.plane) badges.push("Первый самолёт");
+  if(modes.train) badges.push("Первый поезд");
+  if(countries>=5) badges.push("5 стран");
+  if(countries>=10) badges.push("10 стран");
+  if(Object.keys(cities).length>=20) badges.push("20 городов");
+  if(yKeys.length>=2) badges.push("Разные годы");
+  var bBox=document.getElementById("an-badges");
+  if(bBox) bBox.innerHTML=badges.length?badges.map(function(b){ return '<span class="an-card" style="display:inline-block;margin:4px">'+b+'</span>'; }).join(""):'<p class="up-empty">Пока нет достижений</p>';
+}
+function fillUpcoming(){
+  var box=document.getElementById("up-body");
+  var count=document.getElementById("up-count");
+  if(!box) return;
+  var trips=typeof loadTrips==="function"?loadTrips():[];
+  var future=trips.filter(function(tp){
+    var routes=tripRoutesFor(tp,"future");
+    return routes.length>0;
+  });
+  if(count) count.textContent=String(future.length);
+  if(!future.length){ box.innerHTML='<div class="up-empty">Нет предстоящих поездок</div><button type="button" id="up-add" style="margin-top:8px">Добавить</button>'; return; }
+  box.innerHTML=future.slice(0,6).map(function(tp){
+    var routes=tripRoutesFor(tp,"future");
+    var r=routes[0]||{};
+    var d=r.date||"";
+    var days="";
+    if(d){ var diff=Math.ceil((new Date(d).getTime()-Date.now())/86400000); if(diff>=0) days=" · через "+diff+" дн."; }
+    return '<div class="up-item" data-trip="'+tp.id+'"><b>'+(tp.title||r.from+" → "+r.to)+'</b><span>'+(d||"")+(r.mode?" · "+r.mode:"")+days+'</span></div>';
+  }).join("");
+}
 
 /* init */
 var savedPref="dark";
@@ -1444,6 +1531,17 @@ function openForm(){ updateLabels(); modal.classList.add("on"); }
 function closeForm(){ modal.classList.remove("on"); }
 var addTop=document.getElementById("add-btn"); if(addTop) addTop.onclick=function(){ openTripWindow(); };
 document.getElementById("add-btn-2").onclick=function(){ openTripWindow(); };
+var fab=document.getElementById("fab"); if(fab) fab.onclick=function(){ openTripWindow(); };
+var up=document.getElementById("upcoming");
+if(up){
+  var head=up.querySelector(".up-head");
+  if(head) head.addEventListener("click", function(){ up.classList.toggle("collapsed"); });
+  up.addEventListener("click", function(e){
+    var item=e.target.closest(".up-item");
+    if(item && item.getAttribute("data-trip")) openTripWindow({tripId:item.getAttribute("data-trip")});
+    if(e.target.id==="up-add") openTripWindow();
+  });
+}
 document.getElementById("f-cancel").onclick=closeForm;
 modal.addEventListener("click",function(e){ if(e.target===modal) closeForm(); });
 
