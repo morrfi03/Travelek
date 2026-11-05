@@ -1,5 +1,5 @@
 
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=41";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=42";
 var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
@@ -502,8 +502,8 @@ var api = (function () {
       var a = pix[(y0 * pw + x0) * stride], b = pix[(y0 * pw + x1) * stride];
       var c0 = pix[(y1 * pw + x0) * stride], d0 = pix[(y1 * pw + x1) * stride];
       var v0 = a * (1 - fx) * (1 - fy) + b * fx * (1 - fy) + c0 * (1 - fx) * fy + d0 * fx * fy;
-      var n = 220 + (v0 - 190) * 0.45;
-      if (n < 165) n = 165; else if (n > 242) n = 242;
+      var n = 128 + (v0 - 190) * 0.32;
+      if (n < 104) n = 104; else if (n > 158) n = 158;
       return n;
     }
     var shCanvas = document.createElement("canvas"), shCtx = shCanvas.getContext("2d", { willReadFrequently: true });
@@ -550,7 +550,7 @@ var api = (function () {
         }
         shCtx.putImageData(img, 0, 0);
         c.save();
-        c.globalCompositeOperation = "multiply";
+        c.globalCompositeOperation = "overlay";
         c.drawImage(shCanvas, vx0, vy0, vx1 - vx0, vy1 - vy0);
         c.restore();
       }
@@ -585,9 +585,12 @@ var api = (function () {
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
       c.globalCompositeOperation = "destination-in";
       c.drawImage(maskCanvas, 0, 0, cw, ch);
+      c.restore();
+      c.save();
       c.globalCompositeOperation = "destination-over";
-      c.fillStyle = sea;
-      c.fillRect(0, 0, cw, ch);
+      c.imageSmoothingEnabled = true;
+      c.imageSmoothingQuality = "high";
+      c.drawImage(texF, 0, 0, WID, HF);
       c.restore();
     }
     var show = { rd: false, rl: false, rv: true };
@@ -704,8 +707,8 @@ var api = (function () {
         c.strokeStyle = "rgba(250,252,251,.55)"; c.lineWidth = 0.4 * lw; c.stroke();
       }
       c.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name!=="Украина") entStrokeFlat(c, ents[i]); }); byLayer.B.forEach(function (i) { entPath(c, ents[i]); });
-      c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke();
-      if (traceFlat(c, "UA")) { c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke(); }
+      c.strokeStyle = "rgba(28,42,38,.72)"; c.lineWidth = 0.75 * lw; c.stroke();
+      if (traceFlat(c, "UA")) { c.strokeStyle = "rgba(28,42,38,.72)"; c.lineWidth = 0.75 * lw; c.stroke(); }
       (function paintFlatOverlays(){
         var ids = Object.keys(washIso), k, iso, rings, ring, i, p, minx, miny, maxx, maxy, sw, sh;
         for (k in markC) if (ids.indexOf(k) < 0) ids.push(k);
@@ -1019,7 +1022,7 @@ var api = (function () {
         return s;
       }
       var vs = sh(g.VERTEX_SHADER, "attribute vec2 a;varying vec2 v;void main(){v=a;gl_Position=vec4(a,0.0,1.0);}");
-      var fs = sh(g.FRAGMENT_SHADER, "precision mediump float;varying vec2 v;uniform sampler2D uTex;uniform float uLon,uLat,uR,uCx,uCy,uW,uH,uHas;const float PI=3.14159265;void main(){float px=(v.x*.5+.5)*uW;float py=(.5-v.y*.5)*uH;float nx=(px-uCx)/uR;float ny=(uCy-py)/uR;float r2=nx*nx+ny*ny;if(r2>=1.0){gl_FragColor=vec4(0.0);return;}float nz=sqrt(1.0-r2);float cp=cos(uLat),sp=sin(uLat),cl=cos(uLon),sl=sin(uLon);float Y=ny*cp+nz*sp;float z1=-ny*sp+nz*cp;float X=nx*cl+z1*sl;float Z=-nx*sl+z1*cl;float u=atan(X,Z)/(2.0*PI)+.5;float vv=.5+asin(clamp(Y,-1.0,1.0))/PI;vec3 col=uHas>.5?texture2D(uTex,vec2(u,vv)).rgb:vec3(.55,.70,.80);float limb=pow(nz,.45);col*=.72+.28*limb;gl_FragColor=vec4(col,1.0);}");
+      var fs = sh(g.FRAGMENT_SHADER, "precision mediump float;varying vec2 v;uniform sampler2D uTex;uniform float uLon,uLat,uR,uCx,uCy,uW,uH,uHas;const float PI=3.14159265;void main(){float px=(v.x*.5+.5)*uW;float py=(.5-v.y*.5)*uH;float nx=(px-uCx)/uR;float ny=(uCy-py)/uR;float r2=nx*nx+ny*ny;if(r2>=1.0){gl_FragColor=vec4(0.0);return;}float nz=sqrt(1.0-r2);float cp=cos(uLat),sp=sin(uLat),cl=cos(uLon),sl=sin(uLon);float Y=ny*cp+nz*sp;float z1=-ny*sp+nz*cp;float X=nx*cl+z1*sl;float Z=-nx*sl+z1*cl;float u=atan(X,Z)/(2.0*PI)+.5;float vv=.5+asin(clamp(Y,-1.0,1.0))/PI;vec3 col=uHas>.5?texture2D(uTex,vec2(u,vv)).rgb:vec3(.55,.70,.80);float limb=pow(nz,.55);col*=.86+.14*limb;float atmos=pow(1.0-nz,2.6);col=mix(col,vec3(.62,.82,.98),atmos*.42);gl_FragColor=vec4(col,1.0);}");
       if (!vs || !fs) { sphereMode = "cpu"; return false; }
       var p = g.createProgram(); g.attachShader(p, vs); g.attachShader(p, fs); g.bindAttribLocation(p, 0, "a"); g.linkProgram(p);
       if (!g.getProgramParameter(p, g.LINK_STATUS)) { sphereMode = "cpu"; return false; }
@@ -1301,10 +1304,15 @@ var api = (function () {
           }
         }
       }
-      if (!fast) {
-        var g = ctx.createRadialGradient(cx - R * 0.2, cy - R * 0.25, R * 0.2, cx, cy, R * 1.05);
-        g.addColorStop(0, "rgba(255,255,255,.05)"); g.addColorStop(1, "rgba(0,0,0,0)");
+      if (!fast && !glOn) {
+        var g = ctx.createRadialGradient(cx - R * 0.28, cy - R * 0.32, R * 0.15, cx, cy, R);
+        g.addColorStop(0, "rgba(255,255,255,.07)"); g.addColorStop(0.72, "rgba(255,255,255,0)"); g.addColorStop(1, "rgba(0,20,40,.18)");
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.fill();
+        var atm = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * 1.06);
+        atm.addColorStop(0, "rgba(150,196,230,0)");
+        atm.addColorStop(0.72, "rgba(150,196,230,.28)");
+        atm.addColorStop(1, "rgba(150,196,230,0)");
+        ctx.fillStyle = atm; ctx.beginPath(); ctx.arc(cx, cy, R * 1.06, 0, 2 * PI); ctx.fill();
       }
       ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI);
       ctx.strokeStyle = "rgba(170,200,230,.45)"; ctx.lineWidth = fast ? 1.5 : 2.2; ctx.stroke();
@@ -1377,8 +1385,8 @@ var api = (function () {
         ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 0.45; ctx.lineJoin = "round"; ctx.stroke();
       }
       ctx.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name!=="Украина") strokeRings(ents[i], min2); }); byLayer.B.forEach(function (i) { strokeRings(ents[i], min2); });
-      ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke();
-      if (fillGeo("UA")) { ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke(); }
+      ctx.strokeStyle = "rgba(24,36,34,.8)"; ctx.lineWidth = 0.55 + zoom * 0.08; ctx.stroke();
+      if (fillGeo("UA")) { ctx.strokeStyle = "rgba(24,36,34,.8)"; ctx.lineWidth = 0.55 + zoom * 0.08; ctx.stroke(); }
       paintGlobeOverlays();
       (function strokeNets() {
         var layers = views.flat.netLayers();
@@ -1808,7 +1816,7 @@ var api = (function () {
         if (netWait[key]) { views.flat.setShow(key, !!on); return; }
         netWait[key] = 1;
         var s = document.createElement("script");
-        s.src = key === "rd" ? "geo/roads.js?v=41" : "geo/rails.js?v=41";
+        s.src = key === "rd" ? "geo/roads.js?v=42" : "geo/rails.js?v=42";
         s.onload = function () { ready(key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS); };
         s.onerror = function () { netWait[key] = 0; };
         document.head.appendChild(s);
