@@ -23,6 +23,23 @@ export type VisitTrip = {
   routes?: string[];
 };
 
+export function countriesToPaint(countries: string[] | null | undefined, regions: string[] | null | undefined): string[] {
+  const out: string[] = [];
+  const seen: Record<string, true> = {};
+  function add(id: string) {
+    if (!id || seen[id]) return;
+    seen[id] = true;
+    out.push(id);
+  }
+  (countries || []).forEach(function (id) { add(id); });
+  (regions || []).forEach(function (id) {
+    if (!id) return;
+    const cut = String(id).indexOf(":");
+    add(cut > 0 ? String(id).slice(0, cut) : "RU");
+  });
+  return out;
+}
+
 function countryOfId(id: string): string {
   const cut = String(id || "").indexOf(":");
   return cut > 0 ? String(id).slice(0, cut) : "RU";

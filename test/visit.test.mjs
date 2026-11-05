@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { marksForTab, placesVisitKey, regionMatches, routeBagKey } from "../src/visit.js";
+import { countriesToPaint, marksForTab, placesVisitKey, regionMatches, routeBagKey } from "../src/visit.js";
 
 const pastRoute = { id: "p1", date: "2001-05-01", time: "09:00", countries: ["IT"], regions: [] };
 const pastRegion = { id: "p2", date: "2001-06-01", countries: ["RU"], regions: ["RU:Татарстан"] };
@@ -117,4 +117,21 @@ test("одноимённый регион другой страны не под�
   assert.equal(regionMatches({ "Татарстан": 1 }, { name: "Татарстан", iso: "RU" }), true);
   assert.equal(regionMatches({ "Татарстан": 1 }, { name: "Татарстан", iso: "KZ" }), false);
 });
+
+test("Россия входит в набор стран для заливки на обеих страницах", function () {
+  const past = marks("past", [{ id: "p", date: "2001-06-01", countries: [], regions: ["RU:Татарстан"] }]);
+  const future = marks("future", [{ id: "f", date: "2099-08-01", countries: [], regions: [] }], {
+    trips: [{ id: "j", countries: [], regions: ["RU:Камчатский край"], routes: ["f"] }]
+  });
+  const pastDraw = countriesToPaint(past.countries, past.regions);
+  const futureDraw = countriesToPaint(future.countries, future.regions);
+  assert.ok(past.regions.indexOf("RU:Татарстан") >= 0);
+  assert.ok(future.regions.indexOf("RU:Камчатский край") >= 0);
+  assert.ok(pastDraw.indexOf("RU") >= 0);
+  assert.ok(futureDraw.indexOf("RU") >= 0);
+  assert.equal(pastDraw.indexOf("RU:Татарстан"), -1);
+  assert.deepEqual(countriesToPaint(["IT"], ["RU:Татарстан"]), ["IT", "RU"]);
+  assert.deepEqual(countriesToPaint([], ["Татарстан"]), ["RU"]);
+});
+
 

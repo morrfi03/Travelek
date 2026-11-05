@@ -1,5 +1,5 @@
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=48";
-import { regionMatches } from "./visit.js?v=48";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=49";
+import { countriesToPaint, regionMatches } from "./visit.js?v=49";
 var api = (function () {
     var PI = Math.PI, D2R = PI / 18000; // координаты хранятся в сотых долях градуса
     var $ = function (id) { return document.getElementById(id); };
@@ -1079,6 +1079,16 @@ var api = (function () {
                 c.lineWidth = 1.3 * lw;
                 c.stroke();
             });
+            if (washIso.RU || markC.RU) {
+                byLayer.R.forEach(function (i) {
+                    var e = ents[i];
+                    showSmall(e);
+                    c.beginPath();
+                    entPath(c, e);
+                    c.fillStyle = fillCountry();
+                    c.fill("evenodd");
+                });
+            }
             ["R", "C", "G"].forEach(function (L) {
                 byLayer[L].forEach(function (i) {
                     var e = ents[i];
@@ -2115,6 +2125,16 @@ var api = (function () {
                 ctx.lineWidth = 1.1;
                 ctx.stroke();
             });
+            if (washIso.RU || markC.RU) {
+                byLayer.R.forEach(function (i) {
+                    var e = ents[i];
+                    projectFull(e);
+                    ctx.beginPath();
+                    fillRings(e);
+                    ctx.fillStyle = fillCountry();
+                    ctx.fill("evenodd");
+                });
+            }
             ["R", "C", "G"].forEach(function (L) {
                 byLayer[L].forEach(function (i) {
                     var e = ents[i];
@@ -2613,7 +2633,8 @@ var api = (function () {
     var visitSig = "";
     function setVisited(countries, regions, tone) {
         visitTone = tone === "future" ? "future" : "past";
-        var sig = visitTone + "|" + (countries || []).join("\n") + "|" + (regions || []).join("\n");
+        var painted = countriesToPaint(countries || [], regions || []);
+        var sig = visitTone + "|" + painted.join("\n") + "|" + (regions || []).join("\n");
         if (sig === visitSig) {
             if (stampIso()) {
                 rebuildWash();
@@ -2628,7 +2649,7 @@ var api = (function () {
         markC = {};
         markR = {};
         markRev++;
-        (countries || []).forEach(function (id) {
+        (painted || []).forEach(function (id) {
             if (!id)
                 return;
             markC[id] = 1;

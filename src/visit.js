@@ -1,4 +1,22 @@
-import { datedPast, isFuture } from "./when.js?v=48";
+import { datedPast, isFuture } from "./when.js?v=49";
+export function countriesToPaint(countries, regions) {
+    const out = [];
+    const seen = {};
+    function add(id) {
+        if (!id || seen[id])
+            return;
+        seen[id] = true;
+        out.push(id);
+    }
+    (countries || []).forEach(function (id) { add(id); });
+    (regions || []).forEach(function (id) {
+        if (!id)
+            return;
+        const cut = String(id).indexOf(":");
+        add(cut > 0 ? String(id).slice(0, cut) : "RU");
+    });
+    return out;
+}
 function countryOfId(id) {
     const cut = String(id || "").indexOf(":");
     return cut > 0 ? String(id).slice(0, cut) : "RU";
