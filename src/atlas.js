@@ -1,5 +1,5 @@
 
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=43";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=44";
 var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
@@ -372,6 +372,12 @@ var api = (function () {
     if (!iso) return false;
     return !!(markC[iso] || washIso[iso]);
   }
+  function countryHasMarkedRegions(iso) {
+    var list = regionsOf(iso), i;
+    if (!iso || !list.length) return false;
+    for (i = 0; i < list.length; i++) if (regionMarked(ents[list[i]])) return true;
+    return false;
+  }
   function showTip(tip, box, e, i) {
     if (i < 0) { tip.style.opacity = 0; return; }
     var r = box.getBoundingClientRect(), en = ents[i];
@@ -677,12 +683,13 @@ var api = (function () {
         var e = ents[i];
         if (e.name === "Украина") {
           if (!(litCountry(e) || markC.UA || washIso.UA)) return;
+          if (countryHasMarkedRegions("UA")) return;
           showSmall(e);
           c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.62)"; c.fill("evenodd");
           c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke();
           return;
         }
-        if (!litCountry(e)) return;
+        if (!litCountry(e) || countryHasMarkedRegions(entityIso(e))) return;
         showSmall(e);
         c.beginPath(); entPath(c, e); c.fillStyle = "rgba(214,168,72,.62)"; c.fill("evenodd");
         c.strokeStyle = "rgba(120,78,20,.8)"; c.lineWidth = 1.3 * lw; c.stroke();
@@ -690,11 +697,10 @@ var api = (function () {
       ["R", "C", "G"].forEach(function (L) {
         byLayer[L].forEach(function (i) {
           var e = ents[i];
-          var open=regionLayerOpen(e), marked=regionMarked(e);
-          if(!open && !marked) return;
+          if (!regionMarked(e)) return;
           showSmall(e);
           c.beginPath(); entPath(c, e);
-          c.fillStyle=marked?"rgba(196,92,40,.72)":"rgba(214,168,72,.38)";
+          c.fillStyle = "rgba(196,92,40,.72)";
           c.fill("evenodd");
         });
       });
@@ -1320,12 +1326,13 @@ var api = (function () {
         var e = ents[i];
         if (e.name === "Украина") {
           if (!(litCountry(e) || markC.UA || washIso.UA)) return;
+          if (countryHasMarkedRegions("UA")) return;
           projectFull(e);
           ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill("evenodd");
           ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke();
           return;
         }
-        if (!litCountry(e)) return;
+        if (!litCountry(e) || countryHasMarkedRegions(entityIso(e))) return;
         projectFull(e);
         ctx.beginPath(); fillRings(e); ctx.fillStyle = "rgba(214,168,72,.62)"; ctx.fill("evenodd");
         ctx.strokeStyle = "rgba(120,78,20,.85)"; ctx.lineWidth = 1.1; ctx.stroke();
@@ -1333,11 +1340,10 @@ var api = (function () {
       ["R", "C", "G"].forEach(function (L) {
         byLayer[L].forEach(function (i) {
           var e = ents[i];
-          var open=regionLayerOpen(e), marked=regionMarked(e);
-          if(!open && !marked) return;
+          if (!regionMarked(e)) return;
           projectFull(e);
           ctx.beginPath(); fillRings(e);
-          ctx.fillStyle=marked?"rgba(196,92,40,.72)":"rgba(214,168,72,.38)";
+          ctx.fillStyle = "rgba(196,92,40,.72)";
           ctx.fill("evenodd");
         });
       });
@@ -1813,7 +1819,7 @@ var api = (function () {
         if (netWait[key]) { views.flat.setShow(key, !!on); return; }
         netWait[key] = 1;
         var s = document.createElement("script");
-        s.src = key === "rd" ? "geo/roads.js?v=43" : "geo/rails.js?v=43";
+        s.src = key === "rd" ? "geo/roads.js?v=44" : "geo/rails.js?v=44";
         s.onload = function () { ready(key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS); };
         s.onerror = function () { netWait[key] = 0; };
         document.head.appendChild(s);
