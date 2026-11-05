@@ -1,7 +1,8 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=40";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=40";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=40";
-import { createMap } from "../atlas.js?v=40";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=41";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=41";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=41";
+import { createMap } from "../atlas.js?v=41";
+import { bindScreen } from "../screen.js?v=41";
 "use strict";
 /* map */
 export var map;
@@ -375,6 +376,25 @@ export var layer=map.group().addTo(map);
 try{window.__travelekMapRoutesLayer=layer;}catch(e){}
 var labelsLayer=map.group().addTo(map);
 export var selectedId=null, activeTab="future", sheetState="mid", selectedTripId=null, sheetMore={on:false}, cardMore={};
+bindScreen({
+  map: function(){ return map; },
+  globeOn: function(){ return globeOn; },
+  activeTab: function(){ return activeTab; },
+  layer: function(){ return layer; },
+  selectedTripId: function(){ return selectedTripId; },
+  t: t,
+  render: render,
+  countryAt: countryAt,
+  countryLabel: countryLabel,
+  countryRecord: countryRecord,
+  ofCount: ofCount,
+  loadTrips: loadTrips,
+  shortPlaceLabel: shortPlaceLabel,
+  currentLang: currentLang,
+  regionIn: regionIn,
+  syncVisited: syncVisited,
+  drawCountries: drawCountries
+});
 var lastBounds=null;
 
 function fitAll(){

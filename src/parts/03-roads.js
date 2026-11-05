@@ -1,7 +1,7 @@
-import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js?v=40";
-import { ROUTES, bindRail, place } from "./02-cloud.js?v=40";
-import { activeTab, countryAt, countryLabel, countryRecord, globeOn, layer, loadTrips, map, ofCount, render, selectedTripId, shortPlaceLabel, t } from "./04-app.js?v=40";
-import { datedPast, isFuture } from "../when.js?v=40";
+import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js?v=41";
+import { ROUTES, bindRail, place } from "./02-cloud.js?v=41";
+import { datedPast, isFuture } from "../when.js?v=41";
+import { ui } from "../screen.js?v=41";
 export { datedPast, isFuture };
 "use strict";
 /* geometry */
@@ -409,7 +409,7 @@ function trainPlan(from, to){
     d=hav(p,q);
     if(needsBridge(p,q)){ append(stitchBridge(p,q).coords); continue; }
     key=roadKey(p,q);
-    var traced=map && map.traceNetwork && map.traceNetwork("train", p.lat, p.lng, q.lat, q.lng);
+    var traced=ui.map && ui.map.traceNetwork && ui.map.traceNetwork("train", p.lat, p.lng, q.lat, q.lng);
     if(traced && traced.length>=2){ append(traced); continue; }
     cached=roadCache[key];
     if(d>=55 && cached && cached!=="fail" && cached!=="pending"){
@@ -673,29 +673,29 @@ export function updateLiveTrip(){
   var box=document.getElementById("live-trip");
   if(!box) return;
   var live=ROUTES.filter(isInProgress);
-  liveMarkers.forEach(function(m){ try{ map.removeLayer(m); }catch(e){} });
+  liveMarkers.forEach(function(m){ try{ ui.map.removeLayer(m); }catch(e){} });
   liveMarkers=[];
-  if(liveMarker){ try{ map.removeLayer(liveMarker); }catch(e){} liveMarker=null; }
+  if(liveMarker){ try{ ui.map.removeLayer(liveMarker); }catch(e){} liveMarker=null; }
   if(!live.length){
     box.classList.remove("on"); box.innerHTML="";
     return;
   }
   var icons={plane:"✈️",train:"🚂",car:"🚗",walk:"🚶",bike:"🚴",ship:"🚢"};
-  var htmlL='<div class="lt-title"><span>'+t("Сейчас в пути")+" · "+live.length+'</span><button type="button" id="live-hide">'+t("Убрать")+"</button></div><div class=\"lt-list\">";
+  var htmlL='<div class="lt-title"><span>'+ui.t("Сейчас в пути")+" · "+live.length+'</span><button type="button" id="live-hide">'+ui.t("Убрать")+"</button></div><div class=\"lt-list\">";
   live.forEach(function(r, idx){
     var g=buildGeoSync(r);
     var p=tripProgress(r);
     var pct=Math.round(p*100);
-    var fromL=typeof shortPlaceLabel==="function"?shortPlaceLabel(r.from, g&&g.a&&g.a.lat, g&&g.a&&g.a.lng):r.from;
-    var toL=typeof shortPlaceLabel==="function"?shortPlaceLabel(r.to, g&&g.b&&g.b.lat, g&&g.b&&g.b.lng):r.to;
+    var fromL=ui.shortPlaceLabel(r.from, g&&g.a&&g.a.lat, g&&g.a&&g.a.lng)||r.from;
+    var toL=ui.shortPlaceLabel(r.to, g&&g.b&&g.b.lat, g&&g.b&&g.b.lng)||r.to;
     htmlL+='<div class="lt-item">'+(icons[r.mode]||"")+" "+fromL+" → "+toL+
       '<div class="lt-meta">'+pct+"%"+(g?" · ~"+Math.round(g.km*(1-p))+" км":"")+"</div>"+
       '<div class="lt-bar"><i style="width:'+pct+'%"></i></div></div>';
-    if(g&&g.coords&&map){
+    if(g&&g.coords&&ui.map){
       var pt=pointAlong(g.coords, p);
       if(pt){
-        var mk=map.dot(pt,{radius:idx===0?8:6,color:"#fff",weight:2,fillColor:idx===0?"#6af":"#9cf",fillOpacity:1});
-        mk.addTo(map);
+        var mk=ui.map.dot(pt,{radius:idx===0?8:6,color:"#fff",weight:2,fillColor:idx===0?"#6af":"#9cf",fillOpacity:1});
+        mk.addTo(ui.map);
         liveMarkers.push(mk);
       }
     }
@@ -713,19 +713,19 @@ export function updateLiveTrip(){
 
 /* Анимация выбранного / текущего рейса по времени */
 function animateRouteOnMap(r){
-  if(!r||!map) return;
+  if(!r||!ui.map) return;
   var g=buildGeoSync(r); if(!g||!g.coords||g.coords.length<2) return;
   var id=r.id;
-  if(animMarkers[id]){ try{ map.removeLayer(animMarkers[id]); }catch(e){} }
+  if(animMarkers[id]){ try{ ui.map.removeLayer(animMarkers[id]); }catch(e){} }
   var t=isInProgress(r)?tripProgress(r):(isFuture(r)?0:1);
   var pt=pointAlong(g.coords, t);
   if(!pt) return;
   var col=r.mode==="plane"?"#5b9fff":(r.mode==="train"?"#3dd68c":(r.mode==="car"?"#f5a623":"#8af"));
-  animMarkers[id]=map.dot(pt,{radius:7,color:"#fff",weight:2,fillColor:col,fillOpacity:1}).addTo(map);
+  animMarkers[id]=ui.map.dot(pt,{radius:7,color:"#fff",weight:2,fillColor:col,fillOpacity:1}).addTo(ui.map);
 }
 function clearAnimMarkers(){
   Object.keys(animMarkers).forEach(function(id){
-    try{ map.removeLayer(animMarkers[id]); }catch(e){}
+    try{ ui.map.removeLayer(animMarkers[id]); }catch(e){}
   });
   animMarkers={};
 }
@@ -771,14 +771,14 @@ export function buildYearFilter(){
   ROUTES.forEach(function(r){
     var y=routeYear(r);
     if(!y) return;
-    if(activeTab==="future" && (y<nowY || !isFuture(r))) return;
-    if(activeTab==="past" && isFuture(r)) return;
+    if(ui.activeTab==="future" && (y<nowY || !isFuture(r))) return;
+    if(ui.activeTab==="past" && isFuture(r)) return;
     years[y]=1;
   });
   var list=Object.keys(years).sort();
-  if(activeTab!=="future") list.reverse();
-  var h='<button type="button" id="play-trips" class="play-trips'+(tripPlay.on?" on":"")+'" data-i18n="'+(tripPlay.on?"Стоп":"Показать поездку")+'">'+t(tripPlay.on?"Стоп":"Показать поездку")+"</button>";
-  h+='<button type="button" data-y="all" class="'+(yearFilter==="all"?"on":"")+'">'+t("Все годы")+"</button>";
+  if(ui.activeTab!=="future") list.reverse();
+  var h='<button type="button" id="play-trips" class="play-trips'+(tripPlay.on?" on":"")+'" data-i18n="'+(tripPlay.on?"Стоп":"Показать поездку")+'">'+ui.t(tripPlay.on?"Стоп":"Показать поездку")+"</button>";
+  h+='<button type="button" data-y="all" class="'+(yearFilter==="all"?"on":"")+'">'+ui.t("Все годы")+"</button>";
   list.forEach(function(y){
     h+='<button type="button" data-y="'+y+'" class="'+(yearFilter===y?"on":"")+'">'+y+"</button>";
   });
@@ -790,7 +790,7 @@ export function buildYearFilter(){
       yearFilter=b.getAttribute("data-y");
       var wasPlaying=tripPlay.on;
       buildYearFilter();
-      render();
+      ui.render();
       if(wasPlaying) startTripPlay();
     };})(btns[i]);
   }
@@ -799,14 +799,14 @@ export function buildYearFilter(){
 export var tripPlay={on:false, raf:0, marker:null, timer:0, gen:0};
 function tripPlayRoutes(){
   var pool=ROUTES, ids=null, trips, i;
-  if(selectedTripId){
-    trips=loadTrips(); ids={};
-    for(i=0;i<trips.length;i++) if(trips[i].id===selectedTripId) (trips[i].routes||[]).forEach(function(id){ ids[id]=1; });
+  if(ui.selectedTripId){
+    trips=ui.loadTrips(); ids={};
+    for(i=0;i<trips.length;i++) if(trips[i].id===ui.selectedTripId) (trips[i].routes||[]).forEach(function(id){ ids[id]=1; });
     pool=ROUTES.filter(function(r){ return ids[r.id]; });
-  } else if(activeTab==="future") pool=ROUTES.filter(isFuture);
-  else if(activeTab==="past") pool=ROUTES.filter(function(r){ return !isFuture(r); });
+  } else if(ui.activeTab==="future") pool=ROUTES.filter(isFuture);
+  else if(ui.activeTab==="past") pool=ROUTES.filter(function(r){ return !isFuture(r); });
   return pool.filter(function(r){
-    if(!selectedTripId && typeof yearFilter!=="undefined" && yearFilter!=="all" && (r.date||"").slice(0,4)!==yearFilter) return false;
+    if(!ui.selectedTripId && typeof yearFilter!=="undefined" && yearFilter!=="all" && (r.date||"").slice(0,4)!==yearFilter) return false;
     if(typeof modeFilter!=="undefined" && modeFilter!=="all" && r.mode!==modeFilter) return false;
     return true;
   }).slice().sort(function(a,b){
@@ -1035,11 +1035,10 @@ function tripColor(mode){
   return "#3b82f6";
 }
 function countryNameAt(lat, lng){
-  if(typeof countryAt!=="function") return "";
-  var id=countryAt(lat, lng);
+  var id=ui.countryAt(lat, lng);
   if(!id) return "";
-  var rec=typeof countryRecord==="function"?countryRecord(id):null;
-  if(rec && typeof countryLabel==="function") return countryLabel(rec);
+  var rec=ui.countryRecord(id);
+  if(rec) return ui.countryLabel(rec)||(rec.n||rec.i)||id;
   return (rec&&(rec.n||rec.i))||id;
 }
 function routeCountryNames(r){
@@ -1080,11 +1079,11 @@ function headingDeg(a, b){
 function placeFlyer(lat, lng, mode, country){
   var el=ensureTripFlyer();
   var x=null, y=null, visible=false;
-  if(typeof map!=="undefined" && map && map._isAtlas){
-    var ptA=map.latLngToContainerPoint([lat, lng]);
-    var boxA=map.getContainer().getBoundingClientRect();
+  if(ui.map && ui.map._isAtlas){
+    var ptA=ui.map.latLngToContainerPoint([lat, lng]);
+    var boxA=ui.map.getContainer().getBoundingClientRect();
     if(ptA && !ptA.hidden){ x=boxA.left+ptA.x; y=boxA.top+ptA.y; visible=true; }
-  } else if(typeof globeOn!=="undefined" && globeOn && globeCv && globeProjection){
+  } else if(ui.globeOn && globeCv && globeProjection){
     var xy=null;
     try{ xy=globeProjection([lng, lat]); }catch(e){}
     if(xy){
@@ -1093,9 +1092,9 @@ function placeFlyer(lat, lng, mode, country){
       y=rect.top+xy[1];
       visible=true;
     }
-  } else if(typeof map!=="undefined" && map){
-    var pt=map.latLngToContainerPoint([lat, lng]);
-    var box=map.getContainer().getBoundingClientRect();
+  } else if(ui.map){
+    var pt=ui.map.latLngToContainerPoint([lat, lng]);
+    var box=ui.map.getContainer().getBoundingClientRect();
     x=box.left+pt.x;
     y=box.top+pt.y;
     visible=true;
@@ -1121,10 +1120,10 @@ function placeFlyer(lat, lng, mode, country){
 function updateTripBanner(){
   var ban=document.getElementById("trip-banner");
   if(!ban) return;
-  var year=yearFilter==="all"?t("Все годы"):String(yearFilter);
+  var year=yearFilter==="all"?ui.t("Все годы"):String(yearFilter);
   var bits=[year];
   if(tripPlay.country) bits.push(tripPlay.country);
-  if((tripPlay.countryTotal||0)>1) bits.push(ofCount(tripPlay.seenCount||0, tripPlay.countryTotal, t("стран")));
+  if((tripPlay.countryTotal||0)>1) bits.push(ui.ofCount(tripPlay.seenCount||0, tripPlay.countryTotal, ui.t("стран")));
   ban.textContent=bits.join(" · ");
   ban.classList.add("on");
 }
@@ -1135,7 +1134,7 @@ function hideTripChrome(){
   if(ban) ban.classList.remove("on");
 }
 function fitYearJourney(routes){
-  if(typeof globeOn!=="undefined" && globeOn){
+  if(ui.globeOn){
     var slat=0, slng=0, n=0;
     routes.forEach(function(r){
       var g=buildGeoSync(r);
@@ -1151,7 +1150,7 @@ function fitYearJourney(routes){
     }
     return;
   }
-  if(!map) return;
+  if(!ui.map) return;
   var pts=[];
   routes.forEach(function(r){
     var g=buildGeoSync(r), i, step;
@@ -1162,7 +1161,7 @@ function fitYearJourney(routes){
   if(pts.length<2) return;
   var wide=window.matchMedia&&matchMedia("(min-width:980px)").matches;
   try{
-    map.fitBounds(pts, wide
+    ui.map.fitBounds(pts, wide
       ? {paddingTopLeft:[400,88], paddingBottomRight:[48,88], maxZoom:5, animate:true}
       : {paddingTopLeft:[16,84], paddingBottomRight:[16,240], maxZoom:5, animate:true});
   }catch(e){}
@@ -1172,14 +1171,14 @@ function setPlayButton(on){
   if(!btn) return;
   btn.classList.toggle("on", !!on);
   btn.setAttribute("data-i18n", on?"Стоп":"Показать поездку");
-  btn.textContent=t(on?"Стоп":"Показать поездку");
+  btn.textContent=ui.t(on?"Стоп":"Показать поездку");
 }
 export function stopTripPlay(){
   tripPlay.on=false;
   if(tripPlay.raf){ cancelAnimationFrame(tripPlay.raf); tripPlay.raf=0; }
   if(tripPlay.timer){ clearTimeout(tripPlay.timer); tripPlay.timer=0; }
   if(tripPlay.warmTimer){ clearTimeout(tripPlay.warmTimer); tripPlay.warmTimer=0; }
-  if(tripPlay.marker){ try{ map.removeLayer(tripPlay.marker); }catch(e){} tripPlay.marker=null; }
+  if(tripPlay.marker){ try{ ui.map.removeLayer(tripPlay.marker); }catch(e){} tripPlay.marker=null; }
   window.__tripMarker=null;
   hideTripChrome();
   setPlayButton(false);
@@ -1207,9 +1206,9 @@ export function startTripPlay(){
   setPlayButton(true);
   ensureTripFlyer();
   updateTripBanner();
-  if(map && !map.__tripMove){
-    map.__tripMove=1;
-    map.on("move", function(){
+  if(ui.map && !ui.map.__tripMove){
+    ui.map.__tripMove=1;
+    ui.map.on("move", function(){
       if(tripPlay.on && tripPlay.lat!=null) placeFlyer(tripPlay.lat, tripPlay.lng, tripPlay.mode, tripPlay.country);
     });
   }
@@ -1248,9 +1247,9 @@ export function startTripPlay(){
           tripPlay.lng=pt[1];
           tripPlay.mode=r.mode;
           placeFlyer(pt[0], pt[1], r.mode, tripPlay.country);
-          if(map && map.glance && (!tripPlay.lookAt || now-tripPlay.lookAt>350)){
+          if(ui.map && ui.map.glance && (!tripPlay.lookAt || now-tripPlay.lookAt>350)){
             tripPlay.lookAt=now;
-            map.glance(pt[0], pt[1]);
+            ui.map.glance(pt[0], pt[1]);
           }
         }
         if(t<1) tripPlay.raf=requestAnimationFrame(frame);
@@ -1286,8 +1285,8 @@ export function startTripPlay(){
 
 /* Кластеры точек на малом зуме */
 function drawEndpointClusters(list){
-  if(!map||!layer) return;
-  var z=map.getZoom();
+  if(!ui.map||!ui.layer) return;
+  var z=ui.map.getZoom();
   if(z>=6) return; /* на крупном зуме обычные маркеры из render */
   var cell=z<=3?8:z<=4?4:2; /* градусы */
   var buckets={}, key, i, r, g, pts;
@@ -1306,12 +1305,12 @@ function drawEndpointClusters(list){
     var b=buckets[k];
     if(b.n<2) return;
     var la=b.lat/b.n, ln=b.lng/b.n;
-    var icon=map.htmlIcon({
+    var icon=ui.map.htmlIcon({
       className:"",
       html:'<div class="marker-cluster">'+b.n+"</div>",
       iconSize:[32,32], iconAnchor:[16,16]
     });
-    map.pin([la,ln],{icon:icon,interactive:false}).addTo(layer);
+    ui.map.pin([la,ln],{icon:icon,interactive:false}).addTo(ui.layer);
   });
 }
 
@@ -1348,10 +1347,10 @@ function installTileCache(){
     });
   }
   function bindTiles(){
-    if(typeof map==="undefined" || !map || !map.on){ setTimeout(bindTiles, 40); return; }
-    if(map.__tilesBound) return;
-    map.__tilesBound=1;
-    map.on("tileload", function(e){
+    if(!ui.map || !ui.map.on){ setTimeout(bindTiles, 40); return; }
+    if(ui.map.__tilesBound) return;
+    ui.map.__tilesBound=1;
+    ui.map.on("tileload", function(e){
       try{ if(e.tile && e.tile.src) cacheTileUrl(e.tile.src); }catch(err){}
     });
   }
@@ -1458,8 +1457,8 @@ function computeGeo(r){
   }
   var coast=abkhazPath(a,b);
   if(coast) return {coords:coast, km:pathKm(coast), a:a, b:b, needRoad:false};
-  if(map && map.traceNetwork){
-    var along=map.traceNetwork("car", a.lat, a.lng, b.lat, b.lng);
+  if(ui.map && ui.map.traceNetwork){
+    var along=ui.map.traceNetwork("car", a.lat, a.lng, b.lat, b.lng);
     if(along && along.length>=2) return {coords:along, km:pathKm(along), a:a, b:b, needRoad:false};
   }
   var cached=roadCache[key];
