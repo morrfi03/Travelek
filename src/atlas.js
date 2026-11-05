@@ -1,5 +1,5 @@
 
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=42";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=43";
 var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
@@ -502,8 +502,8 @@ var api = (function () {
       var a = pix[(y0 * pw + x0) * stride], b = pix[(y0 * pw + x1) * stride];
       var c0 = pix[(y1 * pw + x0) * stride], d0 = pix[(y1 * pw + x1) * stride];
       var v0 = a * (1 - fx) * (1 - fy) + b * fx * (1 - fy) + c0 * (1 - fx) * fy + d0 * fx * fy;
-      var n = 128 + (v0 - 190) * 0.32;
-      if (n < 104) n = 104; else if (n > 158) n = 158;
+      var n = 220 + (v0 - 190) * 0.45;
+      if (n < 165) n = 165; else if (n > 242) n = 242;
       return n;
     }
     var shCanvas = document.createElement("canvas"), shCtx = shCanvas.getContext("2d", { willReadFrequently: true });
@@ -550,7 +550,7 @@ var api = (function () {
         }
         shCtx.putImageData(img, 0, 0);
         c.save();
-        c.globalCompositeOperation = "overlay";
+        c.globalCompositeOperation = "multiply";
         c.drawImage(shCanvas, vx0, vy0, vx1 - vx0, vy1 - vy0);
         c.restore();
       }
@@ -585,12 +585,9 @@ var api = (function () {
       c.setTransform(dpr, 0, 0, dpr, 0, 0);
       c.globalCompositeOperation = "destination-in";
       c.drawImage(maskCanvas, 0, 0, cw, ch);
-      c.restore();
-      c.save();
       c.globalCompositeOperation = "destination-over";
-      c.imageSmoothingEnabled = true;
-      c.imageSmoothingQuality = "high";
-      c.drawImage(texF, 0, 0, WID, HF);
+      c.fillStyle = sea;
+      c.fillRect(0, 0, cw, ch);
       c.restore();
     }
     var show = { rd: false, rl: false, rv: true };
@@ -707,8 +704,8 @@ var api = (function () {
         c.strokeStyle = "rgba(250,252,251,.55)"; c.lineWidth = 0.4 * lw; c.stroke();
       }
       c.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name!=="Украина") entStrokeFlat(c, ents[i]); }); byLayer.B.forEach(function (i) { entPath(c, ents[i]); });
-      c.strokeStyle = "rgba(28,42,38,.72)"; c.lineWidth = 0.75 * lw; c.stroke();
-      if (traceFlat(c, "UA")) { c.strokeStyle = "rgba(28,42,38,.72)"; c.lineWidth = 0.75 * lw; c.stroke(); }
+      c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke();
+      if (traceFlat(c, "UA")) { c.strokeStyle = "#000"; c.lineWidth = 1.1 * lw; c.stroke(); }
       (function paintFlatOverlays(){
         var ids = Object.keys(washIso), k, iso, rings, ring, i, p, minx, miny, maxx, maxy, sw, sh;
         for (k in markC) if (ids.indexOf(k) < 0) ids.push(k);
@@ -1385,8 +1382,8 @@ var api = (function () {
         ctx.strokeStyle = "rgba(255,255,255,.55)"; ctx.lineWidth = 0.45; ctx.lineJoin = "round"; ctx.stroke();
       }
       ctx.beginPath(); byLayer.W.forEach(function (i) { if (!ents[i].nb && ents[i].name!=="Украина") strokeRings(ents[i], min2); }); byLayer.B.forEach(function (i) { strokeRings(ents[i], min2); });
-      ctx.strokeStyle = "rgba(24,36,34,.8)"; ctx.lineWidth = 0.55 + zoom * 0.08; ctx.stroke();
-      if (fillGeo("UA")) { ctx.strokeStyle = "rgba(24,36,34,.8)"; ctx.lineWidth = 0.55 + zoom * 0.08; ctx.stroke(); }
+      ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke();
+      if (fillGeo("UA")) { ctx.strokeStyle = "#000"; ctx.lineWidth = 0.8 + zoom * 0.1; ctx.stroke(); }
       paintGlobeOverlays();
       (function strokeNets() {
         var layers = views.flat.netLayers();
@@ -1816,7 +1813,7 @@ var api = (function () {
         if (netWait[key]) { views.flat.setShow(key, !!on); return; }
         netWait[key] = 1;
         var s = document.createElement("script");
-        s.src = key === "rd" ? "geo/roads.js?v=42" : "geo/rails.js?v=42";
+        s.src = key === "rd" ? "geo/roads.js?v=43" : "geo/rails.js?v=43";
         s.onload = function () { ready(key === "rd" ? window.ATLAS_ROADS : window.ATLAS_RAILS); };
         s.onerror = function () { netWait[key] = 0; };
         document.head.appendChild(s);

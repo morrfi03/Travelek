@@ -1,5 +1,5 @@
-import { nameHas, norm } from "../text.js?v=42";
-import { WORLD } from "../world.js?v=42";
+import { nameHas, norm } from "../text.js?v=43";
+import { WORLD } from "../world.js?v=43";
 
 "use strict";
 
