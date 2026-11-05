@@ -18,6 +18,7 @@ const files = [
   "src/screen.js",
   "src/when.js",
   "src/diary.js",
+  "src/visit.js",
   "src/model.js",
   "src/store.js",
   "src/main.js",

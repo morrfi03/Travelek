@@ -1,9 +1,10 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=46";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=46";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=46";
-import { createMap } from "../atlas.js?v=46";
-import { bindScreen } from "../screen.js?v=46";
-import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=46";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=47";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=47";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=47";
+import { createMap } from "../atlas.js?v=47";
+import { bindScreen } from "../screen.js?v=47";
+import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=47";
+import { marksForTab } from "../visit.js?v=47";
 "use strict";
 /* map */
 export var map;
@@ -3499,215 +3500,32 @@ export function syncVisited() {
         autoRegions = syncVisited.memo.autoR;
         return;
     }
-    var autoC = {}, autoR = {};
-    function regionIdByName(code, name) {
-        if (!code || !name)
-            return null;
-        var list = regionsFor(code) || [];
-        var n = String(name).toLowerCase().replace(/ё/g, "е");
-        var i, rn, id;
-        for (i = 0; i < list.length; i++) {
-            rn = String(list[i].n || "").toLowerCase().replace(/ё/g, "е");
-            id = String(list[i].id || "");
-            if (rn === n || id.toLowerCase().replace(/ё/g, "е") === n || id.toLowerCase().replace(/ё/g, "е") === (String(code).toLowerCase() + ":" + n))
-                return list[i].id;
-        }
-        function closeName(a, b) {
-            if (a === b)
-                return true;
-            if (!a || !b || a.length < 4 || b.length < 4)
-                return false;
-            var short = a.length <= b.length ? a : b, long = a.length <= b.length ? b : a;
-            if (long.length - short.length > 6)
-                return false;
-            var at = long.indexOf(short);
-            if (at < 0)
-                return false;
-            var before = at === 0 || /[\s\-(«]/.test(long.charAt(at - 1));
-            var afterCh = long.charAt(at + short.length);
-            var after = !afterCh || /[\s\-),»]/.test(afterCh);
-            if (before && after)
-                return true;
-            return at === 0 && long.length - short.length <= 2;
-        }
-        for (i = 0; i < list.length; i++) {
-            rn = String(list[i].n || "").toLowerCase().replace(/ё/g, "е");
-            if (closeName(rn, n))
-                return list[i].id;
-        }
-        return null;
-    }
-    function hit(lat, lng) {
-        if (lat == null || lng == null || isNaN(lat) || isNaN(lng))
-            return;
-        var got = resolveVisitPoint(+lat, +lng);
-        var id = got.id, rid = got.rid;
-        if (id) {
-            var onlyRegion = rid && id === "KZ";
-            if (!onlyRegion)
-                autoC[id] = 1;
-        }
-        if (rid)
-            autoR[rid] = 1;
-    }
+    var rows = [];
     (typeof ROUTES !== "undefined" ? ROUTES : []).forEach(function (r) {
-        var fut = typeof isFuture === "function" && isFuture(r);
-        var past = typeof datedPast === "function" ? datedPast(r) : !fut;
-        if (activeTab === "future" && !fut)
-            return;
-        if (activeTab === "past" && !past)
-            return;
-        if (activeTab === "trips" && selectedTripId) {
-            var trip = null, trips = typeof loadTrips === "function" ? loadTrips() : [], ti, ids;
-            for (ti = 0; ti < trips.length; ti++)
-                if (trips[ti].id === selectedTripId)
-                    trip = trips[ti];
-            ids = trip && trip.routes || [];
-            if (ids.indexOf(r.id) < 0)
-                return;
-        }
-        var g = typeof buildGeoSync === "function" ? buildGeoSync(r) : null;
-        if (g) {
-            if (g.a)
-                hit(g.a.lat, g.a.lng);
-            if (g.b)
-                hit(g.b.lat, g.b.lng);
-        }
-        if (r.coords && r.coords.length >= 2) {
-            hit(r.coords[0][0], r.coords[0][1]);
-            var last = r.coords[r.coords.length - 1];
-            hit(last[0], last[1]);
-        }
-        if (typeof place === "function") {
-            var a = place(r.from, r.fromCode), b = place(r.to, r.toCode);
-            if (a)
-                hit(a.lat, a.lng);
-            if (b)
-                hit(b.lat, b.lng);
-            var ha = countryHint(r.from) || countryHint(a && a.label), hb = countryHint(r.to) || countryHint(b && b.label);
-            if (ha)
-                autoC[ha] = 1;
-            if (hb)
-                autoC[hb] = 1;
-        }
+        var bag = endpointBag(r);
+        rows.push({ id: r.id, date: r.date, time: r.time, arrDate: r.arrDate, arrTime: r.arrTime, countries: bag.countries, regions: bag.regions });
     });
-    var next = [], seen = {};
-    function addC(id) {
-        if (!id || seen[id])
+    var marks = marksForTab({
+        tab: activeTab === "future" ? "future" : "past",
+        routes: rows,
+        trips: typeof loadTrips === "function" ? loadTrips() : [],
+        manualCountries: manualCountries,
+        manualRegions: manualRegions,
+        offCountries: offCountries,
+        offRegions: offRegions,
+        selectedTripId: selectedTripId || "",
+        countryOf: countryOfRid
+    });
+    var autoC = {}, autoR = {};
+    rows.forEach(function (r) {
+        var show = activeTab === "future" ? isFuture(r) : datedPast(r);
+        if (!show)
             return;
-        if (offCountries.indexOf(id) >= 0 && !autoC[id])
-            return;
-        seen[id] = 1;
-        next.push(id);
-    }
-    var nextR = [], seenR = {};
-    function addR(id) {
-        if (!id || seenR[id])
-            return;
-        if (offRegions.indexOf(id) >= 0 && !autoR[id])
-            return;
-        var parent = countryOfRegion(id);
-        if (parent && offCountries.indexOf(parent) >= 0 && !autoC[parent] && !autoR[id])
-            return;
-        seenR[id] = 1;
-        nextR.push(id);
-    }
-    function countryOfRegion(id) {
-        if (!id)
-            return null;
-        var rec = typeof regionRecord === "function" ? regionRecord(id) : null;
-        if (rec && rec.c)
-            return rec.c;
-        var cut = String(id).indexOf(":");
-        if (cut > 0)
-            return String(id).slice(0, cut);
-        return "RU";
-    }
-    Object.keys(autoC).forEach(addC);
-    function evidence(pred) {
-        var cs = {}, rs = {};
-        (ROUTES || []).forEach(function (r) {
-            if (!pred(r))
-                return;
-            var b = typeof endpointBag === "function" ? endpointBag(r) : null;
-            if (b) {
-                b.countries.forEach(function (id) { cs[id] = 1; });
-                b.regions.forEach(function (id) { rs[id] = 1; });
-            }
-            var ha = countryHint(r.from), hb = countryHint(r.to);
-            if (ha)
-                cs[ha] = 1;
-            if (hb)
-                cs[hb] = 1;
-        });
-        return { c: cs, r: rs };
-    }
-    var pastEv = null, futEv = null;
-    if (activeTab === "past") {
-        pastEv = evidence(function (r) { return typeof datedPast === "function" ? datedPast(r) : !(typeof isFuture === "function" && isFuture(r)); });
-        futEv = evidence(function (r) { return typeof isFuture === "function" && isFuture(r); });
-    }
-    function futureOnlyC(id) { return !!(futEv && futEv.c[id] && !(pastEv && pastEv.c[id])); }
-    function futureOnlyR(id) { return !!(futEv && futEv.r[id] && !(pastEv && pastEv.r[id])); }
-    function promote(id) {
-        var c = countryOfRegion(id);
-        if (!c || c === "KZ")
-            return;
-        addC(c);
-    }
-    function addTripSet(tab) {
-        var trips = typeof loadTrips === "function" ? loadTrips() : [], ti, tp, ids, ri, rr, futN, pastN;
-        for (ti = 0; ti < trips.length; ti++) {
-            tp = trips[ti];
-            if (selectedTripId && tp.id !== selectedTripId)
-                continue;
-            ids = tp.routes || [];
-            futN = 0;
-            pastN = 0;
-            for (ri = 0; ri < ids.length; ri++) {
-                rr = typeof routeById === "function" ? routeById(ids[ri]) : null;
-                if (!rr)
-                    continue;
-                if (typeof isFuture === "function" && isFuture(rr))
-                    futN++;
-                else if (typeof datedPast === "function" && datedPast(rr))
-                    pastN++;
-            }
-            if (tab === "future" && !(futN && !pastN))
-                continue;
-            if (tab === "past" && !((pastN && !futN) || (!futN && !pastN && !ids.length)))
-                continue;
-            (tp.countries || []).forEach(function (id) {
-                if (tab === "past" && futureOnlyC(id))
-                    return;
-                addC(id);
-            });
-            (tp.regions || []).forEach(function (id) {
-                if (tab === "past" && futureOnlyR(id))
-                    return;
-                addR(id);
-                promote(id);
-            });
-        }
-    }
-    if (activeTab === "past") {
-        manualCountries.forEach(addC);
-        manualRegions.forEach(function (id) {
-            addR(id);
-            promote(id);
-        });
-        addTripSet("past");
-    }
-    else if (activeTab === "future") {
-        addTripSet("future");
-    }
-    else if (activeTab === "trips") {
-        addTripSet("past");
-    }
-    Object.keys(autoR).forEach(function (id) { promote(id); });
-    visited = next;
-    Object.keys(autoR).forEach(addR);
-    visitedRegions = nextR;
+        (r.countries || []).forEach(function (id) { autoC[id] = 1; });
+        (r.regions || []).forEach(function (id) { autoR[id] = 1; });
+    });
+    visited = marks.countries;
+    visitedRegions = marks.regions;
     autoCountries = autoC;
     autoRegions = autoR;
     syncVisited.memo = { key: visitKey, visited: visited.slice(), regions: visitedRegions.slice(), autoC: autoC, autoR: autoR };
@@ -3724,7 +3542,7 @@ export function drawCountries() {
     if (map && map._isAtlas && map.setVisited) {
         if (countryLayer)
             countryLayer.clearLayers();
-        map.setVisited(visited || [], visitedRegions || []);
+        map.setVisited(visited || [], visitedRegions || [], activeTab === "future" ? "future" : "past");
         return;
     }
     countryLayer.clearLayers();
