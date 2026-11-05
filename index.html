@@ -1048,12 +1048,13 @@ body[data-section="overview"] #sheet::before{display:none}
   body[data-section="routes"] #sheet,
   body[data-section="stats"] #sheet{height:64%!important;border-radius:18px 18px 0 0}
 }
-@media (min-width:980px){
-  :root{--rail:148px;--dock-h:0px}
+@media (min-width:768px){
+  :root{--rail:160px!important;--dock-h:0px}
   #dock{
-    top:0;bottom:0;left:0;right:auto;width:var(--rail);height:auto;
+    top:0;bottom:0;left:0!important;right:auto!important;width:160px!important;height:auto!important;
     flex-direction:column;justify-content:flex-start;gap:4px;
-    padding:16px 8px;border-top:0;border-right:1px solid var(--line);background:var(--bg);
+    padding:16px 10px;border-top:0;border-right:1px solid var(--line);background:var(--bg);
+    overflow:visible;
   }
   .dock-brand{
     display:flex;flex-direction:column;align-items:center;gap:4px;
@@ -1523,5 +1524,19 @@ body[data-section="stats"] .stat span{font-size:12px;margin-top:4px}
   body.setAttribute("data-section","map");
 })();
 </script>
-<script type="module" src="src/main.js?v=53"></script>
+<script>
+(function(){
+  function lock(){
+    if(window.innerWidth>=768){
+      document.documentElement.style.setProperty("--rail","160px");
+      var d=document.getElementById("dock");
+      if(d){ d.style.width="160px"; d.style.left="0"; d.style.right="auto"; }
+    }
+  }
+  lock();
+  window.addEventListener("resize", lock);
+  window.addEventListener("load", lock);
+})();
+</script>
+<script type="module" src="src/main.js?v=54"></script>
 </body></html>
