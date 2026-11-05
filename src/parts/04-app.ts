@@ -829,6 +829,12 @@ export function render(){
   document.getElementById("s-plane").textContent=Math.round(kmP).toLocaleString("ru-RU");
   document.getElementById("s-train").textContent=Math.round(kmT).toLocaleString("ru-RU");
   document.getElementById("s-car").textContent=Math.round(kmC).toLocaleString("ru-RU");
+  var totalKm=Math.round(kmP+kmT+kmC+kmW+kmB+kmS);
+  var sTotal=document.getElementById("s-total"); if(sTotal) sTotal.textContent=totalKm.toLocaleString("ru-RU");
+  var sTrips=document.getElementById("s-trips"); if(sTrips) sTrips.textContent=String(typeof loadTrips==="function"?loadTrips().length:0);
+  var sCountries=document.getElementById("s-countries"); if(sCountries && typeof visited!=="undefined") sCountries.textContent=String(visited?visited.length:0);
+  var sRoutes=document.getElementById("s-routes"); if(sRoutes) sRoutes.textContent=String(ROUTES.length);
+  var sFuture=document.getElementById("s-future"); if(sFuture) sFuture.textContent=String(ROUTES.filter(isFuture).length);
   if(window.__fillAccount && document.getElementById("account-panel") && document.getElementById("account-panel").classList.contains("on")) window.__fillAccount();
   var sw=document.getElementById("s-walk"); if(sw) sw.textContent=Math.round(kmW).toLocaleString("ru-RU");
   var sb=document.getElementById("s-bike"); if(sb) sb.textContent=Math.round(kmB).toLocaleString("ru-RU");

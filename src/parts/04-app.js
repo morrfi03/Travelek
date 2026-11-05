@@ -1,10 +1,10 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=50";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=50";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=50";
-import { createMap } from "../atlas.js?v=50";
-import { bindScreen } from "../screen.js?v=50";
-import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=50";
-import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js?v=50";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=51";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=51";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=51";
+import { createMap } from "../atlas.js?v=51";
+import { bindScreen } from "../screen.js?v=51";
+import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=51";
+import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js?v=51";
 "use strict";
 /* map */
 export var map;
@@ -1103,6 +1103,12 @@ export function render() {
     document.getElementById("s-plane").textContent = Math.round(kmP).toLocaleString("ru-RU");
     document.getElementById("s-train").textContent = Math.round(kmT).toLocaleString("ru-RU");
     document.getElementById("s-car").textContent = Math.round(kmC).toLocaleString("ru-RU");
+    var totalKm = Math.round(kmP + kmT + kmC + kmW + kmB + kmS);
+    var sTotal = document.getElementById("s-total"); if (sTotal) sTotal.textContent = totalKm.toLocaleString("ru-RU");
+    var sTrips = document.getElementById("s-trips"); if (sTrips) sTrips.textContent = String(typeof loadTrips === "function" ? loadTrips().length : 0);
+    var sCountries = document.getElementById("s-countries"); if (sCountries && typeof visited !== "undefined") sCountries.textContent = String(visited ? visited.length : 0);
+    var sRoutes = document.getElementById("s-routes"); if (sRoutes) sRoutes.textContent = String(ROUTES.length);
+    var sFuture = document.getElementById("s-future"); if (sFuture) sFuture.textContent = String(ROUTES.filter(isFuture).length);
     if (window.__fillAccount && document.getElementById("account-panel") && document.getElementById("account-panel").classList.contains("on"))
         window.__fillAccount();
     var sw = document.getElementById("s-walk");
