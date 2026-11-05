@@ -1,10 +1,10 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=47";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=47";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=47";
-import { createMap } from "../atlas.js?v=47";
-import { bindScreen } from "../screen.js?v=47";
-import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=47";
-import { marksForTab } from "../visit.js?v=47";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=48";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=48";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=48";
+import { createMap } from "../atlas.js?v=48";
+import { bindScreen } from "../screen.js?v=48";
+import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=48";
+import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js?v=48";
 "use strict";
 /* map */
 export var map;
@@ -3492,7 +3492,18 @@ function countryHint(label) {
 export function syncVisited() {
     if (!COUNTRY_LIST)
         return;
-    var visitKey = [activeTab, selectedTripId || "", manualCountries.join(","), offCountries.join(","), manualRegions.join(","), offRegions.join(","), (ROUTES || []).map(function (r) { return r.id + "@" + (r.date || ""); }).join(";")].join("|");
+    var geoMark = (COUNTRY_LIST ? COUNTRY_LIST.length : 0) + "/" + (typeof REGIONS_BY !== "undefined" && REGIONS_BY ? Object.keys(REGIONS_BY).length : 0);
+    var visitKey = placesVisitKey({
+        tab: activeTab,
+        selectedTripId: selectedTripId || "",
+        manualCountries: manualCountries,
+        manualRegions: manualRegions,
+        offCountries: offCountries,
+        offRegions: offRegions,
+        routes: typeof ROUTES !== "undefined" ? ROUTES : [],
+        trips: typeof loadTrips === "function" ? loadTrips() : [],
+        geo: geoMark
+    });
     if (syncVisited.memo && syncVisited.memo.key === visitKey) {
         visited = syncVisited.memo.visited;
         visitedRegions = syncVisited.memo.regions;
@@ -4443,7 +4454,7 @@ function futurePlaces() {
 function endpointBag(r) {
     if (!r)
         return { countries: [], regions: [] };
-    var bagKey = [r.id || "", r.date || "", r.from || "", r.to || "", r.fromCode || "", r.toCode || ""].join("|");
+    var bagKey = routeBagKey(r);
     if (r._bag && r._bagKey === bagKey && COUNTRY_LIST)
         return r._bag;
     var countries = [], regions = [], sc = {}, sr = {};

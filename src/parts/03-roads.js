@@ -1,7 +1,7 @@
-import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js?v=47";
-import { ROUTES, bindRail, place } from "./02-cloud.js?v=47";
-import { datedPast, isFuture } from "../when.js?v=47";
-import { ui } from "../screen.js?v=47";
+import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js?v=48";
+import { ROUTES, bindRail, place } from "./02-cloud.js?v=48";
+import { datedPast, isFuture } from "../when.js?v=48";
+import { ui } from "../screen.js?v=48";
 export { datedPast, isFuture };
 "use strict";
 /* geometry */

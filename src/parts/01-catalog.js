@@ -1,5 +1,5 @@
-import { nameHas, norm } from "../text.js?v=47";
-import { WORLD } from "../world.js?v=47";
+import { nameHas, norm } from "../text.js?v=48";
+import { WORLD } from "../world.js?v=48";
 "use strict";
 export function hav(a, b) {
     var R = 6371, t = Math.PI / 180, dLat = (b.lat - a.lat) * t, dLng = (b.lng - a.lng) * t;

@@ -1,5 +1,6 @@
 
 import { ATLAS_G as G } from "../geo/atlas-data.js";
+import { regionMatches } from "./visit.js";
 var api = (function () {
   var PI = Math.PI, D2R = PI / 18000;               // координаты хранятся в сотых долях градуса
   var $ = function (id) { return document.getElementById(id); };
@@ -1556,7 +1557,8 @@ var api = (function () {
   }
   function regionMarked(e) {
     if (!e) return false;
-    return !!(markR[e.name] || (e.rid && markR[e.rid]));
+    var iso = e.iso || (e.L === "R" ? "RU" : (e.L === "C" ? "CN" : ""));
+    return regionMatches(markR, { name: e.name, rid: e.rid, iso: iso, layer: e.L });
   }
   function isoOfName(name) {
     var n = String(name || "").toLowerCase().replace(/ё/g, "е");
@@ -1664,8 +1666,6 @@ var api = (function () {
     (regions || []).forEach(function (id) {
       if (!id) return;
       markR[id] = 1;
-      var cut = String(id).indexOf(":");
-      if (cut > 0) markR[String(id).slice(cut + 1)] = 1;
     });
     stampIso();
     rebuildWash();

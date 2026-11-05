@@ -4,7 +4,7 @@ import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPa
 import { createMap } from "../atlas.js";
 import { bindScreen } from "../screen.js";
 import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js";
-import { marksForTab } from "../visit.js";
+import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js";
 "use strict";
 /* map */
 export var map;
@@ -2589,7 +2589,18 @@ function countryHint(label){
 }
 export function syncVisited(){
   if(!COUNTRY_LIST) return;
-  var visitKey=[activeTab,selectedTripId||"",manualCountries.join(","),offCountries.join(","),manualRegions.join(","),offRegions.join(","),(ROUTES||[]).map(function(r){return r.id+"@"+(r.date||"");}).join(";")].join("|");
+  var geoMark=(COUNTRY_LIST?COUNTRY_LIST.length:0)+"/"+(typeof REGIONS_BY!=="undefined" && REGIONS_BY?Object.keys(REGIONS_BY).length:0);
+  var visitKey=placesVisitKey({
+    tab:activeTab,
+    selectedTripId:selectedTripId||"",
+    manualCountries:manualCountries,
+    manualRegions:manualRegions,
+    offCountries:offCountries,
+    offRegions:offRegions,
+    routes:typeof ROUTES!=="undefined"?ROUTES:[],
+    trips:typeof loadTrips==="function"?loadTrips():[],
+    geo:geoMark
+  });
   if((syncVisited as any).memo && (syncVisited as any).memo.key===visitKey){
     visited=(syncVisited as any).memo.visited;
     visitedRegions=(syncVisited as any).memo.regions;
@@ -3310,7 +3321,7 @@ function futurePlaces(){
 }
 function endpointBag(r){
   if(!r) return {countries:[], regions:[]};
-  var bagKey=[r.id||"",r.date||"",r.from||"",r.to||"",r.fromCode||"",r.toCode||""].join("|");
+  var bagKey=routeBagKey(r);
   if(r._bag && r._bagKey===bagKey && COUNTRY_LIST) return r._bag;
   var countries=[], regions=[], sc= {} as any, sr= {} as any;
   function hit(lat, lng){

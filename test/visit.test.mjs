@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { marksForTab } from "../src/visit.js";
+import { marksForTab, placesVisitKey, regionMatches, routeBagKey } from "../src/visit.js";
 
 const pastRoute = { id: "p1", date: "2001-05-01", time: "09:00", countries: ["IT"], regions: [] };
 const pastRegion = { id: "p2", date: "2001-06-01", countries: ["RU"], regions: ["RU:Татарстан"] };
@@ -76,3 +76,45 @@ test("страна без маршрута остаётся ручной отм�
   assert.deepEqual(got.regions, ["PT:Лисабон"]);
   assert.deepEqual(marks("future", [], { manualCountries: ["ES"], trips: [{ id: "j", countries: ["PT"], regions: ["PT:Лисабон"], routes: [] }] }).countries, []);
 });
+
+test("Камчатка будущего не попадает в прошлое, Татарстан прошлого не попадает в будущее", function () {
+  const kamchatka = { id: "f", date: "2099-08-01", time: "12:00", from: "Москва", to: "Петропавловск-Камчатский", countries: ["RU"], regions: [] };
+  const tatar = { id: "p", date: "2001-05-01", time: "09:00", from: "Москва", to: "Казань", countries: ["RU"], regions: ["RU:Татарстан"] };
+  const trip = { id: "j", countries: ["RU"], regions: ["RU:Камчатский край"], routes: ["f"] };
+  const opt = { trips: [trip], manualRegions: ["RU:Камчатский край"] };
+  const future = marks("future", [kamchatka, tatar], opt);
+  const past = marks("past", [kamchatka, tatar], opt);
+  assert.deepEqual(future.regions, ["RU:Камчатский край"]);
+  assert.equal(future.regions.indexOf("RU:Татарстан"), -1);
+  assert.ok(future.countries.indexOf("RU") >= 0);
+  assert.deepEqual(past.regions, ["RU:Татарстан"]);
+  assert.equal(past.regions.indexOf("RU:Камчатский край"), -1);
+  assert.ok(past.countries.indexOf("RU") >= 0);
+});
+
+test("смена даты и состава маршрута меняет ключи кэша", function () {
+  const before = { id: "f", date: "2099-08-01", from: "Москва", to: "Петропавловск-Камчатский", coords: [[55.7, 37.6], [53.0, 158.6]] };
+  const arrived = Object.assign({}, before, { arrDate: "2099-08-02", arrTime: "18:00" });
+  const moved = Object.assign({}, before, { coords: [[55.7, 37.6], [43.1, 131.9]] });
+  assert.notEqual(routeBagKey(before), routeBagKey(arrived));
+  assert.notEqual(routeBagKey(before), routeBagKey(moved));
+  const base = { tab: "future", routes: [before], trips: [{ id: "j", regions: ["RU:Камчатский край"], routes: ["f"], countries: ["RU"] }], manualRegions: [] };
+  assert.notEqual(placesVisitKey(base), placesVisitKey(Object.assign({}, base, { tab: "past" })));
+  assert.notEqual(placesVisitKey(base), placesVisitKey(Object.assign({}, base, { routes: [Object.assign({}, before, { date: "2001-08-01" })] })));
+  assert.notEqual(placesVisitKey(base), placesVisitKey(Object.assign({}, base, { trips: [{ id: "j", regions: ["RU:Татарстан"], routes: ["f"], countries: ["RU"] }] })));
+  const done = Object.assign({}, before, { date: "2001-08-01", regions: ["RU:Камчатский край"], countries: ["RU"] });
+  const trip = { id: "j", countries: ["RU"], regions: ["RU:Камчатский край"], routes: ["f"] };
+  assert.deepEqual(marks("past", [done], { trips: [trip] }).regions, ["RU:Камчатский край"]);
+  assert.deepEqual(marks("future", [done], { trips: [trip] }).regions, []);
+  assert.deepEqual(marks("future", [before], { trips: [trip] }), marks("future", [before], { trips: [trip] }));
+});
+
+test("одноимённый регион другой страны не подсвечивается", function () {
+  const marksRu = { "RU:Камчатский край": 1 };
+  assert.equal(regionMatches(marksRu, { name: "Камчатский край", iso: "RU" }), true);
+  assert.equal(regionMatches(marksRu, { rid: "RU:Камчатский край", iso: "RU" }), true);
+  assert.equal(regionMatches(marksRu, { name: "Камчатский край", iso: "CN" }), false);
+  assert.equal(regionMatches({ "Татарстан": 1 }, { name: "Татарстан", iso: "RU" }), true);
+  assert.equal(regionMatches({ "Татарстан": 1 }, { name: "Татарстан", iso: "KZ" }), false);
+});
+
