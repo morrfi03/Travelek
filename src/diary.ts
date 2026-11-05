@@ -5,6 +5,8 @@ export type TripRoute = DatedLeg & {
   from?: string;
   to?: string;
   mode?: string;
+  fromCode?: string;
+  toCode?: string;
 };
 
 export type Trip = {

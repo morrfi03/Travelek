@@ -3,11 +3,18 @@
     "target": "ES2022",
     "module": "ES2022",
     "moduleResolution": "bundler",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "strict": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "strictPropertyInitialization": false,
+    "noImplicitThis": false,
+    "useUnknownInCatchVariables": false,
     "noEmit": false,
     "isolatedModules": true,
     "skipLibCheck": true,
     "verbatimModuleSyntax": true
   },
-  "files": ["src/text.ts", "src/when.ts", "src/world.ts", "src/diary.ts"]
+  "include": ["src/**/*.ts", "geo/atlas-data.d.ts"],
+  "exclude": ["src/places.worker.ts"]
 }

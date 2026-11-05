@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "None",
+    "lib": ["ES2022", "WebWorker"],
+    "strict": true,
+    "noImplicitAny": false,
+    "strictNullChecks": false,
+    "noImplicitThis": false,
+    "useUnknownInCatchVariables": false,
+    "noEmit": false,
+    "skipLibCheck": true
+  },
+  "files": ["src/places.worker.ts"]
+}

@@ -2,11 +2,29 @@
    Запуск: node build.mjs
    package.json нет специально: из-за него Layero уходит в режим Vite. */
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = dirname(fileURLToPath(import.meta.url));
+const cacheV = "46";
+function stamp(text) {
+  return text.replace(/(from\s+|import\s+)(["'])(\.\.?\/[^"']+?\.js)(?:\?v=\d+)?\2/g, (_, lead, q, spec) => lead + q + spec + "?v=" + cacheV + q);
+}
+function stampTree(dir) {
+  for (const name of readdirSync(dir)) {
+    const path = join(dir, name);
+    if (statSync(path).isDirectory()) stampTree(path);
+    else if (name.endsWith(".js")) {
+      const next = stamp(readFileSync(path, "utf8"));
+      if (next !== readFileSync(path, "utf8")) writeFileSync(path, next);
+    }
+  }
+}
+stampTree(join(root, "src"));
+const htmlPath = join(root, "index.html");
+const html = readFileSync(htmlPath, "utf8").replace(/src\/main\.js(?:\?v=\d+)?/g, "src/main.js?v=" + cacheV);
+if (html !== readFileSync(htmlPath, "utf8")) writeFileSync(htmlPath, html);
 const files = [
   "src/parts/01-catalog.js",
   "src/parts/02-cloud.js",
