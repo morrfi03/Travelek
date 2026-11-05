@@ -1049,7 +1049,7 @@ body[data-section="overview"] #sheet::before{display:none}
   body[data-section="stats"] #sheet{height:64%!important;border-radius:18px 18px 0 0}
 }
 @media (min-width:980px){
-  :root{--rail:88px;--dock-h:0px}
+  :root{--rail:148px;--dock-h:0px}
   #dock{
     top:0;bottom:0;left:0;right:auto;width:var(--rail);height:auto;
     flex-direction:column;justify-content:flex-start;gap:4px;
@@ -1062,7 +1062,8 @@ body[data-section="overview"] #sheet::before{display:none}
   .dock-brand i{
     width:28px;height:28px;border-radius:9px;background:var(--accent);display:grid;place-items:center;
   }
-  #dock button{flex:none;width:100%;padding:7px 2px}
+  #dock button{flex:none;width:100%;padding:8px 4px;font-size:12px;white-space:nowrap;overflow:visible}
+  #dock button span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis}
   #dock [data-section="stats"],#dock [data-section="settings"]{display:flex}
   #dock-more,#dock-pop{display:none!important}
   body[data-section="overview"] #map,
@@ -1522,5 +1523,5 @@ body[data-section="stats"] .stat span{font-size:12px;margin-top:4px}
   body.setAttribute("data-section","map");
 })();
 </script>
-<script type="module" src="src/main.js?v=52"></script>
+<script type="module" src="src/main.js?v=53"></script>
 </body></html>
