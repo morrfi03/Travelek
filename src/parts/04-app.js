@@ -1,10 +1,10 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=51";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=51";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=51";
-import { createMap } from "../atlas.js?v=51";
-import { bindScreen } from "../screen.js?v=51";
-import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=51";
-import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js?v=51";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=52";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=52";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=52";
+import { createMap } from "../atlas.js?v=52";
+import { bindScreen } from "../screen.js?v=52";
+import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=52";
+import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js?v=52";
 "use strict";
 /* map */
 export var map;
@@ -1070,8 +1070,9 @@ export function render() {
         collectLabelPts(typeof filtered === "function" ? filtered() : ROUTES);
     var list = filtered(), kmP = 0, kmT = 0, kmC = 0, bounds = [];
     var kmW = 0, kmB = 0, kmS = 0, nP = 0, nT = 0, nC = 0, nW = 0, nB = 0, nS = 0;
-    /* статистика только по текущей вкладке */
-    list.forEach(function (r) {
+    var section = document.body.getAttribute("data-section");
+    var statList = section === "stats" ? ROUTES : list;
+    statList.forEach(function (r) {
         var g = buildGeoSync(r);
         if (!g)
             return;
@@ -1577,9 +1578,6 @@ function bindSheetDrag(el) {
     });
 }
 bindSheetDrag(handleWrap);
-/* свайп по блоку статистики тоже */
-var statsEl = document.querySelector(".stats");
-bindSheetDrag(statsEl);
 var listElDrag = document.getElementById("list");
 var listStartY = null;
 if (listElDrag) {
@@ -3749,8 +3747,9 @@ function renderCountryUi() {
     if (!COUNTRY_LIST)
         return;
     var openLabel = document.querySelector("#countries-open span");
+    var sec = document.body.getAttribute("data-section");
     if (openLabel)
-        openLabel.textContent = activeTab === "future" ? t("Страны, ожидающие вас") : t("Посещённые страны");
+        openLabel.textContent = (sec !== "stats" && activeTab === "future") ? t("Страны, ожидающие вас") : t("Посещённые страны");
     var countriesPanel = document.getElementById("countries-panel");
     if (!countriesPanel || !countriesPanel.classList.contains("on"))
         return;

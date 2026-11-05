@@ -816,8 +816,9 @@ export function render(){
   if(typeof collectLabelPts==="function") collectLabelPts(typeof filtered==="function"?filtered():ROUTES);
   var list=filtered(), kmP=0, kmT=0, kmC=0, bounds=[];
   var kmW=0,kmB=0,kmS=0,nP=0,nT=0,nC=0,nW=0,nB=0,nS=0;
-  /* статистика только по текущей вкладке */
-  list.forEach(function(r){
+  var section=document.body.getAttribute("data-section");
+  var statList=section==="stats"?ROUTES:list;
+  statList.forEach(function(r){
     var g=buildGeoSync(r); if(!g) return;
     if(r.mode==="plane"){ kmP+=g.km; nP++; }
     else if(r.mode==="car"){ kmC+=g.km; nC++; }
@@ -1182,9 +1183,6 @@ function bindSheetDrag(el){
   });
 }
 bindSheetDrag(handleWrap);
-/* свайп по блоку статистики тоже */
-var statsEl=document.querySelector(".stats");
-bindSheetDrag(statsEl);
 var listElDrag=document.getElementById("list");
 var listStartY=null;
 if(listElDrag){
@@ -2779,7 +2777,8 @@ function renderCountryUi(){
   if(fromBtn) fromBtn.style.display=regionScope?"none":"";
   if(!COUNTRY_LIST) return;
   var openLabel=document.querySelector("#countries-open span");
-  if(openLabel) openLabel.textContent=activeTab==="future"?t("Страны, ожидающие вас"):t("Посещённые страны");
+  var sec=document.body.getAttribute("data-section");
+  if(openLabel) openLabel.textContent=(sec!=="stats" && activeTab==="future")?t("Страны, ожидающие вас"):t("Посещённые страны");
   var countriesPanel=document.getElementById("countries-panel");
   if(!countriesPanel || !countriesPanel.classList.contains("on")) return;
   if(activeTab==="future"){
