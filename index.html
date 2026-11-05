@@ -5,43 +5,43 @@
 @font-face{font-family:Manrope;src:url("geo/fonts/manrope-cyr.woff2") format("woff2");font-weight:400 800;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
 @font-face{font-family:Manrope;src:url("geo/fonts/manrope-lat.woff2") format("woff2");font-weight:400 800;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+2000-206F,U+20AC,U+2122}
 :root,:root[data-theme="dark"]{
-  --bg:#071426;
-  --panel:#0e2244;
-  --panel-solid:#0c1c36;
-  --line:rgba(130,170,230,.28);
-  --text:#f3f7ff;
-  --muted:#9eb0cc;
-  --train:#34d399;--plane:#60a5fa;--car:#fb923c;--walk:#c4b5fd;--bike:#2dd4bf;--ship:#38bdf8;
-  --accent:#3b82f6;--future:#93c5fd;
-  --top-grad:linear-gradient(180deg,#071426 0%,rgba(7,20,38,.72) 62%,transparent 100%);
-  --chip:rgba(59,130,246,.14);
+  --bg:#101522;
+  --panel:#191F2E;
+  --panel-solid:#191F2E;
+  --line:rgba(155,168,186,.24);
+  --text:#F1F4F9;
+  --muted:#9BA8BA;
+  --train:#65A987;--plane:#66A5E8;--car:#D9A62E;--walk:#6B46C1;--bike:#8B5E3C;--ship:#66A5E8;
+  --accent:#65A987;--accent-2:#66A5E8;--future:#66A5E8;
+  --top-grad:none;
+  --chip:rgba(101,169,135,.16);
   --row:transparent;
   --stat:transparent;
-  --handle:rgba(180,210,255,.45);
-  --shadow:none;
+  --handle:rgba(155,168,186,.45);
+  --shadow:0 12px 32px rgba(0,0,0,.28);
   --map-bg:#4e8cb2;
-  --glass:rgba(8,22,44,.9);
-  --radius:16px;
+  --glass:rgba(25,31,46,.94);
+  --radius:14px;
   --radius-sm:12px;
   --safe-b:env(safe-area-inset-bottom,0px);
 }
 :root[data-theme="light"]{
-  --bg:#e7f0fb;
-  --panel:#f5f9ff;
-  --panel-solid:#f7fbff;
-  --line:rgba(47,124,246,.2);
-  --text:#0c1b33;
-  --muted:#5c7194;
-  --train:#15803d;--plane:#1d4ed8;--car:#c2410c;--walk:#6d28d9;--bike:#0f766e;--ship:#0369a1;
-  --accent:#2f7cf6;--future:#1d4ed8;
-  --top-grad:linear-gradient(180deg,#e7f0fb 0%,rgba(231,240,251,.8) 64%,transparent 100%);
-  --chip:rgba(47,124,246,.08);
+  --bg:#F5F7FA;
+  --panel:#FFFFFF;
+  --panel-solid:#FFFFFF;
+  --line:rgba(23,32,51,.12);
+  --text:#172033;
+  --muted:#68758A;
+  --train:#3F7A5E;--plane:#2B6CB0;--car:#D9A62E;--walk:#6B46C1;--bike:#8B5E3C;--ship:#2B6CB0;
+  --accent:#3F7A5E;--accent-2:#2B6CB0;--future:#2B6CB0;
+  --top-grad:none;
+  --chip:#EDF1F5;
   --row:transparent;
   --stat:transparent;
-  --handle:rgba(36,28,20,.22);
-  --shadow:none;
+  --handle:rgba(104,117,138,.45);
+  --shadow:0 12px 32px rgba(23,32,51,.08);
   --map-bg:#4e8cb2;
-  --glass:rgba(247,244,238,.92);
+  --glass:rgba(255,255,255,.96);
 }
 *{box-sizing:border-box;margin:0;padding:0}
 html,body{
@@ -904,8 +904,91 @@ html{color-scheme:dark}
   box-shadow:0 -18px 50px rgba(0,0,0,.35);
 }
 .tab{font-weight:650;letter-spacing:-.01em}
-:root[data-theme="light"] .zoom button{background:rgba(255,255,255,.92);color:#0c1b33;border-color:rgba(15,40,80,.14)}
+:root[data-theme="light"] .zoom button{background:rgba(255,255,255,.96);color:#172033;border-color:rgba(23,32,51,.12)}
+
+#dock{
+  position:fixed;z-index:45;left:0;right:0;bottom:0;
+  display:flex;align-items:stretch;justify-content:space-around;
+  height:calc(62px + env(safe-area-inset-bottom,0px));
+  padding:4px 4px env(safe-area-inset-bottom,0px);
+  background:var(--panel-solid);border-top:1px solid var(--line);
+}
+.dock-brand{display:none}
+#dock button{
+  flex:1;min-height:44px;border:0;border-radius:12px;background:transparent;
+  color:var(--muted);font-size:11px;font-weight:700;letter-spacing:-.01em;
+}
+#dock button.on{color:var(--accent);background:var(--chip)}
+#dock [data-section="stats"],#dock [data-section="catalog"],#dock [data-section="settings"]{display:none}
+#dock-pop{
+  position:fixed;z-index:46;right:8px;bottom:calc(70px + env(safe-area-inset-bottom,0px));
+  display:flex;flex-direction:column;min-width:196px;padding:6px;
+  background:var(--panel-solid);border:1px solid var(--line);border-radius:14px;
+  box-shadow:var(--shadow);
+}
+#dock-pop[hidden]{display:none}
+#dock-pop button{
+  min-height:44px;border:0;border-radius:10px;background:transparent;
+  color:var(--text);text-align:left;padding:0 12px;font-weight:700;
+}
+#dock-pop button.on{background:var(--chip);color:var(--accent)}
+#map{top:0;right:0;bottom:calc(62px + env(safe-area-inset-bottom,0px));left:0}
+.sheet{bottom:calc(62px + env(safe-area-inset-bottom,0px))}
+body[data-section="map"] #sheet{display:none}
+body[data-section="stats"] .list,
+body[data-section="stats"] .sheet-actions,
+body[data-section="stats"] #year-filter,
+body[data-section="stats"] #mode-filter{display:none}
+.sheet-actions button,#add-btn-2,.btn-save,#tw-save,.visit-yes,#set-save,#new-user,#file-login-go,#acc-name-save,#acc-pass-save,#must-pass-save,
+.tab.on,#settings-panel .theme-row button.on,#settings-panel .lang-row button.on,#settings-panel .map-switch button.on,.plus-badge,.year-filter button.on{
+  background:var(--accent)!important;color:#fff!important;border-color:transparent!important;
+}
+#file-login form{
+  background:var(--panel-solid);border:1px solid var(--line);border-radius:14px;padding:22px 18px;
+}
+.top{background:transparent}
+.map-find input{height:44px;border-radius:12px;background:var(--panel-solid);box-shadow:var(--shadow)}
+.navy-card,.f-card,#admin-list .admin-row,.acct-entry{background:var(--chip)!important;color:var(--text)!important}
+.acct-entry span,.plus-badge{color:#fff}
+@media (min-width:980px){
+  #dock{
+    top:0;bottom:0;left:0;right:auto;width:112px;height:auto;
+    flex-direction:column;justify-content:flex-start;gap:4px;
+    padding:14px 8px;border-top:0;border-right:1px solid var(--line);
+  }
+  .dock-brand{display:block;margin:2px 0 10px;color:var(--text);font-size:13px;font-weight:750;letter-spacing:-.03em;text-align:center}
+  #dock button{flex:none;width:100%;display:flex;align-items:center;justify-content:center;padding:10px 4px}
+  #dock [data-section="stats"],#dock [data-section="catalog"],#dock [data-section="settings"]{display:flex}
+  #dock-more,#dock-pop{display:none!important}
+  #map{left:112px;right:336px;bottom:0}
+  body[data-section="map"] #map{right:0}
+  .sheet{
+    left:auto;right:12px;top:12px;bottom:12px;width:312px;
+    height:auto!important;max-height:none;border-radius:14px;border:1px solid var(--line);
+  }
+  .top{left:124px;right:348px}
+  .top h1,.top .ver{display:none}
+  body[data-section="map"] .top{right:16px}
+  .zoom{right:348px}
+  body[data-section="map"] .zoom{right:16px}
+}
 </style>
+<nav id="dock" aria-label="Разделы">
+  <p class="dock-brand">ТравелЕк</p>
+  <button type="button" data-section="overview" class="on">Обзор</button>
+  <button type="button" data-section="map">Карта</button>
+  <button type="button" data-section="diary">Дневник</button>
+  <button type="button" data-section="routes">Маршруты</button>
+  <button type="button" data-section="stats">Статистика</button>
+  <button type="button" data-section="catalog">Справочник</button>
+  <button type="button" data-section="settings">Настройки</button>
+  <button type="button" id="dock-more" aria-expanded="false">Ещё</button>
+</nav>
+<div id="dock-pop" hidden>
+  <button type="button" data-section="stats">Статистика</button>
+  <button type="button" data-section="catalog">Справочник</button>
+  <button type="button" data-section="settings">Настройки</button>
+</div>
 <div id="file-login">
   <form id="file-login-form">
     <h1>ТравелЕк</h1>
@@ -1219,5 +1302,51 @@ html{color-scheme:dark}
     </div>
   </div>
 </div>
+<script>
+(function(){
+  var body=document.body;
+  function mark(name){
+    var nodes=document.querySelectorAll("#dock [data-section], #dock-pop [data-section]");
+    var i;
+    for(i=0;i<nodes.length;i++) nodes[i].classList.toggle("on", nodes[i].getAttribute("data-section")===name);
+  }
+  function show(name){
+    body.setAttribute("data-section", name);
+    mark(name);
+    var pop=document.getElementById("dock-pop");
+    if(pop) pop.hidden=true;
+    var more=document.getElementById("dock-more");
+    if(more) more.setAttribute("aria-expanded","false");
+    if(name==="settings"){
+      var settings=document.getElementById("settings-btn");
+      if(settings) settings.click();
+    }
+    if(name==="catalog"){
+      var countries=document.getElementById("countries-open");
+      if(countries) countries.click();
+    }
+    if(name==="diary"){
+      var past=document.querySelector('.tab[data-tab="past"]');
+      if(past && !past.classList.contains("on")) past.click();
+    }
+  }
+  document.getElementById("dock").addEventListener("click", function(e){
+    var button=e.target.closest("button");
+    if(!button) return;
+    if(button.id==="dock-more"){
+      var pop=document.getElementById("dock-pop");
+      pop.hidden=!pop.hidden;
+      button.setAttribute("aria-expanded", pop.hidden ? "false" : "true");
+      return;
+    }
+    if(button.getAttribute("data-section")) show(button.getAttribute("data-section"));
+  });
+  document.getElementById("dock-pop").addEventListener("click", function(e){
+    var button=e.target.closest("button");
+    if(button && button.getAttribute("data-section")) show(button.getAttribute("data-section"));
+  });
+  body.setAttribute("data-section","overview");
+})();
+</script>
 <script type="module" src="src/main.js?v=50"></script>
 </body></html>
