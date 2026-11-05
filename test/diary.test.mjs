@@ -67,3 +67,14 @@ test("регион будущей поездки не попадает в про
   assert.deepEqual(regionsOnTab(all, "past", regionsOf), ["RU:Татарстан"]);
   assert.deepEqual(regionsOnTab(all, "future", regionsOf), ["RU:Камчатский край"]);
 });
+
+test("после смены даты маршрут виден только на новой вкладке", function () {
+  const moved = Object.assign({}, future, { date: "2001-08-01" });
+  assert.deepEqual(filterRoutes([past, moved], "future").map(function (r) { return r.id; }), []);
+  assert.deepEqual(filterRoutes([past, moved], "past").map(function (r) { return r.id; }), ["r1", "r2"]);
+  assert.deepEqual(regionsOnTab([past, moved], "past", function (route) {
+    return route.id === "r2" ? ["RU:Камчатский край"] : ["RU:Татарстан"];
+  }), ["RU:Татарстан", "RU:Камчатский край"]);
+  assert.deepEqual(regionsOnTab([past, moved], "future", function () { return ["RU:Камчатский край"]; }), []);
+});
+

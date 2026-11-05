@@ -48,6 +48,15 @@ export function routeBagKey(route) {
         ends
     ].join("|");
 }
+function two(n) {
+    return (n < 10 ? "0" : "") + n;
+}
+/** Минута местного времени. Без неё кэш syncVisited не замечает, что дата поездки уже наступила. */
+export function visitClock(now) {
+    const clock = now || new Date();
+    return clock.getFullYear() + "-" + two(clock.getMonth() + 1) + "-" + two(clock.getDate())
+        + " " + two(clock.getHours()) + ":" + two(clock.getMinutes());
+}
 export function placesVisitKey(opt) {
     const routes = (opt.routes || []).map(routeBagKey).join(";");
     const trips = (opt.trips || []).map(function (trip) {
@@ -67,7 +76,8 @@ export function placesVisitKey(opt) {
         (opt.offRegions || []).join(","),
         routes,
         trips,
-        opt.geo || ""
+        opt.geo || "",
+        visitClock(opt.now)
     ].join("|");
 }
 export function regionMatches(marks, entity) {

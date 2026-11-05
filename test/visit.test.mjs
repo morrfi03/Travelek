@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import test from "node:test";
-import { countriesToPaint, marksForTab, placesVisitKey, regionMatches, routeBagKey } from "../src/visit.js";
+import { countriesToPaint, marksForTab, placesVisitKey, regionMatches, routeBagKey, visitClock } from "../src/visit.js";
 
 const pastRoute = { id: "p1", date: "2001-05-01", time: "09:00", countries: ["IT"], regions: [] };
 const pastRegion = { id: "p2", date: "2001-06-01", countries: ["RU"], regions: ["RU:Татарстан"] };
@@ -133,5 +134,143 @@ test("Россия входит в набор стран для заливки �
   assert.deepEqual(countriesToPaint(["IT"], ["RU:Татарстан"]), ["IT", "RU"]);
   assert.deepEqual(countriesToPaint([], ["Татарстан"]), ["RU"]);
 });
+
+function pad(n) {
+  return (n < 10 ? "0" : "") + n;
+}
+function ymd(date) {
+  return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate());
+}
+const wall = new Date();
+const today = ymd(wall);
+const yesterday = ymd(new Date(wall.getFullYear(), wall.getMonth(), wall.getDate() - 1));
+const tomorrow = ymd(new Date(wall.getFullYear(), wall.getMonth(), wall.getDate() + 1));
+
+function once(list, id) {
+  return list.filter(function (item) { return item === id; }).length;
+}
+
+test("одна будущая страна переходит в прошлое без дубля и не остаётся в будущем", function () {
+  const planned = { id: "one", date: tomorrow, time: "10:00", countries: ["IT"], regions: [] };
+  assert.deepEqual(marks("future", [planned]).countries, ["IT"]);
+  assert.deepEqual(marks("past", [planned]).countries, []);
+  const done = Object.assign({}, planned, { date: yesterday });
+  assert.deepEqual(marks("past", [done]).countries, ["IT"]);
+  assert.deepEqual(marks("future", [done]).countries, []);
+  assert.equal(once(marks("past", [done, done]).countries, "IT"), 1);
+});
+
+test("несколько регионов переходят вместе с поездкой и не дублируются", function () {
+  const regions = ["RU:Татарстан", "RU:Карелия", "RU:Камчатский край"];
+  const planned = { id: "regs", date: tomorrow, countries: ["RU"], regions: regions };
+  assert.deepEqual(marks("future", [planned]).regions, regions);
+  assert.deepEqual(marks("past", [planned]).regions, []);
+  const done = Object.assign({}, planned, { date: yesterday });
+  const past = marks("past", [done]);
+  assert.deepEqual(past.regions, regions);
+  assert.equal(once(past.countries, "RU"), 1);
+  assert.deepEqual(marks("future", [done]).regions, []);
+});
+
+test("несколько стран переходят вместе и не смешиваются со страницами", function () {
+  const planned = [
+    { id: "a", date: tomorrow, countries: ["IT"], regions: [] },
+    { id: "b", date: tomorrow, countries: ["JP"], regions: ["JP:Канто"] },
+    { id: "c", date: tomorrow, countries: ["FR"], regions: [] }
+  ];
+  assert.deepEqual(marks("future", planned).countries, ["IT", "JP", "FR"]);
+  assert.deepEqual(marks("past", planned).countries, []);
+  const done = planned.map(function (route) { return Object.assign({}, route, { date: yesterday }); });
+  assert.deepEqual(marks("past", done).countries, ["IT", "JP", "FR"]);
+  assert.deepEqual(marks("past", done).regions, ["JP:Канто"]);
+  assert.deepEqual(marks("future", done).countries, []);
+});
+
+test("сегодняшняя поездка ещё в будущем до времени и в прошлом после него", function () {
+  const later = { id: "later", date: today, time: "23:59", countries: ["ES"], regions: [] };
+  const earlier = { id: "earlier", date: today, time: "00:00", countries: ["ES"], regions: ["ES:Андалусия"] };
+  const nowMin = pad(wall.getHours()) + ":" + pad(wall.getMinutes());
+  assert.equal(marks("future", [later]).countries.length, nowMin < "23:59" ? 1 : 0);
+  assert.equal(marks("past", [later]).countries.length, nowMin < "23:59" ? 0 : 1);
+  assert.deepEqual(marks("past", [earlier]).regions, ["ES:Андалусия"]);
+  assert.deepEqual(marks("future", [earlier]).regions, []);
+});
+
+test("после полуночи вчерашняя поездка только в прошлом, завтрашняя только в будущем", function () {
+  const night = { id: "night", date: yesterday, time: "23:59", countries: ["DE"], regions: ["DE:Бавария"] };
+  const next = { id: "next", date: tomorrow, time: "00:01", countries: ["DE"], regions: ["DE:Берлин"] };
+  assert.deepEqual(marks("past", [night, next]).regions, ["DE:Бавария"]);
+  assert.deepEqual(marks("future", [night, next]).regions, ["DE:Берлин"]);
+  assert.equal(once(marks("past", [night]).countries, "DE"), 1);
+});
+
+test("смена даты переносит отметки и не оставляет копию на другой вкладке", function () {
+  const planned = { id: "edit", date: tomorrow, time: "15:00", countries: ["JP"], regions: ["JP:Канто"] };
+  const moved = Object.assign({}, planned, { date: yesterday, time: "15:00" });
+  assert.deepEqual(marks("future", [planned]).regions, ["JP:Канто"]);
+  assert.deepEqual(marks("past", [moved]).regions, ["JP:Канто"]);
+  assert.deepEqual(marks("future", [moved]).regions, []);
+  assert.deepEqual(marks("past", [planned]).regions, []);
+});
+
+test("удаление будущей поездки убирает её страну и регионы", function () {
+  const keep = { id: "keep", date: tomorrow, countries: ["IT"], regions: [] };
+  const drop = { id: "drop", date: tomorrow, countries: ["JP"], regions: ["JP:Канто"] };
+  assert.deepEqual(marks("future", [keep, drop]).regions, ["JP:Канто"]);
+  const left = marks("future", [keep]);
+  assert.deepEqual(left.countries, ["IT"]);
+  assert.deepEqual(left.regions, []);
+  assert.deepEqual(marks("future", []).countries, []);
+  assert.deepEqual(marks("past", []).regions, []);
+});
+
+test("ключ кэша меняется в минуту наступления даты, данные поездки те же", function () {
+  const route = { id: "f", date: "2099-08-01", time: "12:00", countries: ["JP"], regions: ["JP:Канто"] };
+  const base = { tab: "future", routes: [route], trips: [], now: new Date(2099, 7, 1, 11, 0, 10) };
+  const sameMinute = Object.assign({}, base, { now: new Date(2099, 7, 1, 11, 0, 50) });
+  const arrived = Object.assign({}, base, { now: new Date(2099, 7, 1, 12, 0, 0) });
+  const nextDay = Object.assign({}, base, { now: new Date(2099, 7, 2, 11, 0, 10) });
+  assert.equal(visitClock(base.now), "2099-08-01 11:00");
+  assert.equal(placesVisitKey(base), placesVisitKey(sameMinute));
+  assert.notEqual(placesVisitKey(base), placesVisitKey(arrived));
+  assert.notEqual(placesVisitKey(base), placesVisitKey(nextDay));
+  assert.deepEqual(marks("past", [Object.assign({}, route, { date: "2099-08-01" })]).countries, []);
+});
+
+test("ручные отметки прошлого не пропадают и не дублируются, когда другая поездка переходит", function () {
+  const manual = { manualCountries: ["ES"], manualRegions: ["RU:Карелия"] };
+  const planned = { id: "f", date: tomorrow, countries: ["RU"], regions: ["RU:Камчатский край"] };
+  const before = marks("past", [planned], manual);
+  assert.deepEqual(before.countries, ["ES", "RU"]);
+  assert.deepEqual(before.regions, ["RU:Карелия"]);
+  assert.deepEqual(marks("future", [planned], manual).regions, ["RU:Камчатский край"]);
+  const done = Object.assign({}, planned, { date: yesterday });
+  const after = marks("past", [done], manual);
+  assert.equal(once(after.countries, "RU"), 1);
+  assert.equal(once(after.countries, "ES"), 1);
+  assert.equal(once(after.regions, "RU:Карелия"), 1);
+  assert.equal(once(after.regions, "RU:Камчатский край"), 1);
+  assert.deepEqual(marks("future", [done], manual).regions, []);
+});
+
+test("89 регионов России переходят одним списком и дают одну заливку страны", function () {
+  const russia = JSON.parse(readFileSync(new URL("../geo/russia.json", import.meta.url), "utf8"));
+  assert.equal(russia.items.length, 89);
+  const names = russia.items.map(function (item) { return item.id; });
+  assert.equal(new Set(names).size, 89);
+  const regions = names.map(function (name) { return "RU:" + name; });
+  const planned = { id: "ru", date: tomorrow, countries: ["RU"], regions: regions };
+  assert.equal(marks("future", [planned]).regions.length, 89);
+  assert.equal(marks("past", [planned]).regions.length, 0);
+  const done = Object.assign({}, planned, { date: yesterday });
+  const past = marks("past", [done]);
+  assert.equal(past.regions.length, 89);
+  assert.equal(once(past.countries, "RU"), 1);
+  assert.deepEqual(marks("future", [done]).regions, []);
+  assert.equal(once(countriesToPaint(past.countries, past.regions), "RU"), 1);
+  assert.equal(regionMatches({ "Адыгея": 1 }, { name: "Адыгея", iso: "RU" }), true);
+  assert.equal(regionMatches({ "Адыгея": 1 }, { name: "Адыгея", iso: "KZ" }), false);
+});
+
 
 
