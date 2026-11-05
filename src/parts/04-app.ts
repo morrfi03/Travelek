@@ -1158,8 +1158,7 @@ function onDragEnd(){
   dragY0=null;
   dragging=false;
   sheetEl.classList.remove("dragging");
-  sheetEl.style.transition="";
-  /* тап обрабатывает onclick ручки — иначе срабатывает дважды и панель не двигается */
+  sheetEl.style.transition="height .42s cubic-bezier(.22,.9,.3,1)";
   if(wasDrag) setSheet(nearestState(cur));
   else setSheet(sheetState);
 }

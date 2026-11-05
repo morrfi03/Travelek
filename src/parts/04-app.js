@@ -1,10 +1,10 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=54";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=54";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=54";
-import { createMap } from "../atlas.js?v=54";
-import { bindScreen } from "../screen.js?v=54";
-import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=54";
-import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js?v=54";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=55";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=55";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=55";
+import { createMap } from "../atlas.js?v=55";
+import { bindScreen } from "../screen.js?v=55";
+import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=55";
+import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js?v=55";
 "use strict";
 /* map */
 export var map;
@@ -1545,8 +1545,7 @@ function onDragEnd() {
     dragY0 = null;
     dragging = false;
     sheetEl.classList.remove("dragging");
-    sheetEl.style.transition = "";
-    /* тап обрабатывает onclick ручки — иначе срабатывает дважды и панель не двигается */
+    sheetEl.style.transition = "height .42s cubic-bezier(.22,.9,.3,1)";
     if (wasDrag)
         setSheet(nearestState(cur));
     else

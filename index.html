@@ -147,7 +147,7 @@ input,select,textarea,button{font-family:inherit}
   padding:0 0 calc(12px + var(--safe-b));
   max-height:90dvh;display:flex;flex-direction:column;
   overflow:hidden;min-height:0;
-  transition:height .35s cubic-bezier(.32,.72,0,1);
+  transition:height .42s cubic-bezier(.22,.9,.3,1);
 }
 .sheet.collapsed{height:100px}
 .sheet.low{height:22vh}
@@ -1045,8 +1045,15 @@ body[data-section="overview"] #sheet::before{display:none}
   body[data-section="catalog"] .zoom{display:none}
   body[data-section="overview"] #sheet{bottom:calc(var(--dock-h) + 8px)}
   body[data-section="diary"] #sheet,
-  body[data-section="routes"] #sheet,
-  body[data-section="stats"] #sheet{height:64%!important;border-radius:18px 18px 0 0}
+  body[data-section="routes"] #sheet{border-radius:18px 18px 0 0}
+  body[data-section="stats"] #sheet{
+    top:0!important;bottom:var(--dock-h)!important;height:auto!important;
+    border-radius:0!important;overflow-y:auto;
+  }
+  body[data-section="stats"] .stats{grid-template-columns:1fr 1fr;gap:10px;padding:16px 12px!important}
+  body[data-section="stats"] .stat{padding:12px}
+  body[data-section="stats"] .stat b{font-size:24px}
+  body[data-section="stats"] .stat span{font-size:12px}
 }
 @media (min-width:768px){
   :root{--rail:160px!important;--dock-h:0px}
@@ -1538,5 +1545,5 @@ body[data-section="stats"] .stat span{font-size:12px;margin-top:4px}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=54"></script>
+<script type="module" src="src/main.js?v=55"></script>
 </body></html>
