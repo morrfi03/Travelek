@@ -1,4 +1,14 @@
 {
   "$schema": "https://layero.ru/schema/layero-v2.json",
-  "framework": "static"
+  "layout": "fullstack",
+  "frontend": {
+    "framework": "static"
+  },
+  "backend": {
+    "root": "server",
+    "framework": "express",
+    "runtime": "node_web",
+    "start": "node server.js"
+  },
+  "apiPrefix": "/api"
 }

@@ -1,0 +1,7 @@
+{
+  "name": "travelek-preview-api",
+  "private": true,
+  "scripts": {
+    "start": "node server.js"
+  }
+}
