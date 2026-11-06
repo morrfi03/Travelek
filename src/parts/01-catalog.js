@@ -1,5 +1,5 @@
-import { nameHas, norm } from "../text.js?v=56";
-import { WORLD } from "../world.js?v=56";
+import { nameHas, norm } from "../text.js?v=57";
+import { WORLD } from "../world.js?v=57";
 "use strict";
 export function hav(a, b) {
     var R = 6371, t = Math.PI / 180, dLat = (b.lat - a.lat) * t, dLng = (b.lng - a.lng) * t;
@@ -4546,6 +4546,17 @@ function airByCode(code) {
     if (typeof WORLD !== "undefined" && WORLD.byCode && WORLD.byCode[code])
         return WORLD.byCode[code];
     return null;
+}
+export function getPointsForMode(mode) {
+    function air(a) { return { n: a.n, name: a.n, lat: a.lat, lng: a.lng, code: a.code }; }
+    function city(c) { return { n: c.n, name: c.n, lat: c.lat, lng: c.lng }; }
+    if (mode === "plane")
+        return (AIRPORTS || []).map(air);
+    if (mode === "train")
+        return (CITIES || []).map(city);
+    if (mode === "car")
+        return (CITIES || []).map(city).concat((AIRPORTS || []).map(air));
+    return (CITIES || []).map(city);
 }
 export function flightAllowed(codeA, codeB) {
     if (!codeA || !codeB)

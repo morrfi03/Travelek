@@ -869,6 +869,13 @@ export function render(){
     [g.coords[0],g.coords[g.coords.length-1]].forEach(function(p){
       map.dot(p,{pane:"routePane",radius:5,color:casing,fillColor:col,fillOpacity:1,weight:2.5}).addTo(layer);
     });
+    if(map.getZoom()>=5 && g.km && g.coords.length){
+      var mid=g.coords[Math.floor(g.coords.length/2)];
+      map.pin(mid,{interactive:false,keyboard:false,icon:map.htmlIcon({
+        className:"route-label",
+        html:'<div style="transform:translate(-50%,-120%);white-space:nowrap;font:600 11px/1.2 -apple-system,sans-serif;background:'+casing+';color:'+col+';padding:2px 6px;border-radius:8px">'+Math.round(g.km)+' км</div>'
+      })}).addTo(layer);
+    }
     g.coords.forEach(function(c){bounds.push(c);});
   });
   if(typeof syncVisited==="function") syncVisited();
@@ -972,6 +979,33 @@ function fillAnalytics(){
   var rr=document.getElementById("ring-regions"); if(rr) rr.style.setProperty("--p",String(rPct));
   var pc=document.getElementById("prog-countries"); if(pc) pc.textContent=countries+" из "+cTotal+" · "+cPct+"%";
   var pr=document.getElementById("prog-regions"); if(pr) pr.textContent=ru.got+" из "+ru.total+" · "+rPct+"%";
+  var kmBy={} as any, longest=null, shortest=null, totalMin=0, nKm=0;
+  past.forEach(function(r){
+    var g=buildGeoSync(r); if(!g||!g.km) return;
+    var km=g.km; nKm++;
+    kmBy[r.mode||"other"]=(kmBy[r.mode||"other"]||0)+km;
+    if(!longest||km>longest.km) longest={km:km, from:r.from, to:r.to};
+    if(km>0 && (!shortest||km<shortest.km)) shortest={km:km, from:r.from, to:r.to};
+    var speed=r.mode==="plane"?750:r.mode==="train"?90:r.mode==="car"?70:60;
+    totalMin+=km/speed*60;
+  });
+  var avgKm=nKm?Math.round((Object.keys(kmBy).reduce(function(a,k){return a+kmBy[k];},0))/nKm):0;
+  var avgMin=nKm?Math.round(totalMin/nKm):0;
+  var av=document.getElementById("stats-averages");
+  if(av) av.innerHTML='<div class="bar-row"><span>км</span><b>'+avgKm.toLocaleString("ru-RU")+'</b></div><div class="bar-row"><span>мин</span><b>'+avgMin+'</b></div>';
+  var rec=document.getElementById("stats-records");
+  if(rec) rec.innerHTML=(longest?'<div class="bar-row"><span>макс</span><b>'+Math.round(longest.km).toLocaleString("ru-RU")+' км · '+(longest.from||"")+' → '+(longest.to||"")+'</b></div>':'')+(shortest?'<div class="bar-row"><span>мин</span><b>'+Math.round(shortest.km).toLocaleString("ru-RU")+' км · '+(shortest.from||"")+' → '+(shortest.to||"")+'</b></div>':'')||'<p class="up-empty">Нет данных</p>';
+  var tr=document.getElementById("stats-transport");
+  if(tr){
+    var tk=Object.keys(kmBy);
+    var tMax=tk.reduce(function(a,k){return Math.max(a,kmBy[k]);},1);
+    tr.innerHTML=tk.length?tk.map(function(k){ var w=Math.round(100*kmBy[k]/tMax); return '<div class="bar-row"><span>'+(modeNames[k]||k)+'</span><div class="bar"><i style="width:'+w+'%"></i></div><b>'+Math.round(kmBy[k]).toLocaleString("ru-RU")+'</b></div>'; }).join(""):'<p class="up-empty">Нет данных</p>';
+  }
+  var bestY="", bestYN=0, bestM="", bestMN=0;
+  Object.keys(years).forEach(function(k){ if(years[k]>bestYN){ bestYN=years[k]; bestY=k; } });
+  Object.keys(months).forEach(function(k){ if(months[k]>bestMN){ bestMN=months[k]; bestM=k; } });
+  var tl=document.getElementById("stats-timeline");
+  if(tl) tl.innerHTML='<div class="bar-row"><span>год</span><b>'+(bestY||"—")+' · '+bestYN+'</b></div><div class="bar-row"><span>мес</span><b>'+(bestM||"—")+' · '+bestMN+'</b></div>';
   var badges=[];
   if(past.length) badges.push("Первая поездка");
   if(modes.plane) badges.push("Первый самолёт");
@@ -1021,7 +1055,13 @@ if(themeBtnInit) themeBtnInit.onclick=function(){
 document.getElementById("z-in").onclick=function(){map.zoomIn();};
 document.getElementById("z-out").onclick=function(){map.zoomOut();};
 document.getElementById("z-fit").onclick=function(){ fitAll(); render(); };
-map.on("zoomend",drawCityLabels);
+map.on("zoomend",function(){
+  drawCityLabels();
+  var z=map.getZoom();
+  var was=window.__labelZoom||0;
+  if((was>=5)!==(z>=5)){ window.__labelZoom=z; render(); }
+  else window.__labelZoom=z;
+});
 map.on("moveend",function(){ if(pickModeLabels||map.getZoom()>=3.4) drawCityLabels(); });
 map.on("mousemove",function(e){
   if(pickTarget) return;
