@@ -1030,7 +1030,7 @@ body[data-section="settings"] #set-close,
 body[data-section="catalog"] #countries-close{display:none}
 #set-account{background:var(--chip)!important;color:var(--text)!important}
 #sheet::before{display:none;padding:14px 18px 0;font-size:22px;font-weight:720;letter-spacing:-.03em}
-body[data-section="diary"] #sheet::before{display:block;content:"Дневник"}
+body[data-section="diary"] #sheet::before{display:none!important;content:none}
 body[data-section="stats"] #sheet::before{display:block;content:"Статистика"}
 @media (max-width:979px){
   body[data-section="map"] .zoom{top:calc(128px + env(safe-area-inset-top));bottom:auto}
@@ -1229,6 +1229,14 @@ body[data-section="diary"] #sheet .tabs{padding:4px 12px 6px}
 body[data-section="diary"] #sheet .year-filter,
 body[data-section="diary"] #sheet .mode-filter{padding:2px 12px 4px}
 body[data-section="diary"] #sheet .sheet-actions{padding:4px 12px}
+
+body[data-section="diary"] #sheet .sheet-tools,
+body[data-section="diary"] #sheet .handle-wrap{display:none!important}
+body[data-section="diary"] #sheet .tabs{padding:6px 12px 4px}
+body[data-section="diary"] #sheet .year-filter,
+body[data-section="diary"] #sheet .mode-filter,
+body[data-section="diary"] #sheet .sheet-actions{padding:2px 10px}
+body[data-section="diary"] #list{flex:1;overflow-y:auto;min-height:0}
 </style>
 <nav id="dock" aria-label="Разделы">
   <div class="dock-brand"><i><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 11c3-6 7-6 10-2" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="3" cy="11" r="1.3" fill="#fff"/><circle cx="13" cy="9" r="1.3" fill="#fff"/></svg></i>ТравелЕк</div>
@@ -1675,6 +1683,6 @@ body[data-section="diary"] #sheet .sheet-actions{padding:4px 12px}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=63"></script>
+<script type="module" src="src/main.js?v=64"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>

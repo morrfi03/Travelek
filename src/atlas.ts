@@ -794,14 +794,12 @@ var api = (function () {
       if (!settled && snapK) {
         var s = k / snapK;
         ctx.setTransform(s, 0, 0, s, (tx - snapTx * s) * dpr, (ty - snapTy * s) * dpr);
-        ctx.drawImage(bc, 0, 0);
+        ctx.drawImage(bc, 0, 0); ctx.drawImage(rc, 0, 0);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
-        paintNets(ctx);
-        ctx.setTransform(s, 0, 0, s, (tx - snapTx * s) * dpr, (ty - snapTy * s) * dpr);
-        ctx.drawImage(rc, 0, 0);
         var labels2 = document.getElementById("atlas-html");
         if (labels2) { labels2.style.transformOrigin = "0 0"; labels2.style.transform = "translate(" + (tx - snapTx * s) + "px," + (ty - snapTy * s) + "px) scale(" + s + ")"; }
-      } else { ctx.drawImage(bc, 0, 0); paintNets(ctx); ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(rc, 0, 0); }
+      } else { ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.drawImage(bc, 0, 0); ctx.drawImage(rc, 0, 0); }
+      paintNets(ctx);
       if (!settled) return;
       var kk = cw / WID * k; ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.save(); ctx.translate(tx, ty); ctx.scale(kk, kk); ctx.lineJoin = "round";
       ([[hoverEnt, "rgba(255,248,220,.66)"], [selEnt, "rgba(255,214,140,.72)"]] as [number, string][]).forEach(function (h) {
