@@ -1196,12 +1196,10 @@ body:not([data-section="diary"]) #diary-find{display:none}
 #undo-btn{border:0;background:var(--accent);color:#fff;border-radius:10px;padding:6px 10px;font-weight:700}
 
 @media (max-width:979px){
-  body[data-section="diary"] #sheet,
   body[data-section="stats"] #sheet{
     top:0!important;bottom:var(--dock-h)!important;height:auto!important;
     border-radius:0!important;overflow:hidden;
   }
-  body[data-section="diary"] #list{flex:1;overflow-y:auto;min-height:0}
   body[data-section="stats"] #analytics{flex:1;overflow-y:auto;min-height:0;padding:12px}
   body[data-section="stats"] .an-cards{grid-template-columns:repeat(4,1fr);gap:6px}
   body[data-section="stats"] .an-card{padding:8px}
@@ -1647,6 +1645,6 @@ body:not([data-section="diary"]) #diary-find{display:none}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=59"></script>
+<script type="module" src="src/main.js?v=60"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>

@@ -1,10 +1,10 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=59";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=59";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=59";
-import { createMap } from "../atlas.js?v=59";
-import { bindScreen } from "../screen.js?v=59";
-import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=59";
-import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js?v=59";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=60";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=60";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=60";
+import { createMap } from "../atlas.js?v=60";
+import { bindScreen } from "../screen.js?v=60";
+import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=60";
+import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js?v=60";
 "use strict";
 /* map */
 export var map;

@@ -1,5 +1,5 @@
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=59";
-import { countriesToPaint, regionMatches } from "./visit.js?v=59";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=60";
+import { countriesToPaint, regionMatches } from "./visit.js?v=60";
 var api = (function () {
     var PI = Math.PI, D2R = PI / 18000; // координаты хранятся в сотых долях градуса
     var $ = function (id) { return document.getElementById(id); };
@@ -1215,8 +1215,9 @@ var api = (function () {
                 var s = k / snapK;
                 ctx.setTransform(s, 0, 0, s, (tx - snapTx * s) * dpr, (ty - snapTy * s) * dpr);
                 ctx.drawImage(bc, 0, 0);
-                ctx.drawImage(rc, 0, 0);
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
+                paintNets(ctx);
+                ctx.drawImage(rc, 0, 0);
                 var labels2 = document.getElementById("atlas-html");
                 if (labels2) {
                     labels2.style.transformOrigin = "0 0";
@@ -1225,9 +1226,9 @@ var api = (function () {
             }
             else {
                 ctx.drawImage(bc, 0, 0);
+                paintNets(ctx);
                 ctx.drawImage(rc, 0, 0);
             }
-            paintNets(ctx);
             if (!settled)
                 return;
             var kk = cw / WID * k;
