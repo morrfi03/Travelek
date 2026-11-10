@@ -364,20 +364,47 @@ function railNear(pt){
 function railPath(fk,tk){
   if(!fk||!tk) return null;
   if(fk===tk) return [fk];
-  var q=[fk],prev= {} as any,seen= {} as any; prev[fk]=null; seen[fk]=1;
-  while(q.length){
-    var u=q.shift(), neigh=RAIL_ADJ[u]||[],i,v;
+  /* кратчайший по километрам, не по числу станций — иначе петли через узлы */
+  var dist={} as any, prev={} as any, open=[fk], i, u, neigh, v, xy, d, nd;
+  dist[fk]=0; prev[fk]=null;
+  while(open.length){
+    u=open[0];
+    for(i=1;i<open.length;i++) if(dist[open[i]]<dist[u]) u=open[i];
+    open.splice(open.indexOf(u),1);
+    if(u===tk) break;
+    neigh=RAIL_ADJ[u]||[];
+    xy=RAIL_NODES[u];
     for(i=0;i<neigh.length;i++){
-      v=neigh[i]; if(seen[v]) continue;
-      seen[v]=1; prev[v]=u; q.push(v);
-      if(v===tk){
-        var path=[tk];
-        while(path[path.length-1]!==fk) path.push(prev[path[path.length-1]]);
-        path.reverse(); return path;
-      }
+      v=neigh[i];
+      if(!RAIL_NODES[v]||!xy) continue;
+      d=hav({lat:xy[0],lng:xy[1]},{lat:RAIL_NODES[v][0],lng:RAIL_NODES[v][1]});
+      nd=dist[u]+d;
+      if(dist[v]==null || nd<dist[v]){ dist[v]=nd; prev[v]=u; if(open.indexOf(v)<0) open.push(v); }
     }
   }
-  return null;
+  if(dist[tk]==null) return null;
+  var path=[tk];
+  while(path[path.length-1]!==fk) path.push(prev[path[path.length-1]]);
+  path.reverse();
+  return path;
+}
+/* убирает разворот: точка, после которой путь идёт назад */
+function trimLoops(coords){
+  if(!coords || coords.length<4) return coords;
+  var out=[coords[0]], i, a, b, c, ab, bc, dot;
+  for(i=1;i<coords.length-1;i++){
+    a=out[out.length-1]; b=coords[i]; c=coords[i+1];
+    ab=[b[0]-a[0], b[1]-a[1]]; bc=[c[0]-b[0], c[1]-b[1]];
+    dot=ab[0]*bc[0]+ab[1]*bc[1];
+    if(dot<0){
+      var lab=Math.sqrt(ab[0]*ab[0]+ab[1]*ab[1])||1;
+      var lbc=Math.sqrt(bc[0]*bc[0]+bc[1]*bc[1])||1;
+      if(dot/(lab*lbc)<-0.5) continue;
+    }
+    out.push(b);
+  }
+  out.push(coords[coords.length-1]);
+  return out;
 }
 function trainPlan(from, to){
   var a=place(from), b=place(to);
@@ -1431,7 +1458,7 @@ function computeGeo(r){
   if(r.mode==="train"){
     var plan=trainPlan(r.from, r.to);
     if(!plan || !plan.linked || !plan.coords) return {coords:null, km:0, a:plan&&plan.a, b:plan&&plan.b, needRoad:false, railMiss:true};
-    return {coords:plan.coords, km:pathKm(plan.coords), a:plan.a, b:plan.b, needRoad:plan.hops.length>0, hops:plan.hops};
+    return {coords:trimLoops(plan.coords), km:pathKm(plan.coords), a:plan.a, b:plan.b, needRoad:plan.hops.length>0, hops:plan.hops};
   }
   /* car: roads via OSRM or offroad via waypoints */
   if(r.carPath==="offroad" || (r.waypoints && r.waypoints.length)){
@@ -1459,14 +1486,14 @@ function computeGeo(r){
   if(coast) return {coords:coast, km:pathKm(coast), a:a, b:b, needRoad:false};
   if(ui.map && ui.map.traceNetwork){
     var along=ui.map.traceNetwork("car", a.lat, a.lng, b.lat, b.lng);
-    if(along && along.length>=2) return {coords:along, km:pathKm(along), a:a, b:b, needRoad:false};
+    if(along && along.length>=2) return {coords:trimLoops(along), km:pathKm(along), a:a, b:b, needRoad:false};
   }
   var cached=roadCache[key];
   if(cached==="fail"){
     coords=densify([[a.lat,a.lng],[b.lat,b.lng]], Math.max(8, Math.round(hav(a,b)/40)));
     return {coords:coords, km:hav(a,b), a:a, b:b, needRoad:false, roadMiss:hav(a,b)>100};
   }
-  if(cached && cached!=="fail" && cached!=="pending") coords=cached;
+  if(cached && cached!=="fail" && cached!=="pending") coords=trimLoops(cached);
   else coords=densify([[a.lat,a.lng],[b.lat,b.lng]],15);
   return {coords:coords, km:pathKm(coords), a:a, b:b, needRoad:cached==null, hops:cached==null?[[a,b]]:[]};
 }
