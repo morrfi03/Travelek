@@ -1,10 +1,10 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=57";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=57";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=57";
-import { createMap } from "../atlas.js?v=57";
-import { bindScreen } from "../screen.js?v=57";
-import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=57";
-import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js?v=57";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=58";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=58";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=58";
+import { createMap } from "../atlas.js?v=58";
+import { bindScreen } from "../screen.js?v=58";
+import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=58";
+import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js?v=58";
 "use strict";
 /* map */
 export var map;
@@ -1246,7 +1246,24 @@ function fillAnalytics() {
     var cards = document.getElementById("an-cards");
     if (!cards)
         return;
-    var past = (ROUTES || []).filter(function (r) { return !isFuture(r); });
+    var fy = document.getElementById("an-year"), fm = document.getElementById("an-mode");
+    var yf = fy ? fy.value : "", mf = fm ? fm.value : "";
+    var past = (ROUTES || []).filter(function (r) {
+        if (isFuture(r))
+            return false;
+        if (yf && String(r.date || "").slice(0, 4) !== yf)
+            return false;
+        if (mf && r.mode !== mf)
+            return false;
+        return true;
+    });
+    if (!past.length) {
+        cards.innerHTML = '<div class="an-card"><b>0</b><span>поездок</span></div>';
+        var empty = '<p class="up-empty">Нет данных. Добавьте поездку.</p>';
+        ["an-years", "an-months", "an-modes", "stats-averages", "stats-records", "stats-transport", "stats-timeline"].forEach(function (id) { var n = document.getElementById(id); if (n)
+            n.innerHTML = empty; });
+        return;
+    }
     var years = {}, months = {}, modes = {};
     var firstYear = "", lastDate = "", cities = {};
     past.forEach(function (r) {
@@ -1290,7 +1307,7 @@ function fillAnalytics() {
     var yMax = yKeys.reduce(function (a, k) { return Math.max(a, years[k]); }, 1);
     var yBox = document.getElementById("an-years");
     if (yBox)
-        yBox.innerHTML = yKeys.length ? yKeys.map(function (k) { var w = Math.round(100 * years[k] / yMax); return '<div class="bar-row"><span>' + k + '</span><div class="bar"><i style="width:' + w + '%"></i></div><b>' + years[k] + '</b></div>'; }).join("") : '<p class="up-empty">Нет состоявшихся поездок</p>';
+        yBox.innerHTML = yKeys.length ? yKeys.map(function (k) { var w = Math.round(100 * years[k] / yMax); return '<div class="bar-row" data-year="' + k + '"><span>' + k + '</span><div class="bar"><i style="width:' + w + '%"></i></div><b>' + years[k] + '</b></div>'; }).join("") : '<p class="up-empty">Нет состоявшихся поездок</p>';
     var mNames = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
     var mMax = mNames.reduce(function (a, k) { return Math.max(a, months[k] || 0); }, 1);
     var mBox = document.getElementById("an-months");
@@ -1336,7 +1353,7 @@ function fillAnalytics() {
     var avgMin = nKm ? Math.round(totalMin / nKm) : 0;
     var av = document.getElementById("stats-averages");
     if (av)
-        av.innerHTML = '<div class="bar-row"><span>км</span><b>' + avgKm.toLocaleString("ru-RU") + '</b></div><div class="bar-row"><span>мин</span><b>' + avgMin + '</b></div>';
+        av.innerHTML = '<div class="bar-row"><span>км</span><b>' + avgKm.toLocaleString("ru-RU") + '</b></div><div class="bar-row"><span>оценка</span><b>' + avgMin + ' мин</b></div>';
     var rec = document.getElementById("stats-records");
     if (rec)
         rec.innerHTML = (longest ? '<div class="bar-row"><span>макс</span><b>' + Math.round(longest.km).toLocaleString("ru-RU") + ' км · ' + (longest.from || "") + ' → ' + (longest.to || "") + '</b></div>' : '') + (shortest ? '<div class="bar-row"><span>мин</span><b>' + Math.round(shortest.km).toLocaleString("ru-RU") + ' км · ' + (shortest.from || "") + ' → ' + (shortest.to || "") + '</b></div>' : '') || '<p class="up-empty">Нет данных</p>';
@@ -2115,6 +2132,53 @@ document.getElementById("add-btn-2").onclick = function () { openTripWindow(); }
 var fab = document.getElementById("fab");
 if (fab)
     fab.onclick = function () { openTripWindow(); };
+var undoBtn = document.getElementById("undo-btn");
+if (undoBtn)
+    undoBtn.onclick = undoDelete;
+var anYear = document.getElementById("an-year"), anMode = document.getElementById("an-mode"), anReset = document.getElementById("an-reset");
+function refillYears() {
+    if (!anYear)
+        return;
+    var cur = anYear.value, seen = {};
+    (ROUTES || []).forEach(function (r) { var y = String(r.date || "").slice(0, 4); if (y)
+        seen[y] = 1; });
+    var ys = Object.keys(seen).sort().reverse();
+    anYear.innerHTML = '<option value="">Все годы</option>' + ys.map(function (y) { return '<option value="' + y + '"' + (y === cur ? " selected" : "") + '>' + y + '</option>'; }).join("");
+}
+if (anYear)
+    anYear.onchange = function () { fillAnalytics(); };
+if (anMode)
+    anMode.onchange = function () { fillAnalytics(); };
+if (anReset)
+    anReset.onclick = function () { if (anYear)
+        anYear.value = ""; if (anMode)
+        anMode.value = ""; fillAnalytics(); };
+refillYears();
+var dq = document.getElementById("diary-q"), dm = document.getElementById("diary-mode");
+if (dq)
+    dq.oninput = function () { render(); };
+if (dm)
+    dm.onchange = function () { render(); };
+var yearsBox = document.getElementById("an-years");
+if (yearsBox)
+    yearsBox.addEventListener("click", function (e) {
+        var row = e.target.closest("[data-year]");
+        if (!row)
+            return;
+        var y = row.getAttribute("data-year");
+        document.body.setAttribute("data-section", "map");
+        var tab = document.querySelector('.tab[data-tab="past"]');
+        if (tab && !tab.classList.contains("on"))
+            tab.click();
+        if (typeof yearFilter !== "undefined") { /* year filter is module state */ }
+        var yf = document.getElementById("year-filter");
+        if (yf) {
+            var btn = yf.querySelector('[data-y="' + y + '"]');
+            if (btn)
+                btn.click();
+        }
+        render();
+    });
 var up = document.getElementById("upcoming");
 if (up) {
     var head = up.querySelector(".up-head");
@@ -4788,8 +4852,36 @@ function routeText(r) {
         '<button type="button" class="route-x" data-route-del="' + r.id + '" title="' + t("Удалить") + '">×</button>' +
         escLabel(shownPlace(r.from || "") + " → " + shownPlace(r.to || "")) + (r.date ? " · " + escLabel(r.date) : "") + '</div>';
 }
+var undoTimer = null, undoId = null;
+function showUndo(id) {
+    undoId = id;
+    var toast = document.getElementById("undo-toast");
+    if (!toast)
+        return;
+    toast.hidden = false;
+    if (undoTimer)
+        clearTimeout(undoTimer);
+    undoTimer = setTimeout(function () { toast.hidden = true; undoId = null; }, 5000);
+}
+function undoDelete() {
+    if (!undoId)
+        return;
+    var id = undoId;
+    var i = deleted.indexOf(id);
+    if (i >= 0)
+        deleted.splice(i, 1);
+    saveDeleted(deleted);
+    setRoutes(assembleRoutes());
+    undoId = null;
+    var toast = document.getElementById("undo-toast");
+    if (toast)
+        toast.hidden = true;
+    render();
+}
 function deleteRoute(id) {
     if (!id)
+        return;
+    if (!confirm("Удалить маршрут?"))
         return;
     rememberDeleted(deleted, id).forEach(function (x) { if (deleted.indexOf(x) < 0)
         deleted.push(x); });
@@ -4798,6 +4890,7 @@ function deleteRoute(id) {
     setRoutes(assembleRoutes());
     if (selectedId === id)
         selectedId = null;
+    showUndo(id);
     render();
 }
 function routeCardHtml(r) {
@@ -4834,6 +4927,21 @@ function tripSortKey(tp, tab) {
 function paintSheetList(el, list) {
     if (!el)
         return;
+    var qEl = document.getElementById("diary-q"), mEl = document.getElementById("diary-mode");
+    var q = qEl ? String(qEl.value || "").trim().toLowerCase() : "";
+    var mf = mEl ? mEl.value : "";
+    if (q || mf) {
+        list = list.filter(function (r) {
+            if (mf && r.mode !== mf)
+                return false;
+            if (q) {
+                var hay = ((r.from || "") + " " + (r.to || "") + " " + (r.date || "")).toLowerCase();
+                if (hay.indexOf(q) < 0)
+                    return false;
+            }
+            return true;
+        });
+    }
     var tab = activeTab;
     var nowY = String(new Date().getFullYear());
     var trips = loadTrips().filter(function (tp) { return tab === "trips" || tripInTab(tp, tab); });
@@ -4875,10 +4983,35 @@ function paintSheetList(el, list) {
     }
     var loose = tab === "trips" ? "" : looseBlock(tab, list);
     if (!html && !loose) {
-        el.innerHTML = '<div class="empty"><p>' + (tab === "future" ? t("Нет предстоящих маршрутов. Откройте «Прошлые» или добавьте новый.") : (tab === "trips" ? t("Поездок пока нет") : t("В прошлых пока пусто"))) + '</p></div>';
+        el.innerHTML = '<div class="empty"><p>' + (tab === "future" ? t("Нет предстоящих маршрутов. Откройте «Прошлые» или добавьте новый.") : (tab === "trips" ? t("Поездок пока нет") : t("В прошлых пока пусто"))) + '</p><button type="button" id="empty-add">Добавить поездку</button></div>';
+        var ea = document.getElementById("empty-add");
+        if (ea)
+            ea.onclick = function () { openTripWindow(); };
         return;
     }
     el.innerHTML = html + loose;
+    el.querySelectorAll(".row[data-id]").forEach(function (row) {
+        row.addEventListener("click", function (ev) {
+            if (ev.target.closest(".edit,.del,[data-route-del],[data-route-edit]"))
+                return;
+            var id = row.getAttribute("data-id");
+            selectedId = id;
+            document.body.setAttribute("data-section", "map");
+            render();
+            try {
+                var r = null, i;
+                for (i = 0; i < (ROUTES || []).length; i++)
+                    if (ROUTES[i].id === id)
+                        r = ROUTES[i];
+                if (r) {
+                    var g = buildGeoSync(r);
+                    if (g && g.coords && g.coords.length)
+                        map.fitBounds(g.coords, { padding: [60, 80], maxZoom: 6 });
+                }
+            }
+            catch (e) { }
+        });
+    });
     el.querySelectorAll("[data-route-edit]").forEach(function (line) {
         line.onclick = function (ev) {
             if (ev.target.closest("[data-route-del]"))
