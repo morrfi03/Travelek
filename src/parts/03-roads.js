@@ -547,8 +547,13 @@ function abkhazIndex(p) {
 }
 function abkhazPath(a, b) {
     var line = [[43.585, 39.723], [43.443, 39.910], [43.394, 40.011], [43.298, 40.259], [43.163, 40.339], [43.105, 40.632], [43.087, 40.812], [43.003, 41.023], [42.858, 41.128], [42.712, 41.468], [42.628, 41.737]];
-    var ia = abkhazIndex(a), ib = abkhazIndex(b), coords, i, step;
+    var ia = abkhazIndex(a), ib = abkhazIndex(b), coords, i, step, da, db;
     if (ia < 0 || ib < 0 || ia === ib)
+        return null;
+    /* only use coastal special if both ends are close to the line — otherwise the connector becomes a sea chord */
+    da = hav(a, { lat: line[ia][0], lng: line[ia][1] });
+    db = hav(b, { lat: line[ib][0], lng: line[ib][1] });
+    if (da > 28 || db > 28)
         return null;
     coords = [[a.lat, a.lng]];
     step = ia < ib ? 1 : -1;
