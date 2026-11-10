@@ -1214,6 +1214,13 @@ body[data-section="diary"] #sheet #list,
 body[data-section="diary"] #sheet .year-filter,
 body[data-section="diary"] #diary-find{display:block}
 body[data-section="diary"] #list{flex:1;overflow-y:auto;min-height:0}
+
+body[data-section="diary"] #stats-grid,
+body[data-section="diary"] #analytics,
+body[data-section="diary"] .countries-open-wrap,
+body[data-section="diary"] .visit-line{display:none!important}
+body[data-section="diary"] #sheet{bottom:var(--dock-h);display:flex;flex-direction:column}
+body[data-section="diary"] #list{flex:1 1 auto;overflow-y:auto;min-height:120px;-webkit-overflow-scrolling:touch}
 </style>
 <nav id="dock" aria-label="Разделы">
   <div class="dock-brand"><i><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 11c3-6 7-6 10-2" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="3" cy="11" r="1.3" fill="#fff"/><circle cx="13" cy="9" r="1.3" fill="#fff"/></svg></i>ТравелЕк</div>
@@ -1616,7 +1623,7 @@ body[data-section="diary"] #list{flex:1;overflow-y:auto;min-height:0}
       if(sh && window.matchMedia && !matchMedia("(min-width:980px)").matches){
         sh.classList.remove("collapsed","low");
         sh.classList.add("mid");
-        sh.style.height="54vh";
+        sh.style.height="62vh";
       }
     }
     if(name==="map") tabBtn=document.querySelector('.tab[data-tab="future"]');
@@ -1660,6 +1667,6 @@ body[data-section="diary"] #list{flex:1;overflow-y:auto;min-height:0}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=61"></script>
+<script type="module" src="src/main.js?v=62"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>
