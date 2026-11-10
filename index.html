@@ -1224,7 +1224,7 @@ body[data-section="diary"] #list{flex:1 1 auto;overflow-y:auto;min-height:120px;
 
 body[data-section="diary"] #sheet::before{display:none}
 body[data-section="diary"] #sheet .handle-wrap{padding:6px 0 2px}
-body[data-section="diary"] #sheet .sheet-tools{display:none}
+
 body[data-section="diary"] #sheet .tabs{padding:4px 12px 6px}
 body[data-section="diary"] #sheet .year-filter,
 body[data-section="diary"] #sheet .mode-filter{padding:2px 12px 4px}
@@ -1260,6 +1260,11 @@ body[data-section="diary"] #mode-filter button{
   cursor:grab;touch-action:none;
 }
 .handle{width:36px;height:4px;flex:0 0 auto}
+
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 12px 4px;flex-shrink:0}
+.sheet-head .tabs{margin:0!important;padding:0!important;flex:0 1 auto}
+.sheet-head .sheet-tools{padding:0;flex-shrink:0}
+body[data-section="diary"] #sheet .sheet-tools{display:flex!important}
 </style>
 <nav id="dock" aria-label="Разделы">
   <div class="dock-brand"><i><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 11c3-6 7-6 10-2" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="3" cy="11" r="1.3" fill="#fff"/><circle cx="13" cy="9" r="1.3" fill="#fff"/></svg></i>ТравелЕк</div>
@@ -1334,6 +1339,11 @@ body[data-section="diary"] #mode-filter button{
 <div id="offline-pill" data-i18n="Нет сети · карта из кэша">Нет сети · карта из кэша</div>
 <div class="sheet mid" id="sheet">
   <div class="handle-wrap" id="handle-wrap"><div class="handle"></div></div>
+  <div class="sheet-head">
+  <div class="tabs">
+    <button type="button" class="tab on" data-tab="future" data-i18n="Будущие">Будущие</button>
+    <button type="button" class="tab" data-tab="past" data-i18n="Прошлые">Прошлые</button>
+  </div>
   <div class="sheet-tools">
     <button type="button" id="settings-btn" title="Настройки" data-i18n-title="Настройки" aria-label="Настройки">
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 3v2.2M12 18.8V21M3 12h2.2M18.8 12H21M5.6 5.6l1.6 1.6M16.8 16.8l1.6 1.6M18.4 5.6l-1.6 1.6M7.2 16.8l-1.6 1.6"/></svg>
@@ -1342,9 +1352,6 @@ body[data-section="diary"] #mode-filter button{
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="3.2"/><path d="M5 19.2c1.4-3 3.8-4.5 7-4.5s5.6 1.5 7 4.5"/></svg>
     </button>
   </div>
-  <div class="tabs">
-    <button type="button" class="tab on" data-tab="future" data-i18n="Будущие">Будущие</button>
-    <button type="button" class="tab" data-tab="past" data-i18n="Прошлые">Прошлые</button>
   </div>
   <div class="stats" id="stats-grid">
     <div class="stat"><div><b id="s-total">0</b><span>всего, км</span></div></div>
@@ -1706,6 +1713,6 @@ body[data-section="diary"] #mode-filter button{
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=66"></script>
+<script type="module" src="src/main.js?v=67"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>
