@@ -3668,7 +3668,12 @@ function paintSheetList(el, list){
   }
   var tab=activeTab;
   var nowY=String(new Date().getFullYear());
-  var trips=loadTrips().filter(function(tp){ return tab==="trips" || tripInTab(tp, tab); });
+  var yf=typeof yearFilter!=="undefined"?yearFilter:"all";
+  var trips=loadTrips().filter(function(tp){
+    if(tab!=="trips" && !tripInTab(tp, tab)) return false;
+    if(yf && yf!=="all" && tripYear(tp, tab)!==yf) return false;
+    return true;
+  });
   var groups= {} as any, order=[], html="", i, tp, y;
   for(i=0;i<trips.length;i++){
     tp=trips[i];

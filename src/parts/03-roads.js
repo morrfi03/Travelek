@@ -1,7 +1,7 @@
-import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js?v=67";
-import { ROUTES, bindRail, place } from "./02-cloud.js?v=67";
-import { datedPast, isFuture } from "../when.js?v=67";
-import { ui } from "../screen.js?v=67";
+import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js?v=68";
+import { ROUTES, bindRail, place } from "./02-cloud.js?v=68";
+import { datedPast, isFuture } from "../when.js?v=68";
+import { ui } from "../screen.js?v=68";
 export { datedPast, isFuture };
 "use strict";
 /* geometry */
@@ -509,10 +509,14 @@ function trainPlan(from, to) {
             append(cached);
             continue;
         }
-        seg = densify([[p.lat, p.lng], [q.lat, q.lng]], d > 240 ? 22 : 14);
-        append(seg);
         if (d >= 55 && cached == null)
             hops.push([p, q]);
+        if (d < 40) {
+            append(densify([[p.lat, p.lng], [q.lat, q.lng]], 8));
+        }
+        else {
+            append([[p.lat, p.lng], [q.lat, q.lng]]);
+        }
     }
     if (coords.length < 2)
         coords = pts;
@@ -1842,15 +1846,21 @@ function computeGeo(r) {
             return { coords: trimLoops(along), km: pathKm(along), a: a, b: b, needRoad: false };
     }
     var cached = roadCache[key];
-    if (cached === "fail") {
-        coords = densify([[a.lat, a.lng], [b.lat, b.lng]], Math.max(8, Math.round(hav(a, b) / 40)));
-        return { coords: coords, km: hav(a, b), a: a, b: b, needRoad: false, roadMiss: hav(a, b) > 100 };
-    }
     if (cached && cached !== "fail" && cached !== "pending")
         coords = trimLoops(cached);
-    else
-        coords = densify([[a.lat, a.lng], [b.lat, b.lng]], 15);
-    return { coords: coords, km: pathKm(coords), a: a, b: b, needRoad: cached == null, hops: cached == null ? [[a, b]] : [] };
+    else if (cached === "fail") {
+        if (ui.map && ui.map.traceNetwork) {
+            var again = ui.map.traceNetwork("car", a.lat, a.lng, b.lat, b.lng);
+            if (again && again.length >= 2)
+                return { coords: trimLoops(again), km: pathKm(again), a: a, b: b, needRoad: false };
+        }
+        coords = null;
+        return { coords: null, km: 0, a: a, b: b, needRoad: false, roadMiss: true };
+    }
+    else {
+        coords = null;
+    }
+    return { coords: coords, km: coords ? pathKm(coords) : 0, a: a, b: b, needRoad: !coords, hops: coords ? [] : [[a, b]] };
 }
 export var COLORS = { plane: "#1d4ed8", train: "#15803d", car: "#c2410c", walk: "#7c3aed", bike: "#0f766e", ship: "#0369a1", future: "#6d28d9" };
 var ICONS = { plane: "✈️", train: "🚂", car: "🚗", walk: "🚶", bike: "🚴", ship: "🚢" };

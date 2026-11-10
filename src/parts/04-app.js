@@ -1,10 +1,10 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=67";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=67";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=67";
-import { createMap } from "../atlas.js?v=67";
-import { bindScreen } from "../screen.js?v=67";
-import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=67";
-import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js?v=67";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=68";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=68";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=68";
+import { createMap } from "../atlas.js?v=68";
+import { bindScreen } from "../screen.js?v=68";
+import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=68";
+import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js?v=68";
 "use strict";
 /* map */
 export var map;
@@ -4944,7 +4944,14 @@ function paintSheetList(el, list) {
     }
     var tab = activeTab;
     var nowY = String(new Date().getFullYear());
-    var trips = loadTrips().filter(function (tp) { return tab === "trips" || tripInTab(tp, tab); });
+    var yf = typeof yearFilter !== "undefined" ? yearFilter : "all";
+    var trips = loadTrips().filter(function (tp) {
+        if (tab !== "trips" && !tripInTab(tp, tab))
+            return false;
+        if (yf && yf !== "all" && tripYear(tp, tab) !== yf)
+            return false;
+        return true;
+    });
     var groups = {}, order = [], html = "", i, tp, y;
     for (i = 0; i < trips.length; i++) {
         tp = trips[i];
