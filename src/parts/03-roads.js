@@ -1,7 +1,7 @@
-import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js?v=69";
-import { ROUTES, bindRail, place } from "./02-cloud.js?v=69";
-import { datedPast, isFuture } from "../when.js?v=69";
-import { ui } from "../screen.js?v=69";
+import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js?v=70";
+import { ROUTES, bindRail, place } from "./02-cloud.js?v=70";
+import { datedPast, isFuture } from "../when.js?v=70";
+import { ui } from "../screen.js?v=70";
 export { datedPast, isFuture };
 "use strict";
 /* geometry */
@@ -445,6 +445,14 @@ function hasLongChord(coords, maxKm) {
             return true;
     }
     return false;
+}
+function hasLongEnds(coords, maxKm) {
+    if (!coords || coords.length < 2)
+        return false;
+    var d0 = hav({ lat: coords[0][0], lng: coords[0][1] }, { lat: coords[1][0], lng: coords[1][1] });
+    var n = coords.length - 1;
+    var d1 = hav({ lat: coords[n - 1][0], lng: coords[n - 1][1] }, { lat: coords[n][0], lng: coords[n][1] });
+    return d0 > maxKm || d1 > maxKm;
 }
 function trimLoops(coords) {
     if (!coords || coords.length < 4)
@@ -1846,7 +1854,12 @@ function computeGeo(r) {
             var k = roadKey(p, q), cachedLeg = roadCache[k];
             if (cachedLeg && cachedLeg !== "fail" && cachedLeg !== "pending")
                 return cachedLeg;
-            if (hav(p, q) < 14)
+            if (ui.map && ui.map.traceNetwork) {
+                var along = ui.map.traceNetwork("car", p.lat, p.lng, q.lat, q.lng);
+                if (along && along.length >= 2 && !hasLongEnds(along, 55))
+                    return trimLoops(along);
+            }
+            if (hav(p, q) < 22)
                 return densify([[p.lat, p.lng], [q.lat, q.lng]], 8);
             return null;
         }
@@ -1863,18 +1876,18 @@ function computeGeo(r) {
         return { coords: coast, km: pathKm(coast), a: a, b: b, needRoad: false };
     if (ui.map && ui.map.traceNetwork) {
         var along = ui.map.traceNetwork("car", a.lat, a.lng, b.lat, b.lng);
-        if (along && along.length >= 2 && !hasLongChord(along, 32))
+        if (along && along.length >= 2 && !hasLongEnds(along, 55))
             return { coords: trimLoops(along), km: pathKm(along), a: a, b: b, needRoad: false };
     }
     var cached = roadCache[key];
     if (cached && cached !== "fail" && cached !== "pending") {
         var trimmed = trimLoops(cached);
-        coords = hasLongChord(trimmed, 80) ? null : trimmed;
+        coords = hasLongChord(trimmed, 220) ? null : trimmed;
     }
     else if (cached === "fail") {
         if (ui.map && ui.map.traceNetwork) {
             var again = ui.map.traceNetwork("car", a.lat, a.lng, b.lat, b.lng);
-            if (again && again.length >= 2 && !hasLongChord(again, 32))
+            if (again && again.length >= 2 && !hasLongEnds(again, 55))
                 return { coords: trimLoops(again), km: pathKm(again), a: a, b: b, needRoad: false };
         }
         coords = null;

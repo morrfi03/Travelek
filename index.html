@@ -3,6 +3,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" /><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"><title>ТравелЕк</title></head>
 <body>
+<div id="boot-screen"><div class="logo">✈</div><div class="name">ТравелЕк</div><div class="sub">Загрузка карты и маршрутов…</div><div class="bar"><i></i></div></div>
+
 <style>
 @font-face{font-family:Manrope;src:url("geo/fonts/manrope-cyr.woff2") format("woff2");font-weight:400 800;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
 @font-face{font-family:Manrope;src:url("geo/fonts/manrope-lat.woff2") format("woff2");font-weight:400 800;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+2000-206F,U+20AC,U+2122}
@@ -1265,6 +1267,15 @@ body[data-section="diary"] #mode-filter button{
 .sheet-head .tabs{margin:0!important;padding:0!important;flex:0 1 auto}
 .sheet-head .sheet-tools{padding:0;flex-shrink:0}
 body[data-section="diary"] #sheet .sheet-tools{display:flex!important}
+
+#boot-screen{position:fixed;inset:0;z-index:9999;background:#101522;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;transition:opacity .35s ease}
+#boot-screen.hide{opacity:0;pointer-events:none}
+#boot-screen .logo{width:72px;height:72px;border-radius:18px;background:#65A987;display:flex;align-items:center;justify-content:center;font-size:36px;box-shadow:0 8px 28px rgba(0,0,0,.35)}
+#boot-screen .name{font-size:22px;font-weight:700;letter-spacing:-0.02em;color:#F1F4F9}
+#boot-screen .sub{font-size:13px;color:#9BA8BA;font-weight:500}
+#boot-screen .bar{width:160px;height:3px;background:rgba(255,255,255,.12);border-radius:2px;overflow:hidden;margin-top:8px}
+#boot-screen .bar i{display:block;height:100%;width:40%;background:#65A987;border-radius:2px;animation:boot 1.1s ease-in-out infinite}
+@keyframes boot{0%{transform:translateX(-100%)}100%{transform:translateX(350%)}}
 </style>
 <nav id="dock" aria-label="Разделы">
   <div class="dock-brand"><i><svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 11c3-6 7-6 10-2" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="3" cy="11" r="1.3" fill="#fff"/><circle cx="13" cy="9" r="1.3" fill="#fff"/></svg></i>ТравелЕк</div>
@@ -1713,6 +1724,6 @@ body[data-section="diary"] #sheet .sheet-tools{display:flex!important}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=69"></script>
+<script type="module" src="src/main.js?v=70"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>

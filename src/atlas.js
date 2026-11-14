@@ -1,5 +1,5 @@
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=69";
-import { countriesToPaint, regionMatches } from "./visit.js?v=69";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=70";
+import { countriesToPaint, regionMatches } from "./visit.js?v=70";
 var api = (function () {
     var PI = Math.PI, D2R = PI / 18000; // координаты хранятся в сотых долях градуса
     var $ = function (id) { return document.getElementById(id); };
@@ -1096,6 +1096,36 @@ var api = (function () {
                 });
             });
             thr2 = detailThr;
+            /* country / region borders — visible at all zooms */
+            c.lineWidth = Math.max(1.4, 2.2) / kk;
+            c.strokeStyle = "rgba(30,22,10,.78)";
+            c.lineJoin = "round";
+            c.lineCap = "round";
+            byLayer.W.forEach(function (i) {
+                var e = ents[i];
+                if (e.name === "Украина" && !(litCountry(e) || markC.UA || washIso.UA))
+                    return;
+                c.beginPath();
+                entPath(c, e);
+                c.stroke();
+            });
+            if (washIso.RU || markC.RU) {
+                byLayer.R.forEach(function (i) {
+                    c.beginPath();
+                    entPath(c, ents[i]);
+                    c.stroke();
+                });
+            }
+            ["R", "C", "G"].forEach(function (L) {
+                byLayer[L].forEach(function (i) {
+                    var e = ents[i];
+                    if (!regionMarked(e))
+                        return;
+                    c.beginPath();
+                    entPath(c, e);
+                    c.stroke();
+                });
+            });
             (function paintFlatOverlays() {
                 var ids = Object.keys(washIso), k, iso, rings, ring, i, p, minx, miny, maxx, maxy, sw, sh;
                 for (k in markC)
@@ -2087,16 +2117,12 @@ var api = (function () {
                 });
             });
             /* country / region borders on globe */
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = "rgba(48,32,14,.55)";
+            ctx.lineWidth = 1.6;
+            ctx.strokeStyle = "rgba(30,22,10,.75)";
             ctx.lineJoin = "round";
             byLayer.W.forEach(function (i) {
                 var e = ents[i];
-                if (e.name === "Украина") {
-                    if (!(litCountry(e) || markC.UA || washIso.UA))
-                        return;
-                }
-                else if (!litCountry(e))
+                if (e.name === "Украина" && !(litCountry(e) || markC.UA || washIso.UA))
                     return;
                 projectFull(e);
                 ctx.beginPath();

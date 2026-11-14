@@ -3206,6 +3206,8 @@ function bootGeo(){
     if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
     if(typeof scheduleNet==="function") scheduleNet();
     if(window.__fillAccount && document.getElementById("account-panel") && document.getElementById("account-panel").classList.contains("on")) window.__fillAccount();
+    var boot=document.getElementById("boot-screen");
+    if(boot){ boot.classList.add("hide"); setTimeout(function(){ if(boot.parentNode) boot.parentNode.removeChild(boot); }, 400); }
   }
   if(!countryLayer && map && map.group) countryLayer=map.group().addTo(map);
   ensureHoverLayer();

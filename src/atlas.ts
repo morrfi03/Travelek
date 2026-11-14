@@ -720,16 +720,14 @@ var api = (function () {
         });
       });
       thr2 = detailThr;
-      /* country / region borders */
-      c.lineWidth = Math.max(0.55, 1.05) / kk;
-      c.strokeStyle = "rgba(48,32,14,.58)";
+      /* country / region borders — visible at all zooms */
+      c.lineWidth = Math.max(1.4, 2.2) / kk;
+      c.strokeStyle = "rgba(30,22,10,.78)";
       c.lineJoin = "round";
       c.lineCap = "round";
       byLayer.W.forEach(function (i) {
         var e = ents[i];
-        if (e.name === "Украина") {
-          if (!(litCountry(e) || markC.UA || washIso.UA)) return;
-        } else if (!litCountry(e)) return;
+        if (e.name === "Украина" && !(litCountry(e) || markC.UA || washIso.UA)) return;
         c.beginPath(); entPath(c, e); c.stroke();
       });
       if (washIso.RU || markC.RU) {
@@ -1365,14 +1363,12 @@ var api = (function () {
         });
       });
       /* country / region borders on globe */
-      ctx.lineWidth = 1;
-      ctx.strokeStyle = "rgba(48,32,14,.55)";
+      ctx.lineWidth = 1.6;
+      ctx.strokeStyle = "rgba(30,22,10,.75)";
       ctx.lineJoin = "round";
       byLayer.W.forEach(function (i) {
         var e = ents[i];
-        if (e.name === "Украина") {
-          if (!(litCountry(e) || markC.UA || washIso.UA)) return;
-        } else if (!litCountry(e)) return;
+        if (e.name === "Украина" && !(litCountry(e) || markC.UA || washIso.UA)) return;
         projectFull(e); ctx.beginPath(); fillRings(e); ctx.stroke();
       });
       if (washIso.RU || markC.RU) {
