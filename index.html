@@ -1210,6 +1210,7 @@ body:not([data-section="diary"]) #diary-find{display:none}
   body[data-section="stats"] #stats-grid{display:none!important}
 }
 
+body[data-section="diary"] .tab[data-tab="future"]{display:none}
 body[data-section="diary"] #sheet{bottom:var(--dock-h)}
 body[data-section="diary"] #sheet .tabs,
 body[data-section="diary"] #sheet #list,
@@ -1725,6 +1726,6 @@ body[data-section="diary"] #sheet .sheet-tools{display:flex!important}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=71"></script>
+<script type="module" src="src/main.js?v=72"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>

@@ -720,16 +720,17 @@ var api = (function () {
         });
       });
       thr2 = detailThr;
-      /* country borders only — no region outlines */
+      /* country borders only — no region outlines, always for RU/UA */
       c.lineWidth = Math.max(1.2, 1.8) / kk;
       c.strokeStyle = "rgba(30,22,10,.72)";
       c.lineJoin = "round";
       c.lineCap = "round";
       byLayer.W.forEach(function (i) {
         var e = ents[i];
-        if (e.name === "Украина" && !(litCountry(e) || markC.UA || washIso.UA)) return;
         c.beginPath(); entPath(c, e); c.stroke();
       });
+      if (traceFlat(c, "RU")) c.stroke();
+      if (traceFlat(c, "UA")) c.stroke();
       (function paintFlatOverlays(){
         var ids = Object.keys(washIso), k, iso, rings, ring, i, p, minx, miny, maxx, maxy, sw, sh;
         for (k in markC) if (ids.indexOf(k) < 0) ids.push(k);
@@ -1350,15 +1351,16 @@ var api = (function () {
           ctx.fill("evenodd");
         });
       });
-      /* country borders only on globe */
+      /* country borders only on globe, always for RU/UA */
       ctx.lineWidth = 1.4;
       ctx.strokeStyle = "rgba(30,22,10,.7)";
       ctx.lineJoin = "round";
       byLayer.W.forEach(function (i) {
         var e = ents[i];
-        if (e.name === "Украина" && !(litCountry(e) || markC.UA || washIso.UA)) return;
         projectFull(e); ctx.beginPath(); fillRings(e); ctx.stroke();
       });
+      if (fillGeo("RU")) ctx.stroke();
+      if (fillGeo("UA")) ctx.stroke();
       ([[hoverEnt, "rgba(255,248,220,.66)"], [selEnt, "rgba(255,214,140,.72)"]] as [number, string][]).forEach(function (h) {
         if (h[0] < 0) return;
         var e = ents[h[0]], hi, host, hosts = hostEntities(e);
