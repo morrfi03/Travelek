@@ -720,6 +720,30 @@ var api = (function () {
         });
       });
       thr2 = detailThr;
+      /* country / region borders */
+      c.lineWidth = Math.max(0.55, 1.05) / kk;
+      c.strokeStyle = "rgba(48,32,14,.58)";
+      c.lineJoin = "round";
+      c.lineCap = "round";
+      byLayer.W.forEach(function (i) {
+        var e = ents[i];
+        if (e.name === "Украина") {
+          if (!(litCountry(e) || markC.UA || washIso.UA)) return;
+        } else if (!litCountry(e)) return;
+        c.beginPath(); entPath(c, e); c.stroke();
+      });
+      if (washIso.RU || markC.RU) {
+        byLayer.R.forEach(function (i) {
+          c.beginPath(); entPath(c, ents[i]); c.stroke();
+        });
+      }
+      ["R", "C", "G"].forEach(function (L) {
+        byLayer[L].forEach(function (i) {
+          var e = ents[i];
+          if (!regionMarked(e)) return;
+          c.beginPath(); entPath(c, e); c.stroke();
+        });
+      });
       (function paintFlatOverlays(){
         var ids = Object.keys(washIso), k, iso, rings, ring, i, p, minx, miny, maxx, maxy, sw, sh;
         for (k in markC) if (ids.indexOf(k) < 0) ids.push(k);
@@ -1338,6 +1362,29 @@ var api = (function () {
           ctx.beginPath(); fillRings(e);
           ctx.fillStyle = fillRegion();
           ctx.fill("evenodd");
+        });
+      });
+      /* country / region borders on globe */
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = "rgba(48,32,14,.55)";
+      ctx.lineJoin = "round";
+      byLayer.W.forEach(function (i) {
+        var e = ents[i];
+        if (e.name === "Украина") {
+          if (!(litCountry(e) || markC.UA || washIso.UA)) return;
+        } else if (!litCountry(e)) return;
+        projectFull(e); ctx.beginPath(); fillRings(e); ctx.stroke();
+      });
+      if (washIso.RU || markC.RU) {
+        byLayer.R.forEach(function (i) {
+          projectFull(ents[i]); ctx.beginPath(); fillRings(ents[i]); ctx.stroke();
+        });
+      }
+      ["R", "C", "G"].forEach(function (L) {
+        byLayer[L].forEach(function (i) {
+          var e = ents[i];
+          if (!regionMarked(e)) return;
+          projectFull(e); ctx.beginPath(); fillRings(e); ctx.stroke();
         });
       });
       ([[hoverEnt, "rgba(255,248,220,.66)"], [selEnt, "rgba(255,214,140,.72)"]] as [number, string][]).forEach(function (h) {

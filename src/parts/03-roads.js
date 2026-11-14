@@ -1,7 +1,7 @@
-import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js?v=68";
-import { ROUTES, bindRail, place } from "./02-cloud.js?v=68";
-import { datedPast, isFuture } from "../when.js?v=68";
-import { ui } from "../screen.js?v=68";
+import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js?v=69";
+import { ROUTES, bindRail, place } from "./02-cloud.js?v=69";
+import { datedPast, isFuture } from "../when.js?v=69";
+import { ui } from "../screen.js?v=69";
 export { datedPast, isFuture };
 "use strict";
 /* geometry */
@@ -435,6 +435,17 @@ function railPath(fk, tk) {
     return path;
 }
 /* убирает разворот: точка, после которой путь идёт назад */
+function hasLongChord(coords, maxKm) {
+    if (!coords || coords.length < 2)
+        return false;
+    var i, d;
+    for (i = 1; i < coords.length; i++) {
+        d = hav({ lat: coords[i - 1][0], lng: coords[i - 1][1] }, { lat: coords[i][0], lng: coords[i][1] });
+        if (d > maxKm)
+            return true;
+    }
+    return false;
+}
 function trimLoops(coords) {
     if (!coords || coords.length < 4)
         return coords;
@@ -511,12 +522,13 @@ function trainPlan(from, to) {
         }
         if (d >= 55 && cached == null)
             hops.push([p, q]);
-        if (d < 40) {
+        if (d < 22) {
             append(densify([[p.lat, p.lng], [q.lat, q.lng]], 8));
         }
-        else {
+        else if (d < 40) {
             append([[p.lat, p.lng], [q.lat, q.lng]]);
         }
+        /* longer hops stay as hops for real routing; no sea chord */
     }
     if (coords.length < 2)
         coords = pts;
@@ -546,6 +558,8 @@ function abkhazIndex(p) {
     return best;
 }
 function abkhazPath(a, b) {
+    /* disabled: connectors from place to the coastal polyline became sea chords */
+    return null;
     var line = [[43.585, 39.723], [43.443, 39.910], [43.394, 40.011], [43.298, 40.259], [43.163, 40.339], [43.105, 40.632], [43.087, 40.812], [43.003, 41.023], [42.858, 41.128], [42.712, 41.468], [42.628, 41.737]];
     var ia = abkhazIndex(a), ib = abkhazIndex(b), coords, i, step, da, db;
     if (ia < 0 || ib < 0 || ia === ib)
@@ -1832,7 +1846,9 @@ function computeGeo(r) {
             var k = roadKey(p, q), cachedLeg = roadCache[k];
             if (cachedLeg && cachedLeg !== "fail" && cachedLeg !== "pending")
                 return cachedLeg;
-            return densify([[p.lat, p.lng], [q.lat, q.lng]], 16);
+            if (hav(p, q) < 14)
+                return densify([[p.lat, p.lng], [q.lat, q.lng]], 8);
+            return null;
         }
         var via = stitchBridge(a, b, land);
         var hops = [];
@@ -1847,16 +1863,18 @@ function computeGeo(r) {
         return { coords: coast, km: pathKm(coast), a: a, b: b, needRoad: false };
     if (ui.map && ui.map.traceNetwork) {
         var along = ui.map.traceNetwork("car", a.lat, a.lng, b.lat, b.lng);
-        if (along && along.length >= 2)
+        if (along && along.length >= 2 && !hasLongChord(along, 32))
             return { coords: trimLoops(along), km: pathKm(along), a: a, b: b, needRoad: false };
     }
     var cached = roadCache[key];
-    if (cached && cached !== "fail" && cached !== "pending")
-        coords = trimLoops(cached);
+    if (cached && cached !== "fail" && cached !== "pending") {
+        var trimmed = trimLoops(cached);
+        coords = hasLongChord(trimmed, 80) ? null : trimmed;
+    }
     else if (cached === "fail") {
         if (ui.map && ui.map.traceNetwork) {
             var again = ui.map.traceNetwork("car", a.lat, a.lng, b.lat, b.lng);
-            if (again && again.length >= 2)
+            if (again && again.length >= 2 && !hasLongChord(again, 32))
                 return { coords: trimLoops(again), km: pathKm(again), a: a, b: b, needRoad: false };
         }
         coords = null;

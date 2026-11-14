@@ -1,5 +1,5 @@
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=68";
-import { countriesToPaint, regionMatches } from "./visit.js?v=68";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=69";
+import { countriesToPaint, regionMatches } from "./visit.js?v=69";
 var api = (function () {
     var PI = Math.PI, D2R = PI / 18000; // координаты хранятся в сотых долях градуса
     var $ = function (id) { return document.getElementById(id); };
@@ -2084,6 +2084,42 @@ var api = (function () {
                     fillRings(e);
                     ctx.fillStyle = fillRegion();
                     ctx.fill("evenodd");
+                });
+            });
+            /* country / region borders on globe */
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "rgba(48,32,14,.55)";
+            ctx.lineJoin = "round";
+            byLayer.W.forEach(function (i) {
+                var e = ents[i];
+                if (e.name === "Украина") {
+                    if (!(litCountry(e) || markC.UA || washIso.UA))
+                        return;
+                }
+                else if (!litCountry(e))
+                    return;
+                projectFull(e);
+                ctx.beginPath();
+                fillRings(e);
+                ctx.stroke();
+            });
+            if (washIso.RU || markC.RU) {
+                byLayer.R.forEach(function (i) {
+                    projectFull(ents[i]);
+                    ctx.beginPath();
+                    fillRings(ents[i]);
+                    ctx.stroke();
+                });
+            }
+            ["R", "C", "G"].forEach(function (L) {
+                byLayer[L].forEach(function (i) {
+                    var e = ents[i];
+                    if (!regionMarked(e))
+                        return;
+                    projectFull(e);
+                    ctx.beginPath();
+                    fillRings(e);
+                    ctx.stroke();
                 });
             });
             [[hoverEnt, "rgba(255,248,220,.66)"], [selEnt, "rgba(255,214,140,.72)"]].forEach(function (h) {

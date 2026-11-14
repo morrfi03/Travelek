@@ -869,13 +869,6 @@ export function render(){
     [g.coords[0],g.coords[g.coords.length-1]].forEach(function(p){
       map.dot(p,{pane:"routePane",radius:5,color:casing,fillColor:col,fillOpacity:1,weight:2.5}).addTo(layer);
     });
-    if(map.getZoom()>=5 && g.km && g.coords.length){
-      var mid=g.coords[Math.floor(g.coords.length/2)];
-      map.pin(mid,{interactive:false,keyboard:false,icon:map.htmlIcon({
-        className:"route-label",
-        html:'<div style="transform:translate(-50%,-120%);white-space:nowrap;font:600 11px/1.2 -apple-system,sans-serif;background:'+casing+';color:'+col+';padding:2px 6px;border-radius:8px">'+Math.round(g.km)+' км</div>'
-      })}).addTo(layer);
-    }
     g.coords.forEach(function(c){bounds.push(c);});
   });
   if(typeof syncVisited==="function") syncVisited();
