@@ -1,5 +1,5 @@
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=72";
-import { countriesToPaint, regionMatches } from "./visit.js?v=72";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=73";
+import { countriesToPaint, regionMatches } from "./visit.js?v=73";
 var api = (function () {
     var PI = Math.PI, D2R = PI / 18000; // координаты хранятся в сотых долях градуса
     var $ = function (id) { return document.getElementById(id); };
@@ -1096,17 +1096,21 @@ var api = (function () {
                 });
             });
             thr2 = detailThr;
-            /* country borders only — no region outlines, always for RU/UA */
-            c.lineWidth = Math.max(1.2, 1.8) / kk;
-            c.strokeStyle = "rgba(30,22,10,.72)";
+            /* country borders only — thin, no region outlines */
+            c.lineWidth = Math.max(0.7, 1.0) / kk;
+            c.strokeStyle = "rgba(30,22,10,.5)";
             c.lineJoin = "round";
             c.lineCap = "round";
             byLayer.W.forEach(function (i) {
                 var e = ents[i];
+                if (e.name === "Украина")
+                    return; // drawn via traceFlat below
                 c.beginPath();
                 entPath(c, e);
                 c.stroke();
             });
+            // always draw RU/UA country outline once
+            c.lineWidth = Math.max(0.8, 1.1) / kk;
             if (traceFlat(c, "RU"))
                 c.stroke();
             if (traceFlat(c, "UA"))
@@ -2101,17 +2105,20 @@ var api = (function () {
                     ctx.fill("evenodd");
                 });
             });
-            /* country borders only on globe, always for RU/UA */
-            ctx.lineWidth = 1.4;
-            ctx.strokeStyle = "rgba(30,22,10,.7)";
+            /* country borders only on globe — thin */
+            ctx.lineWidth = 1.0;
+            ctx.strokeStyle = "rgba(30,22,10,.5)";
             ctx.lineJoin = "round";
             byLayer.W.forEach(function (i) {
                 var e = ents[i];
+                if (e.name === "Украина")
+                    return; // drawn via fillGeo below
                 projectFull(e);
                 ctx.beginPath();
                 fillRings(e);
                 ctx.stroke();
             });
+            ctx.lineWidth = 1.1;
             if (fillGeo("RU"))
                 ctx.stroke();
             if (fillGeo("UA"))
