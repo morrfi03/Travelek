@@ -612,21 +612,9 @@ body.globe-on #globe-hint{display:block}
   }
   #country-list button,#region-list button,.country-row .grow,.country-row .tick{min-height:48px;font-size:15px}
 }
-@media (min-width: 980px){
+@media (min-width:768px){
   .handle-wrap,.cover{display:none!important}
   .sheet-actions{display:block!important}
-  .sheet{
-    left:14px;right:auto;top:88px;bottom:16px;width:380px;
-    height:auto!important;max-height:none;border-radius:18px;
-    border:1px solid var(--line);
-  }
-  .stats{
-    position:fixed;left:410px;right:16px;bottom:14px;z-index:30;margin:0;padding:8px 10px;
-    background:var(--glass);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
-    border:1px solid var(--line);border-radius:16px;
-    box-shadow:0 8px 28px rgba(0,0,0,.25);
-  }
-  .zoom{left:auto;right:18px;top:auto;bottom:96px;transform:none;flex-direction:column}
 }
 #settings-panel .theme-row{grid-template-columns:1fr}
 #settings-panel .lang-row{grid-template-columns:1fr 1fr 1fr}
@@ -1034,23 +1022,16 @@ body[data-section="catalog"] #countries-close{display:none}
 #sheet::before{display:none;padding:14px 18px 0;font-size:22px;font-weight:720;letter-spacing:-.03em}
 body[data-section="diary"] #sheet::before{display:none!important;content:none}
 body[data-section="stats"] #sheet::before{display:block;content:"Статистика"}
-@media (max-width:979px){
+@media (max-width:767px){
   body[data-section="map"] .zoom{top:calc(128px + env(safe-area-inset-top));bottom:auto}
   body[data-section="diary"] .zoom,
   body[data-section="routes"] .zoom,
   body[data-section="stats"] .zoom,
   body[data-section="catalog"] .zoom{display:none}
-  body[data-section="overview"] #sheet{bottom:calc(var(--dock-h) + 8px)}
   body[data-section="diary"] #sheet,
-  body[data-section="routes"] #sheet{border-radius:18px 18px 0 0}
-  body[data-section="stats"] #sheet{
-    top:0!important;bottom:var(--dock-h)!important;height:auto!important;
-    border-radius:0!important;overflow-y:auto;
+  body[data-section="routes"] #sheet{
+    left:0;right:0;width:auto;border-radius:18px 18px 0 0;
   }
-  body[data-section="stats"] .stats{grid-template-columns:1fr 1fr;gap:10px;padding:16px 12px!important}
-  body[data-section="stats"] .stat{padding:12px}
-  body[data-section="stats"] .stat b{font-size:24px}
-  body[data-section="stats"] .stat span{font-size:12px}
 }
 @media (min-width:768px){
   :root{--rail:160px!important;--dock-h:0px}
@@ -1264,6 +1245,24 @@ body[data-section="diary"] #mode-filter button{
 .sheet-head .tabs{margin:0!important;padding:0!important;flex:0 1 auto}
 .sheet-head .sheet-tools{padding:0;flex-shrink:0}
 body[data-section="diary"] #sheet .sheet-tools{display:flex!important}
+@media (min-width:768px){
+  .handle-wrap,
+  body[data-section="diary"] #sheet .handle-wrap,
+  body[data-section="routes"] #sheet .handle-wrap{display:none!important}
+  body[data-section="diary"] #sheet,
+  body[data-section="routes"] #sheet{
+    top:0;right:0;bottom:0;left:auto;width:392px;height:auto!important;max-height:none!important;
+    border-radius:0;transform:none!important;
+  }
+  body[data-section="stats"] #sheet,
+  body[data-section="settings"] #settings-panel,
+  body[data-section="catalog"] #countries-panel,
+  #account-panel.on{
+    top:0!important;bottom:0!important;left:var(--rail)!important;right:0!important;
+    width:auto!important;height:auto!important;max-height:none!important;
+    border-radius:0!important;transform:none!important;
+  }
+}
 
 #boot-screen{position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse 80% 60% at 50% 40%,#1a2438 0%,#0c1018 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;transition:opacity .4s ease}
 #boot-screen.hide{opacity:0;pointer-events:none}
@@ -1677,7 +1676,7 @@ button:disabled{cursor:default}
     if(name==="diary"){
       tabBtn=document.querySelector('.tab[data-tab="past"]');
       var sh=document.getElementById("sheet");
-      if(sh && window.matchMedia && !matchMedia("(min-width:980px)").matches){
+      if(sh && window.matchMedia && !matchMedia("(min-width:768px)").matches){
         sh.classList.remove("collapsed","low");
         sh.classList.add("mid");
         sh.style.height="62vh";
@@ -1717,10 +1716,15 @@ button:disabled{cursor:default}
 <script>
 (function(){
   function lock(){
+    var d=document.getElementById("dock");
+    var sh=document.getElementById("sheet");
     if(window.innerWidth>=768){
       document.documentElement.style.setProperty("--rail","160px");
-      var d=document.getElementById("dock");
       if(d){ d.style.width="160px"; d.style.left="0"; d.style.right="auto"; }
+      if(sh) sh.style.height="";
+    } else {
+      document.documentElement.style.setProperty("--rail","0px");
+      if(d){ d.style.width=""; d.style.left=""; d.style.right=""; }
     }
   }
   lock();
@@ -1728,6 +1732,6 @@ button:disabled{cursor:default}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=79"></script>
+<script type="module" src="src/main.js?v=80"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>

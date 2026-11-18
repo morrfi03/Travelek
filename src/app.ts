@@ -1263,7 +1263,7 @@ function nearestState(px){
 }
 function setSheet(state){
   if(!sheetEl) return;
-  if(window.matchMedia && matchMedia("(min-width: 980px)").matches){
+  if(window.matchMedia && matchMedia("(min-width:768px)").matches){
     sheetState=state;
     sheetEl.classList.remove("collapsed","mid","full","low","dragging");
     sheetEl.style.height="";
@@ -1281,7 +1281,7 @@ function setSheet(state){
 }
 function onDragStart(y){
   if(!sheetEl) return;
-  if(window.matchMedia && matchMedia("(min-width: 980px)").matches) return;
+  if(window.matchMedia && matchMedia("(min-width:768px)").matches) return;
   dragY0=y;
   dragH0=sheetEl.getBoundingClientRect().height;
   dragging=true;
