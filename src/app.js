@@ -1,10 +1,10 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./catalog.js?v=84";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=84";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js?v=84";
-import { createMap } from "./atlas.js?v=84";
-import { bindScreen } from "./screen.js?v=84";
-import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "./diary.js?v=84";
-import { marksForTab, placesVisitKey, routeBagKey } from "./visit.js?v=84";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./catalog.js?v=85";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=85";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js?v=85";
+import { createMap } from "./atlas.js?v=85";
+import { bindScreen } from "./screen.js?v=85";
+import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "./diary.js?v=85";
+import { marksForTab, placesVisitKey, routeBagKey } from "./visit.js?v=85";
 "use strict";
 /* map */
 export var map;
@@ -2275,8 +2275,9 @@ if (flightFind)
         }
         try {
             var res = await fetch("/api/flights?from=" + encodeURIComponent(ca) + "&to=" + encodeURIComponent(cb) + "&date=" + encodeURIComponent(date));
-            var data = await res.json();
-            if (!res.ok) {
+            var pack = await flightAnswer(res);
+            var data = pack.data;
+            if (!pack.ok) {
                 if (flightNote)
                     flightNote.textContent = data.error || "Не вышло";
                 return;
@@ -5561,6 +5562,14 @@ function adsbNote(text) {
 }
 var twPick = null;
 var twSchedToken = 0;
+function flightAnswer(res) {
+    return res.json().then(function (data) {
+        data = data || {};
+        if (data.error === "backend_starting")
+            data.error = "Расписание ещё открывается. Подождите и укажите дату снова.";
+        return { ok: res.ok && !data.error, data: data };
+    });
+}
 function scheduleId(from, to, date) { return from + "|" + to + "|" + date; }
 function scheduleDb() {
     try {
@@ -5614,9 +5623,7 @@ function loadTripSchedule() {
     var token = ++twSchedToken;
     box.hidden = false;
     box.innerHTML = '<p class="more-link">Ищем реальные рейсы…</p>';
-    fetch("/api/flights?from=" + encodeURIComponent(ca) + "&to=" + encodeURIComponent(cb) + "&date=" + encodeURIComponent(date)).then(function (res) {
-        return res.json().then(function (data) { return { ok: res.ok, data: data }; });
-    }).then(function (pack) {
+    fetch("/api/flights?from=" + encodeURIComponent(ca) + "&to=" + encodeURIComponent(cb) + "&date=" + encodeURIComponent(date)).then(flightAnswer).then(function (pack) {
         if (token !== twSchedToken)
             return;
         if (!pack.ok) {

@@ -1690,8 +1690,9 @@ if(flightFind) flightFind.onclick=async function(){
   if(flightList){ flightList.hidden=true; flightList.innerHTML=""; }
   try{
     var res=await fetch("/api/flights?from="+encodeURIComponent(ca)+"&to="+encodeURIComponent(cb)+"&date="+encodeURIComponent(date));
-    var data=await res.json();
-    if(!res.ok){ if(flightNote) flightNote.textContent=data.error||"Не вышло"; return; }
+    var pack=await flightAnswer(res);
+    var data=pack.data;
+    if(!pack.ok){ if(flightNote) flightNote.textContent=data.error||"Не вышло"; return; }
     var rows=data.flights||[];
     rememberSchedule(ca, cb, date, rows);
     showFoundFlights(rows, data.saved?"Из сохранённых рейсов":"Сохранено в базу");
@@ -4139,6 +4140,13 @@ function adsbNote(text){
 }
 var twPick=null;
 var twSchedToken=0;
+function flightAnswer(res){
+  return res.json().then(function(data){
+    data=data||{};
+    if(data.error==="backend_starting") data.error="Расписание ещё открывается. Подождите и укажите дату снова.";
+    return {ok:res.ok && !data.error, data:data};
+  });
+}
 function scheduleId(from, to, date){ return from+"|"+to+"|"+date; }
 function scheduleDb(){
   try{
@@ -4178,9 +4186,7 @@ function loadTripSchedule(){
   var token=++twSchedToken;
   box.hidden=false;
   box.innerHTML='<p class="more-link">Ищем реальные рейсы…</p>';
-  fetch("/api/flights?from="+encodeURIComponent(ca)+"&to="+encodeURIComponent(cb)+"&date="+encodeURIComponent(date)).then(function(res){
-    return res.json().then(function(data){ return {ok:res.ok, data:data}; });
-  }).then(function(pack){
+  fetch("/api/flights?from="+encodeURIComponent(ca)+"&to="+encodeURIComponent(cb)+"&date="+encodeURIComponent(date)).then(flightAnswer).then(function(pack){
     if(token!==twSchedToken) return;
     if(!pack.ok){ box.innerHTML='<p class="more-link">'+escLabel((pack.data&&pack.data.error)||"Расписание не ответило")+"</p>"; return; }
     var rows=pack.data.flights||[];

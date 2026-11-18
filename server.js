@@ -148,7 +148,8 @@ async function board(iata, fromLocal, toLocal, key) {
     headers: {
       "X-RapidAPI-Key": key,
       "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com"
-    }
+    },
+    signal: AbortSignal.timeout(12000)
   });
   if (!response.ok) {
     const err = new Error("upstream");
@@ -172,10 +173,12 @@ export async function searchFlights(query, key) {
   const windows = [[date + "T00:00", date + "T12:00"], [date + "T12:00", date + "T23:59"]];
   const merged = [];
   try {
-    for (const span of windows) {
-      const payload = await board(from, span[0], span[1], key);
+    const payloads = await Promise.all(windows.map(function (span) {
+      return board(from, span[0], span[1], key);
+    }));
+    payloads.forEach(function (payload) {
       pickFlights(payload, to).forEach(function (row) { merged.push(row); });
-    }
+    });
   } catch (err) {
     const status = err && err.status;
     const message = status === 401 || status === 403
@@ -229,10 +232,12 @@ export function createServer() {
   return http.createServer(function (req, res) {
     const url = new URL(req.url || "/", "http://localhost");
     if (url.pathname === "/api/flights") {
+      res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
+      if (typeof res.flushHeaders === "function") res.flushHeaders();
       searchFlights(url.searchParams, process.env.AERODATABOX_KEY || "").then(function (result) {
-        sendJson(res, result.status, result.body);
+        res.end(JSON.stringify(result.body));
       }).catch(function () {
-        sendJson(res, 500, { error: "Ошибка сервера" });
+        res.end(JSON.stringify({ error: "Ошибка сервера" }));
       });
       return;
     }
