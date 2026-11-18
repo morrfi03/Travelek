@@ -857,9 +857,8 @@ export function render(opts?){
   list.forEach(function(r){
     var g=buildGeoSync(r); if(!g||!g.coords) return;
     var fut=isFuture(r);
-    var col=COLORS[r.mode]||COLORS.plane;
-    if(fut&&r.mode==="plane") col=COLORS.future;
     var theme=document.documentElement.getAttribute("data-theme")||"dark";
+    var col=realFlight(r)?(theme==="light"?"#0369a1":"#38bdf8"):(theme==="light"?"#334155":"#d5dbe3");
     var casing=theme==="light"?"#ffffff":"#f4f8fc";
     var repeats=routeCounts[routeRepeatKey(r)]||1;
     var w=repeats>1?5.2:2.15;
@@ -985,7 +984,7 @@ function fillAnalytics(){
   var mNames=["01","02","03","04","05","06","07","08","09","10","11","12"];
   var mMax=mNames.reduce(function(a,k){ return Math.max(a,months[k]||0); },1);
   var mBox=document.getElementById("an-months");
-  if(mBox) mBox.innerHTML=mNames.map(function(k){ var n=months[k]||0; var w=mMax?Math.round(100*n/mMax):0; return '<div class="bar-row"><span>'+k+'</span><div class="bar"><i style="width:'+w+'%"></i></div><b>'+n+'</b></div>'; }).join("");
+  if(mBox) mBox.innerHTML=mNames.map(function(k){ var n=months[k]||0; var w=mMax?Math.round(100*n/mMax):0; var name=["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"][+k-1]; return '<div class="bar-row"><span>'+name+'</span><div class="bar"><i style="width:'+w+'%"></i></div><b>'+n+'</b></div>'; }).join("");
   var modeNames={plane:"Самолёт",train:"Поезд",car:"Авто",walk:"Пешком",bike:"Вело",ship:"Паром"};
   var mKeys=Object.keys(modes);
   var mTotal=mKeys.reduce(function(a,k){ return a+modes[k]; },0)||1;
@@ -1011,9 +1010,9 @@ function fillAnalytics(){
   var avgKm=nKm?Math.round((Object.keys(kmBy).reduce(function(a,k){return a+kmBy[k];},0))/nKm):0;
   var avgMin=nKm?Math.round(totalMin/nKm):0;
   var av=document.getElementById("stats-averages");
-  if(av) av.innerHTML='<div class="bar-row"><span>км</span><b>'+avgKm.toLocaleString("ru-RU")+'</b></div><div class="bar-row"><span>оценка</span><b>'+avgMin+' мин</b></div>';
+  if(av) av.innerHTML='<div class="stat-line"><span>Средний маршрут</span><b>'+avgKm.toLocaleString("ru-RU")+' км</b></div><div class="stat-line"><span>Оценка времени</span><b>'+avgMin+' мин</b></div>';
   var rec=document.getElementById("stats-records");
-  if(rec) rec.innerHTML=(longest?'<div class="bar-row"><span>макс</span><b>'+Math.round(longest.km).toLocaleString("ru-RU")+' км · '+(longest.from||"")+' → '+(longest.to||"")+'</b></div>':'')+(shortest?'<div class="bar-row"><span>мин</span><b>'+Math.round(shortest.km).toLocaleString("ru-RU")+' км · '+(shortest.from||"")+' → '+(shortest.to||"")+'</b></div>':'')||'<p class="up-empty">Нет данных</p>';
+  if(rec) rec.innerHTML=(longest?'<div class="stat-line"><span>Самый длинный</span><b>'+Math.round(longest.km).toLocaleString("ru-RU")+' км · '+escLabel(longest.from||"")+' → '+escLabel(longest.to||"")+'</b></div>':'')+(shortest?'<div class="stat-line"><span>Самый короткий</span><b>'+Math.round(shortest.km).toLocaleString("ru-RU")+' км · '+escLabel(shortest.from||"")+' → '+escLabel(shortest.to||"")+'</b></div>':'')||'<p class="up-empty">Нет данных</p>';
   var tr=document.getElementById("stats-transport");
   if(tr){
     var tk=Object.keys(kmBy);
@@ -1024,7 +1023,7 @@ function fillAnalytics(){
   Object.keys(years).forEach(function(k){ if(years[k]>bestYN){ bestYN=years[k]; bestY=k; } });
   Object.keys(months).forEach(function(k){ if(months[k]>bestMN){ bestMN=months[k]; bestM=k; } });
   var tl=document.getElementById("stats-timeline");
-  if(tl) tl.innerHTML='<div class="bar-row"><span>год</span><b>'+(bestY||"—")+' · '+bestYN+'</b></div><div class="bar-row"><span>мес</span><b>'+(bestM||"—")+' · '+bestMN+'</b></div>';
+  if(tl) tl.innerHTML='<div class="stat-line"><span>Самый плотный год</span><b>'+(bestY||"—")+' · '+bestYN+'</b></div><div class="stat-line"><span>Самый плотный месяц</span><b>'+(bestM?["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"][+bestM-1]:"—")+' · '+bestMN+'</b></div>';
   var badges=[];
   if(past.length) badges.push("Первая поездка");
   if(modes.plane) badges.push("Первый самолёт");
@@ -1034,7 +1033,7 @@ function fillAnalytics(){
   if(Object.keys(cities).length>=20) badges.push("20 городов");
   if(yKeys.length>=2) badges.push("Разные годы");
   var bBox=document.getElementById("an-badges");
-  if(bBox) bBox.innerHTML=badges.length?badges.map(function(b){ return '<span class="an-card" style="display:inline-block;margin:4px">'+b+'</span>'; }).join(""):'<p class="up-empty">Пока нет достижений</p>';
+  if(bBox) bBox.innerHTML=badges.length?badges.map(function(b){ return '<span class="an-chip">'+b+'</span>'; }).join(""):'<p class="up-empty">Пока нет достижений</p>';
   paintAirStats(past);
 }
 function paintAirStats(past){
@@ -1061,7 +1060,7 @@ function paintAirStats(past){
   if(air){
     var hours=Math.floor(minutes/60), rest=minutes%60;
     air.innerHTML=counted
-      ? '<div class="bar-row"><span>всего</span><b>'+hours+' ч '+rest+' мин</b></div><div class="bar-row"><span>рейсов</span><b>'+counted+'</b></div>'
+      ? '<div class="air-hero"><b>'+hours+' ч '+rest+' мин</b><span>'+counted+' '+((counted%10===1&&counted%100!==11)?"рейс":"рейсов")+' из расписания</span></div>'
       : '<p class="up-empty">Появится после выбора рейса из расписания</p>';
   }
 }
@@ -3695,11 +3694,26 @@ function placeRows(tab){
   return rows;
 }
 function modeColor(mode){ return (typeof COLORS!=="undefined" && COLORS[mode]) || "#1d4ed8"; }
+function realFlight(r){
+  if(!r || r.mode!=="plane") return false;
+  var no=String(r.flight||"").trim();
+  if(!no || no==="Flight") return false;
+  return !!(r.airline || r.aircraft || r.airMin);
+}
+function modeMark(mode){
+  var d=mode==="train"
+    ? "M8 3h8a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zm-1 3v4h10V6a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1zm3 12 2 3h-4l2-3zm4 0 2 3h-4l2-3z"
+    : mode==="car"
+    ? "M5 13 7 8a2 2 0 0 1 2-1h6a2 2 0 0 1 2 1l2 5v4h-2a1.5 1.5 0 0 1-1.5-1.5h-7A1.5 1.5 0 0 1 7 17H5v-4zm2.2.2a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6zm9.6 0a1.3 1.3 0 1 0 0-2.6 1.3 1.3 0 0 0 0 2.6z"
+    : "M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z";
+  if(mode!=="plane" && mode!=="train" && mode!=="car") return "";
+  return '<svg class="mode-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="'+d+'"/></svg>';
+}
 function cmpDate(a, b){ return ((a&&a.date||"")+" "+(a&&a.time||"")).localeCompare((b&&b.date||"")+" "+(b&&b.time||"")); }
 function routeText(r){
-  return '<div class="route-line" data-route-edit="'+r.id+'" style="color:'+modeColor(r.mode)+'">'+
+  return '<div class="route-line'+(realFlight(r)?" real":"")+'" data-route-edit="'+r.id+'">'+
     '<button type="button" class="route-x" data-route-del="'+r.id+'" title="'+t("Удалить")+'">×</button>'+
-    escLabel(shownPlace(r.from||"")+" → "+shownPlace(r.to||""))+(r.date?" · "+escLabel(r.date):"")+'</div>';
+    modeMark(r.mode)+'<span>'+escLabel(shownPlace(r.from||"")+" → "+shownPlace(r.to||""))+(r.date?" · "+escLabel(r.date):"")+'</span></div>';
 }
 var undoTimer=null, undoId=null;
 function showUndo(id){
@@ -3740,10 +3754,10 @@ function routeCardHtml(r){
   var toL=g&&g.b?shortPlaceLabel(r.to, g.b.lat, g.b.lng):shortPlaceLabel(r.to);
   var dur=formatTripDuration(r, km);
   var kmNote=g&&g.railMiss?(" · "+t("нет железной дороги")):(g&&g.roadMiss?(" · "+t("нет автодороги")):(km?" · "+km.toLocaleString(currentLang()==="en"?"en":"ru-RU")+" "+t("км"):""));
-  return '<div class="row '+(selectedId===r.id?"on ":"")+(fut?"future":"")+'" data-id="'+r.id+'">'+
+  return '<div class="row '+(selectedId===r.id?"on ":"")+(fut?"future ":"")+(realFlight(r)?"real":"")+'" data-id="'+r.id+'">'+
     '<button type="button" class="edit" data-edit="'+r.id+'" title="'+t("Изменить")+'">✎</button>'+
     '<button type="button" class="del" data-del="'+r.id+'" title="'+t("Удалить")+'">×</button>'+
-    '<div class="title" style="color:'+modeColor(r.mode)+'">'+fromL+" → "+toL+"</div>"+
+    '<div class="title">'+modeMark(r.mode)+'<span>'+fromL+" → "+toL+"</span></div>"+
     '<div class="meta"><span class="badge '+bc+'">'+(r.flight||r.mode)+"</span>"+
     (fut?'<span class="badge fut">'+t("скоро")+'</span>':"")+" "+(r.date||"")+
     (r.time?" · "+r.time:"")+kmNote+(dur?" · "+dur:"")+"</div></div>";
@@ -4061,7 +4075,7 @@ function paintTripWindow(){
   var freeBox=document.getElementById("tw-free");
   if(freeBox){
     freeBox.innerHTML=show.map(function(r){
-      return '<button type="button" data-take="'+r.id+'" style="color:'+modeColor(r.mode)+'">'+escLabel(shownPlace(r.from||"")+" → "+shownPlace(r.to||""))+'<div class="meta">'+(r.date||"")+"</div></button>";
+      return '<button type="button" data-take="'+r.id+'" class="'+(realFlight(r)?"real":"")+'">'+modeMark(r.mode)+escLabel(shownPlace(r.from||"")+" → "+shownPlace(r.to||""))+'<div class="meta">'+(r.date||"")+"</div></button>";
     }).join("");
   }
   var more=document.getElementById("tw-free-more");
@@ -4071,7 +4085,7 @@ function paintTripWindow(){
     var ordered=tw.routes.map(function(r,i){ return {r:r,i:i}; }).sort(function(a,b){ return cmpDate(a.r,b.r); });
     box.innerHTML=ordered.map(function(item){
       var r=item.r;
-      return '<button type="button" data-drop-route="'+item.i+'" style="color:'+modeColor(r.mode)+'">'+escLabel(shownPlace(r.from||"")+" → "+shownPlace(r.to||""))+'<div class="meta">'+(r.date||"")+"</div> ×</button>";
+      return '<button type="button" data-drop-route="'+item.i+'" class="'+(realFlight(r)?"real":"")+'">'+modeMark(r.mode)+escLabel(shownPlace(r.from||"")+" → "+shownPlace(r.to||""))+'<div class="meta">'+(r.date||"")+"</div> ×</button>";
     }).join("");
   }
   var picked=document.getElementById("tw-picked");
@@ -4309,17 +4323,19 @@ function loadTripSchedule(){
   var from=place(fromEl?fromEl.value.trim():"");
   var to=place(toEl?toEl.value.trim():"");
   var ca=airportCodeOf(from), cb=airportCodeOf(to);
-  if(mode!=="plane" || !ca || !cb){ box.hidden=true; box.innerHTML=""; return; }
+  if(mode!=="plane" || !ca || !cb){ box.hidden=true; box.classList.remove("on"); box.innerHTML=""; return; }
   if(!date){
     box.hidden=false;
-    box.innerHTML='<p class="more-link">Укажите дату — покажу реальные рейсы</p>';
+    box.classList.add("on");
+    box.innerHTML='<div class="sched-in"><p class="more-link">Укажите дату — список рейсов выедет здесь</p></div>';
     return;
   }
   var known=cachedSchedule(ca, cb, date);
   if(known){ paintTripFlights(box, known, ca, cb, date, "Из сохранённых рейсов"); return; }
   var token=++twSchedToken;
   box.hidden=false;
-  box.innerHTML='<p class="more-link">Ищем реальные рейсы…</p>';
+  box.classList.add("on");
+  box.innerHTML='<div class="sched-in"><p class="more-link">Ищем реальные рейсы…</p></div>';
   askAero(ca, cb, date).then(function(got){
     if(token!==twSchedToken) return;
     if(got.error){ box.innerHTML='<p class="more-link">'+escLabel(got.error)+"</p>"; return; }
@@ -4328,12 +4344,14 @@ function loadTripSchedule(){
   });
 }
 function paintTripFlights(box, rows, ca, cb, date, note){
-  if(!rows.length){ box.innerHTML='<p class="more-link">На эту дату рейсов нет</p>'; return; }
-  box.innerHTML='<p class="more-link">'+escLabel(note)+"</p>"+rows.map(function(row, i){
+  box.hidden=false;
+  box.classList.add("on");
+  if(!rows.length){ box.innerHTML='<div class="sched-in"><p class="more-link">На эту дату рейсов нет</p></div>'; return; }
+  box.innerHTML='<div class="sched-in"><p class="more-link">'+escLabel(note)+"</p>"+rows.map(function(row, i){
     var mins=Number(row.airMin)||0;
     var clock=mins?(" · "+Math.floor(mins/60)+" ч "+(mins%60)+" мин"):"";
     return '<button type="button" data-sched="'+i+'">'+escLabel(row.flight)+" · "+escLabel(row.airline||"")+" · "+escLabel(row.aircraft||"")+" · "+escLabel(row.time||"")+clock+"</button>";
-  }).join("");
+  }).join("")+"</div>";
   box.onclick=function(ev){
     var btn=ev.target.closest&&ev.target.closest("[data-sched]");
     if(!btn) return;
