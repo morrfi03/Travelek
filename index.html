@@ -1489,6 +1489,9 @@ button:disabled{cursor:default}
     <button type="button" data-view="map" class="on" aria-pressed="true" data-i18n="Карта">Карта</button>
     <button type="button" data-view="globe" aria-pressed="false" data-i18n="Глобус">Глобус</button>
   </div>
+  <label style="display:block;font-size:12px;color:var(--muted);margin-top:12px">Ключ AeroDataBox</label>
+  <input id="set-aero-key" type="password" autocomplete="off" placeholder="Ключ RapidAPI" style="width:100%;margin-top:6px" />
+  <p style="font-size:11px;color:var(--muted);margin-top:4px">Только в этом браузере. С сервера Layero расписание не отдаётся.</p>
   </div>
   <button type="button" id="set-account">Аккаунт</button>
   <button type="button" id="set-reset" style="margin-top:8px;background:rgba(220,60,60,.2);color:#f0a8a8" data-i18n="Сбросить мои маршруты">Сбросить мои маршруты</button>
@@ -1747,6 +1750,6 @@ button:disabled{cursor:default}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=86"></script>
+<script type="module" src="src/main.js?v=87"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>

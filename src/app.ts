@@ -1413,6 +1413,13 @@ checkOnline();
   if(tl) tl.onclick=function(){ applyTheme("light"); };
   var ts=document.getElementById("set-theme-system");
   if(ts) ts.onclick=function(){ applyTheme("system"); };
+  var aeroInput=document.getElementById("set-aero-key");
+  if(aeroInput){
+    aeroInput.value=aeroKey();
+    aeroInput.addEventListener("change", function(){
+      try{ localStorage.setItem("travelek-aero-key", aeroInput.value.trim()); }catch(e){}
+    });
+  }
   var langButtons=document.querySelectorAll("#lang-switch button");
   for(var li=0;li<langButtons.length;li++){
     langButtons[li].onclick=function(){ setLang(this.getAttribute("data-lang")); };
@@ -1690,13 +1697,10 @@ async function findOldFlights(quiet){
   if(flightNote) flightNote.textContent="Ищем рейсы…";
   if(flightList){ flightList.hidden=true; flightList.innerHTML=""; }
   try{
-    var res=await fetch("/api/flights?from="+encodeURIComponent(ca)+"&to="+encodeURIComponent(cb)+"&date="+encodeURIComponent(date));
-    var pack=await flightAnswer(res);
-    var data=pack.data;
-    if(!pack.ok){ if(flightNote) flightNote.textContent=data.error||"Не вышло"; return; }
-    var rows=data.flights||[];
-    rememberSchedule(ca, cb, date, rows);
-    showFoundFlights(rows, data.saved?"Из сохранённых рейсов":"Сохранено в базу");
+    var got=await askAero(ca, cb, date);
+    if(got.error){ if(flightNote) flightNote.textContent=got.error; return; }
+    rememberSchedule(ca, cb, date, got.rows);
+    showFoundFlights(got.rows, "Расписание: AeroDataBox");
   }catch(e){
     if(flightNote) flightNote.textContent="Сервер рейсов не ответил";
   }finally{
@@ -4167,6 +4171,87 @@ function rememberSchedule(from, to, date, rows){
   db[scheduleId(from, to, date)]=rows||[];
   try{ localStorage.setItem("travelek-schedules", JSON.stringify(db)); }catch(e){}
 }
+function aeroKey(){
+  try{ return String(localStorage.getItem("travelek-aero-key")||"").trim(); }catch(e){ return ""; }
+}
+function boardText(value){
+  if(!value) return "";
+  return typeof value==="object" ? String(value.local||value.utc||"") : String(value);
+}
+function boardClock(value){
+  var match=boardText(value).match(/(\d{2}):(\d{2})/);
+  return match ? match[1]+":"+match[2] : "";
+}
+function boardMinutes(dep, arr){
+  var left=boardText(dep).trim(), right=boardText(arr).trim();
+  if(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(left)) left=left.replace(" ", "T");
+  if(/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}/.test(right)) right=right.replace(" ", "T");
+  var a=Date.parse(left), b=Date.parse(right);
+  if(!isFinite(a)||!isFinite(b)||b<=a) return 0;
+  return Math.round((b-a)/60000);
+}
+function boardIata(side){
+  if(!side) return "";
+  var airport=side.airport||side;
+  return String(airport.iata||airport.iataCode||side.iata||"").toUpperCase();
+}
+function pickBoard(payload, toCode){
+  var want=String(toCode||"").toUpperCase();
+  var rows=[].concat((payload&&payload.departures)||[], (payload&&payload.flights)||[]);
+  var seen={} as any, out=[];
+  rows.forEach(function(row){
+    if(!row) return;
+    var arrIata=boardIata(row.arrival);
+    if(!arrIata || arrIata!==want) return;
+    var flight=row.flight||{};
+    var no=String(row.number||flight.iataNumber||flight.number||"").trim();
+    if(!no || seen[no]) return;
+    seen[no]=1;
+    var dep=row.departure||{}, arr=row.arrival||{};
+    var depTime=dep.scheduledTime||dep.scheduledTimeLocal||"";
+    var arrTime=arr.scheduledTime||arr.scheduledTimeLocal||"";
+    var airline=row.airline, aircraft=row.aircraft;
+    out.push({
+      flight:no,
+      airline:typeof airline==="string"?airline:String((airline&&airline.name)||""),
+      aircraft:typeof aircraft==="string"?aircraft:String((aircraft&&(aircraft.model||aircraft.name))||""),
+      time:boardClock(depTime),
+      airMin:boardMinutes(depTime, arrTime),
+      from:boardIata(dep),
+      to:arrIata
+    });
+  });
+  out.sort(function(a,b){ return String(a.time).localeCompare(String(b.time)); });
+  return out;
+}
+function askAero(from, to, date){
+  var key=aeroKey();
+  if(!key) return Promise.resolve({rows:[], error:"В настройках нет ключа AeroDataBox. С сервера Layero это расписание не отдаётся."});
+  var windows=[[date+"T00:00", date+"T11:59"],[date+"T12:00", date+"T23:59"]];
+  return Promise.all(windows.map(function(span){
+    var url="https://aerodatabox.p.rapidapi.com/flights/airports/iata/"+from+"/"+span[0]+"/"+span[1]+"?withLeg=true&direction=Departure&withCancelled=false";
+    return fetch(url, {headers:{"X-RapidAPI-Key":key, "X-RapidAPI-Host":"aerodatabox.p.rapidapi.com"}}).then(function(res){
+      if(!res.ok){ var err=new Error(String(res.status)); throw err; }
+      return res.json();
+    });
+  })).then(function(payloads){
+    var seen={} as any, rows=[];
+    payloads.forEach(function(payload){
+      pickBoard(payload, to).forEach(function(row){
+        if(seen[row.flight]) return;
+        seen[row.flight]=1;
+        rows.push(row);
+      });
+    });
+    rows.sort(function(a,b){ return String(a.time).localeCompare(String(b.time)); });
+    return {rows:rows, error:""};
+  }).catch(function(err){
+    var status=String(err&&err.message||"");
+    if(status==="451") return {rows:[], error:"AeroDataBox отказал: из этого места расписание закрыто."};
+    if(status==="401"||status==="403") return {rows:[], error:"Ключ AeroDataBox не принят."};
+    return {rows:[], error:"Расписание не ответило"+(status?" ("+status+")":"")};
+  });
+}
 function loadTripSchedule(){
   var box=document.getElementById("tw-sched");
   if(!box) return;
@@ -4190,15 +4275,11 @@ function loadTripSchedule(){
   var token=++twSchedToken;
   box.hidden=false;
   box.innerHTML='<p class="more-link">Ищем реальные рейсы…</p>';
-  fetch("/api/flights?from="+encodeURIComponent(ca)+"&to="+encodeURIComponent(cb)+"&date="+encodeURIComponent(date)).then(flightAnswer).then(function(pack){
+  askAero(ca, cb, date).then(function(got){
     if(token!==twSchedToken) return;
-    if(!pack.ok){ box.innerHTML='<p class="more-link">'+escLabel((pack.data&&pack.data.error)||"Расписание не ответило")+"</p>"; return; }
-    var rows=pack.data.flights||[];
-    rememberSchedule(ca, cb, date, rows);
-    paintTripFlights(box, rows, ca, cb, date, pack.data.saved?"Из сохранённых рейсов":"Сохранено в базу");
-  }).catch(function(){
-    if(token!==twSchedToken) return;
-    box.innerHTML='<p class="more-link">Сервер рейсов не ответил</p>';
+    if(got.error){ box.innerHTML='<p class="more-link">'+escLabel(got.error)+"</p>"; return; }
+    rememberSchedule(ca, cb, date, got.rows);
+    paintTripFlights(box, got.rows, ca, cb, date, "Расписание: AeroDataBox");
   });
 }
 function paintTripFlights(box, rows, ca, cb, date, note){
