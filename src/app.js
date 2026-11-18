@@ -1,10 +1,10 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./catalog.js?v=85";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=85";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js?v=85";
-import { createMap } from "./atlas.js?v=85";
-import { bindScreen } from "./screen.js?v=85";
-import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "./diary.js?v=85";
-import { marksForTab, placesVisitKey, routeBagKey } from "./visit.js?v=85";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./catalog.js?v=86";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=86";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js?v=86";
+import { createMap } from "./atlas.js?v=86";
+import { bindScreen } from "./screen.js?v=86";
+import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "./diary.js?v=86";
+import { marksForTab, placesVisitKey, routeBagKey } from "./visit.js?v=86";
 "use strict";
 /* map */
 export var map;
@@ -2010,7 +2010,7 @@ function updateLabels() {
     var fi = document.getElementById("f-flight");
     var find = document.getElementById("f-flight-find");
     if (find)
-        find.style.display = m === "plane" ? "" : "none";
+        find.style.display = m === "plane" ? "block" : "none";
     if (m === "plane") {
         fw.style.display = "";
         fl.textContent = t("Рейс");
@@ -2253,47 +2253,53 @@ if (flightInput)
             pickedAir = null;
     });
 if (flightFind)
-    flightFind.onclick = async function () {
-        var from = place(fFrom.value.trim()), to = place(fTo.value.trim());
-        var date = document.getElementById("f-date").value;
-        var ca = airportCodeOf(from), cb = airportCodeOf(to);
-        if (!ca || !cb || !date) {
+    flightFind.onclick = function () { findOldFlights(false); };
+async function findOldFlights(quiet) {
+    var from = place(fFrom.value.trim()), to = place(fTo.value.trim());
+    var date = document.getElementById("f-date").value;
+    var ca = airportCodeOf(from), cb = airportCodeOf(to);
+    if (!ca || !cb || !date) {
+        if (!quiet)
             alert("Укажите аэропорты из списка и дату");
-            return;
-        }
-        var known = cachedSchedule(ca, cb, date);
-        if (known) {
-            showFoundFlights(known, "Из сохранённых рейсов");
-            return;
-        }
-        flightFind.disabled = true;
-        if (flightNote)
-            flightNote.textContent = "Ищем рейсы…";
-        if (flightList) {
-            flightList.hidden = true;
-            flightList.innerHTML = "";
-        }
-        try {
-            var res = await fetch("/api/flights?from=" + encodeURIComponent(ca) + "&to=" + encodeURIComponent(cb) + "&date=" + encodeURIComponent(date));
-            var pack = await flightAnswer(res);
-            var data = pack.data;
-            if (!pack.ok) {
-                if (flightNote)
-                    flightNote.textContent = data.error || "Не вышло";
-                return;
-            }
-            var rows = data.flights || [];
-            rememberSchedule(ca, cb, date, rows);
-            showFoundFlights(rows, data.saved ? "Из сохранённых рейсов" : "Сохранено в базу");
-        }
-        catch (e) {
+        return;
+    }
+    var known = cachedSchedule(ca, cb, date);
+    if (known) {
+        showFoundFlights(known, "Из сохранённых рейсов");
+        return;
+    }
+    flightFind.disabled = true;
+    if (flightNote)
+        flightNote.textContent = "Ищем рейсы…";
+    if (flightList) {
+        flightList.hidden = true;
+        flightList.innerHTML = "";
+    }
+    try {
+        var res = await fetch("/api/flights?from=" + encodeURIComponent(ca) + "&to=" + encodeURIComponent(cb) + "&date=" + encodeURIComponent(date));
+        var pack = await flightAnswer(res);
+        var data = pack.data;
+        if (!pack.ok) {
             if (flightNote)
-                flightNote.textContent = "Сервер рейсов не ответил";
+                flightNote.textContent = data.error || "Не вышло";
+            return;
         }
-        finally {
-            flightFind.disabled = false;
-        }
-    };
+        var rows = data.flights || [];
+        rememberSchedule(ca, cb, date, rows);
+        showFoundFlights(rows, data.saved ? "Из сохранённых рейсов" : "Сохранено в базу");
+    }
+    catch (e) {
+        if (flightNote)
+            flightNote.textContent = "Сервер рейсов не ответил";
+    }
+    finally {
+        flightFind.disabled = false;
+    }
+}
+var oldDate = document.getElementById("f-date");
+if (oldDate)
+    oldDate.addEventListener("change", function () { if (fMode.value === "plane")
+        findOldFlights(true); });
 function showFoundFlights(rows, note) {
     if (flightNote)
         flightNote.textContent = note || "";
@@ -2600,6 +2606,8 @@ function openEdit(id) {
         }
     }
     openForm();
+    if ((r.mode || "plane") === "plane" && r.date)
+        findOldFlights(true);
 }
 function openFormNew() {
     editingId = null;

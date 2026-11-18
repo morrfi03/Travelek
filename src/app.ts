@@ -1501,7 +1501,7 @@ function updateLabels(){
   var fl=document.getElementById("lbl-flight");
   var fi=document.getElementById("f-flight");
   var find=document.getElementById("f-flight-find");
-  if(find) find.style.display=m==="plane"?"":"none";
+  if(find) find.style.display=m==="plane"?"block":"none";
   if(m==="plane"){ fw.style.display=""; fl.textContent=t("Рейс"); fi.placeholder="SU 100"; }
   else if(m==="train"){ fw.style.display=""; fl.textContent=t("Поезд / номер"); fi.placeholder="Сапсан 756А"; }
   else if(m==="walk"||m==="bike"){ fw.style.display=""; fl.textContent=t("Название (необязательно)"); fi.placeholder=""; }
@@ -1675,11 +1675,12 @@ var flightInput=document.getElementById("f-flight");
 if(flightInput) flightInput.addEventListener("input", function(){
   if(pickedAir && pickedAir.flight!==flightInput.value.trim()) pickedAir=null;
 });
-if(flightFind) flightFind.onclick=async function(){
+if(flightFind) flightFind.onclick=function(){ findOldFlights(false); };
+async function findOldFlights(quiet){
   var from=place(fFrom.value.trim()), to=place(fTo.value.trim());
   var date=document.getElementById("f-date").value;
   var ca=airportCodeOf(from), cb=airportCodeOf(to);
-  if(!ca||!cb||!date){ alert("Укажите аэропорты из списка и дату"); return; }
+  if(!ca||!cb||!date){ if(!quiet) alert("Укажите аэропорты из списка и дату"); return; }
   var known=cachedSchedule(ca, cb, date);
   if(known){
     showFoundFlights(known, "Из сохранённых рейсов");
@@ -1701,7 +1702,9 @@ if(flightFind) flightFind.onclick=async function(){
   }finally{
     flightFind.disabled=false;
   }
-};
+}
+var oldDate=document.getElementById("f-date");
+if(oldDate) oldDate.addEventListener("change", function(){ if(fMode.value==="plane") findOldFlights(true); });
 function showFoundFlights(rows, note){
   if(flightNote) flightNote.textContent=note||"";
   if(!flightList) return;
@@ -1922,6 +1925,7 @@ function openEdit(id){
     } else { tw.style.display="none"; window._editCoords=null; }
   }
   openForm();
+  if((r.mode||"plane")==="plane" && r.date) findOldFlights(true);
 }
 function openFormNew(){
   editingId=null;
