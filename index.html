@@ -1072,11 +1072,10 @@ body[data-section="stats"] #sheet::before{display:block;content:"Статист�
   #dock [data-section="stats"],#dock [data-section="settings"]{display:flex}
   #dock-more,#dock-pop{display:none!important}
   body[data-section="overview"] #map,
-  body[data-section="map"] #map{left:var(--rail);right:0;bottom:0}
+  body[data-section="map"] #map,
   body[data-section="diary"] #map,
   body[data-section="routes"] #map,
-  body[data-section="stats"] #map,
-  body[data-section="catalog"] #map{left:var(--rail);right:392px;bottom:0;top:0}
+  body[data-section="catalog"] #map{left:var(--rail);right:0;bottom:0;top:0}
   body[data-section="overview"] #sheet{
     left:calc(var(--rail) + 16px);right:auto;bottom:16px;top:auto;width:320px;
     height:auto!important;max-height:280px;border-radius:14px;border:1px solid var(--line);
@@ -1092,7 +1091,8 @@ body[data-section="stats"] #sheet::before{display:block;content:"Статист�
   body[data-section="diary"] #sheet,
   body[data-section="routes"] #sheet{
     display:flex;left:auto;right:0;top:0;bottom:0;width:392px;height:auto!important;max-height:none;
-    border-radius:0;border:0;border-left:1px solid var(--line);box-shadow:none;
+    border-radius:0;border:0;border-left:1px solid var(--line);
+    box-shadow:-18px 0 40px rgba(0,0,0,.28);z-index:30;
   }
   body[data-section="stats"] #sheet{
     display:flex;left:var(--rail)!important;right:0!important;top:0!important;bottom:0!important;
