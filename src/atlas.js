@@ -38,19 +38,39 @@ var api = (function () {
         });
         return out;
     }
-    function traceFlat(ctx, iso) {
-        var rings = countryRings(iso), r, i, p;
+    function traceFlat(ctx, iso, clip) {
+        var rings = countryRings(iso), r, i, p, q, ring, a, b, drawing;
         if (!rings.length)
             return false;
         ctx.beginPath();
         for (r = 0; r < rings.length; r++) {
-            p = flatXY(rings[r][0][0] * PI / 180, rings[r][0][1] * PI / 180);
-            ctx.moveTo(p[0], p[1]);
-            for (i = 1; i < rings[r].length; i++) {
-                p = flatXY(rings[r][i][0] * PI / 180, rings[r][i][1] * PI / 180);
-                ctx.lineTo(p[0], p[1]);
+            ring = rings[r];
+            if (!clip) {
+                p = flatXY(ring[0][0] * PI / 180, ring[0][1] * PI / 180);
+                ctx.moveTo(p[0], p[1]);
+                for (i = 1; i < ring.length; i++) {
+                    p = flatXY(ring[i][0] * PI / 180, ring[i][1] * PI / 180);
+                    ctx.lineTo(p[0], p[1]);
+                }
+                ctx.closePath();
+                continue;
             }
-            ctx.closePath();
+            drawing = false;
+            for (i = 0; i < ring.length; i++) {
+                a = ring[i];
+                b = ring[(i + 1) % ring.length];
+                if (edgeInDNRLNR((a[0] + b[0]) / 2, (a[1] + b[1]) / 2)) {
+                    drawing = false;
+                    continue;
+                }
+                p = flatXY(a[0] * PI / 180, a[1] * PI / 180);
+                q = flatXY(b[0] * PI / 180, b[1] * PI / 180);
+                if (!drawing) {
+                    ctx.moveTo(p[0], p[1]);
+                    drawing = true;
+                }
+                ctx.lineTo(q[0], q[1]);
+            }
         }
         return true;
     }
@@ -420,6 +440,26 @@ var api = (function () {
             }
         }
         return c;
+    }
+    var dnrlEnts = null;
+    function edgeInDNRLNR(lng, lat) {
+        var ei, e, i, lo, la;
+        if (!dnrlEnts) {
+            dnrlEnts = [];
+            if (!byLayer || !byLayer.R)
+                return false;
+            for (ei = 0; ei < byLayer.R.length; ei++) {
+                e = ents[byLayer.R[ei]];
+                if (e.name === "Донецкая Народная Республика" || e.name === "Луганская Народная Республика")
+                    dnrlEnts.push(e);
+            }
+        }
+        lo = lng * 100;
+        la = lat * 100;
+        for (i = 0; i < dnrlEnts.length; i++)
+            if (inside(dnrlEnts[i], lo, la))
+                return true;
+        return false;
     }
     function geoCovers(lo, la) {
         var rings = countryRings("UA");
@@ -1111,9 +1151,9 @@ var api = (function () {
             });
             // always draw RU/UA country outline once
             c.lineWidth = Math.max(0.8, 1.1) / kk;
-            if (traceFlat(c, "RU"))
+            if (traceFlat(c, "RU", true))
                 c.stroke();
-            if (traceFlat(c, "UA"))
+            if (traceFlat(c, "UA", true))
                 c.stroke();
             (function paintFlatOverlays() {
                 var ids = Object.keys(washIso), k, iso, rings, ring, i, p, minx, miny, maxx, maxy, sw, sh;
@@ -1871,8 +1911,8 @@ var api = (function () {
                 }
             }
         }
-        function fillGeo(iso) {
-            var rings = countryRings(iso), r, i, n, lo, la, X, Y, Z, x1, zz, y2, zc, pts, a, b, p, started;
+        function fillGeo(iso, clip) {
+            var rings = countryRings(iso), r, i, n, lo, la, X, Y, Z, x1, zz, y2, zc, pts, a, b, p, started, g0, g1;
             if (!rings.length)
                 return false;
             function proj(pt) {
@@ -1907,6 +1947,14 @@ var api = (function () {
                 for (i = 0; i < n; i++) {
                     a = pts[i];
                     b = pts[(i + 1) % n];
+                    if (clip) {
+                        g0 = rings[r][i];
+                        g1 = rings[r][(i + 1) % n];
+                        if (edgeInDNRLNR((g0[0] + g1[0]) / 2, (g0[1] + g1[1]) / 2)) {
+                            started = false;
+                            continue;
+                        }
+                    }
                     if (a.z <= 0.025 && b.z <= 0.025)
                         continue;
                     if (!started) {
@@ -1927,7 +1975,7 @@ var api = (function () {
                         ctx.lineTo(p.x, p.y);
                     }
                 }
-                if (started)
+                if (started && !clip)
                     ctx.closePath();
             }
             return true;
@@ -2119,9 +2167,9 @@ var api = (function () {
                 ctx.stroke();
             });
             ctx.lineWidth = 1.1;
-            if (fillGeo("RU"))
+            if (fillGeo("RU", true))
                 ctx.stroke();
-            if (fillGeo("UA"))
+            if (fillGeo("UA", true))
                 ctx.stroke();
             [[hoverEnt, "rgba(255,248,220,.66)"], [selEnt, "rgba(255,214,140,.72)"]].forEach(function (h) {
                 if (h[0] < 0)
