@@ -4171,8 +4171,23 @@ function rememberSchedule(from, to, date, rows){
   db[scheduleId(from, to, date)]=rows||[];
   try{ localStorage.setItem("travelek-schedules", JSON.stringify(db)); }catch(e){}
 }
+var aeroFromServer="";
+var aeroAsked=false;
 function aeroKey(){
-  try{ return String(localStorage.getItem("travelek-aero-key")||"").trim(); }catch(e){ return ""; }
+  try{
+    var own=String(localStorage.getItem("travelek-aero-key")||"").trim();
+    if(own) return own;
+  }catch(e){}
+  return aeroFromServer;
+}
+function ensureAeroKey(){
+  if(aeroKey()) return Promise.resolve(aeroKey());
+  if(aeroAsked) return Promise.resolve("");
+  aeroAsked=true;
+  return fetch("/api/aero-key").then(function(res){ return res.json(); }).then(function(data){
+    aeroFromServer=String((data&&data.key)||"").trim();
+    return aeroFromServer;
+  }).catch(function(){ return ""; });
 }
 function boardText(value){
   if(!value) return "";
@@ -4225,8 +4240,8 @@ function pickBoard(payload, toCode){
   return out;
 }
 function askAero(from, to, date){
-  var key=aeroKey();
-  if(!key) return Promise.resolve({rows:[], error:"В настройках нет ключа AeroDataBox. С сервера Layero это расписание не отдаётся."});
+  return ensureAeroKey().then(function(key){
+  if(!key) return {rows:[], error:"Ключ AeroDataBox не задан ни в настройках, ни в Layero."};
   var windows=[[date+"T00:00", date+"T11:59"],[date+"T12:00", date+"T23:59"]];
   return Promise.all(windows.map(function(span){
     var url="https://aerodatabox.p.rapidapi.com/flights/airports/iata/"+from+"/"+span[0]+"/"+span[1]+"?withLeg=true&direction=Departure&withCancelled=false";
@@ -4250,6 +4265,7 @@ function askAero(from, to, date){
     if(status==="451") return {rows:[], error:"AeroDataBox отказал: из этого места расписание закрыто."};
     if(status==="401"||status==="403") return {rows:[], error:"Ключ AeroDataBox не принят."};
     return {rows:[], error:"Расписание не ответило"+(status?" ("+status+")":"")};
+  });
   });
 }
 function loadTripSchedule(){

@@ -242,6 +242,10 @@ function serveFile(req, res) {
 export function createServer() {
   return http.createServer(function (req, res) {
     const url = new URL(req.url || "/", "http://localhost");
+    if (url.pathname === "/api/aero-key") {
+      sendJson(res, 200, { key: process.env.AERODATABOX_KEY || "" });
+      return;
+    }
     if (url.pathname === "/api/flights") {
       res.writeHead(200, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store" });
       if (typeof res.flushHeaders === "function") res.flushHeaders();
