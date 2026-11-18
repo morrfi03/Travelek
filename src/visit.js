@@ -1,4 +1,4 @@
-import { datedPast, isFuture } from "./when.js?v=88";
+import { datedPast, isFuture } from "./when.js?v=89";
 export function countriesToPaint(countries, regions) {
     const out = [];
     const seen = {};

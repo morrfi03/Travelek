@@ -243,7 +243,10 @@ export function createServer() {
   return http.createServer(function (req, res) {
     const url = new URL(req.url || "/", "http://localhost");
     if (url.pathname === "/api/aero-key") {
-      sendJson(res, 200, { key: process.env.AERODATABOX_KEY || "" });
+      const keys = ["AERODATABOX_KEY", "AERODATABOX_KEY_2", "AERODATABOX_KEY_3"].map(function (name) {
+        return String(process.env[name] || "").trim();
+      }).filter(Boolean);
+      sendJson(res, 200, { key: keys[0] || "", keys: keys });
       return;
     }
     if (url.pathname === "/api/flights") {
