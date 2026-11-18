@@ -1,10 +1,10 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./catalog.js?v=82";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=82";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js?v=82";
-import { createMap } from "./atlas.js?v=82";
-import { bindScreen } from "./screen.js?v=82";
-import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "./diary.js?v=82";
-import { marksForTab, placesVisitKey, routeBagKey } from "./visit.js?v=82";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./catalog.js?v=83";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=83";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js?v=83";
+import { createMap } from "./atlas.js?v=83";
+import { bindScreen } from "./screen.js?v=83";
+import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "./diary.js?v=83";
+import { marksForTab, placesVisitKey, routeBagKey } from "./visit.js?v=83";
 "use strict";
 /* map */
 export var map;
@@ -5550,6 +5550,72 @@ function adsbNote(text) {
     box.hidden = !text;
     box.innerHTML = text ? '<p class="more-link">' + text + "</p>" : "";
 }
+var twPick = null;
+var twSchedToken = 0;
+function loadTripSchedule() {
+    var box = document.getElementById("tw-sched");
+    if (!box)
+        return;
+    var modeEl = document.getElementById("tw-mode");
+    var fromEl = document.getElementById("tw-from");
+    var toEl = document.getElementById("tw-to");
+    var dateEl = document.getElementById("tw-date");
+    var mode = modeEl ? modeEl.value : "";
+    var date = dateEl ? dateEl.value : "";
+    var from = place(fromEl ? fromEl.value.trim() : "");
+    var to = place(toEl ? toEl.value.trim() : "");
+    var ca = airportCodeOf(from), cb = airportCodeOf(to);
+    if (mode !== "plane" || !ca || !cb) {
+        box.hidden = true;
+        box.innerHTML = "";
+        return;
+    }
+    if (!date) {
+        box.hidden = false;
+        box.innerHTML = '<p class="more-link">Укажите дату — покажу реальные рейсы</p>';
+        return;
+    }
+    var token = ++twSchedToken;
+    box.hidden = false;
+    box.innerHTML = '<p class="more-link">Ищем реальные рейсы…</p>';
+    fetch("/api/flights?from=" + encodeURIComponent(ca) + "&to=" + encodeURIComponent(cb) + "&date=" + encodeURIComponent(date)).then(function (res) {
+        return res.json().then(function (data) { return { ok: res.ok, data: data }; });
+    }).then(function (pack) {
+        if (token !== twSchedToken)
+            return;
+        if (!pack.ok) {
+            box.innerHTML = '<p class="more-link">' + escLabel((pack.data && pack.data.error) || "Расписание не ответило") + "</p>";
+            return;
+        }
+        var rows = pack.data.flights || [];
+        if (!rows.length) {
+            box.innerHTML = '<p class="more-link">На эту дату рейсов нет</p>';
+            return;
+        }
+        box.innerHTML = rows.map(function (row, i) {
+            var mins = Number(row.airMin) || 0;
+            var clock = mins ? (" · " + Math.floor(mins / 60) + " ч " + (mins % 60) + " мин") : "";
+            return '<button type="button" data-sched="' + i + '">' + escLabel(row.flight) + " · " + escLabel(row.airline || "") + " · " + escLabel(row.aircraft || "") + " · " + escLabel(row.time || "") + clock + "</button>";
+        }).join("");
+        box.onclick = function (ev) {
+            var btn = ev.target.closest && ev.target.closest("[data-sched]");
+            if (!btn)
+                return;
+            var row = rows[Number(btn.getAttribute("data-sched"))];
+            if (!row)
+                return;
+            twPick = { from: ca, to: cb, date: date, flight: row.flight || "", airline: row.airline || "", aircraft: row.aircraft || "", airMin: Number(row.airMin) || 0, time: row.time || "" };
+            var timeEl = document.getElementById("tw-time");
+            if (timeEl && row.time)
+                timeEl.value = row.time;
+            box.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b === btn); });
+        };
+    }).catch(function () {
+        if (token !== twSchedToken)
+            return;
+        box.innerHTML = '<p class="more-link">Сервер рейсов не ответил</p>';
+    });
+}
 function adsbFetch(url, opt) {
     var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
     var timer = setTimeout(function () { if (ctrl)
@@ -5762,6 +5828,7 @@ function bindTripWindow() {
                     box.classList.remove("on");
                     if (typeof previewTripPlaces === "function")
                         previewTripPlaces();
+                    loadTripSchedule();
                 });
             });
         });
@@ -5769,6 +5836,13 @@ function bindTripWindow() {
     }
     sug(document.getElementById("tw-from"), document.getElementById("tw-sug-from"), function () { return document.getElementById("tw-mode").value; }, "from");
     sug(document.getElementById("tw-to"), document.getElementById("tw-sug-to"), function () { return document.getElementById("tw-mode").value; }, "to");
+    ["tw-from", "tw-to", "tw-date", "tw-mode"].forEach(function (id) {
+        var node = document.getElementById(id);
+        if (node)
+            node.addEventListener("change", loadTripSchedule);
+        if (node && node.tagName === "INPUT")
+            node.addEventListener("input", loadTripSchedule);
+    });
     var cIn = document.getElementById("tw-country"), cBox = document.getElementById("tw-sug-country");
     cIn.addEventListener("input", function () {
         var q = cIn.value.trim().toLowerCase();
@@ -5812,6 +5886,17 @@ function bindTripWindow() {
         var made = buildRouteFromForm();
         if (!made)
             return Promise.resolve(false);
+        if (twPick && made.mode === "plane" && twPick.date === date && twPick.from === made.fromCode && twPick.to === made.toCode) {
+            made.flight = twPick.flight || made.flight;
+            if (twPick.airline)
+                made.airline = twPick.airline;
+            if (twPick.aircraft)
+                made.aircraft = twPick.aircraft;
+            if (twPick.airMin)
+                made.airMin = twPick.airMin;
+            if (twPick.time)
+                made.time = twPick.time;
+        }
         var both = document.getElementById("tw-both");
         var backDateEl = document.getElementById("tw-date-back");
         if (both && both.checked && !(backDateEl && backDateEl.value)) {
