@@ -1009,9 +1009,18 @@ var api = (function () {
             var pw = Math.round(nw * nd), ph = Math.round(nh * nd);
             if (cw === nw && ch === nh && dpr === nd && cv.width === pw && cv.height === ph)
                 return false;
+            var q = (cw > 0 && ch > 0) ? llAt(cw / 2, ch / 2) : null;
+            var keepK = k;
             cw = nw;
             ch = nh;
             dpr = nd;
+            if (q) {
+                var f = flatXY((q[0] / 100) * PI / 180, (q[1] / 100) * PI / 180);
+                k = Math.max(kMin(), Math.min(KMAX, keepK));
+                var kk = cw / WID * k;
+                tx = cw / 2 - f[0] * kk;
+                ty = ch / 2 - f[1] * kk;
+            }
             clamp();
             return true;
         }
@@ -2541,24 +2550,52 @@ var api = (function () {
         };
     })();
     // ===================== переключение режимов =====================
+    function flatSpan(k) { return (2 * XMAX * 180 / PI) / Math.max(0.05, k); }
+    function globeSpan(z) { var s = Math.min(1, 1 / (0.9 * Math.max(0.2, z))); return 2 * Math.asin(s) * 180 / PI; }
+    function globeZoomForSpan(deg) {
+        var half = Math.min(89.5, Math.max(1, deg) / 2) * PI / 180, s = Math.sin(half);
+        if (s < 0.08)
+            return 6;
+        return Math.max(1, Math.min(6, 1 / (0.9 * s)));
+    }
+    function flatKForSpan(deg) { return (2 * XMAX * 180 / PI) / Math.max(8, deg); }
+    var camHold = { flat: null, globe: null };
+    function readFlatCam() { var c = views.flat.getCenter(); return { lon: c.lon, lat: c.lat, k: views.flat.getK() }; }
+    function readGlobeCam() { var c = views.globe.getCenter(); return { lon: c.lon, lat: c.lat, z: c.z }; }
     function setMode(m) {
         if (m !== "flat" && m !== "globe")
             m = "flat";
-        var from = views[mode], to = views[m], c = null, z = null;
-        if (m !== mode) {
-            c = from.getCenter();
-            z = m === "globe" ? Math.min(6, 1 + Math.log(Math.max(1, c.z)) / Math.LN2 * 1.2) : Math.max(views.flat.kMin(), Math.pow(2, (c.z - 1) / 1.2));
-        }
+        var changed = m !== mode;
+        if (changed)
+            camHold[mode] = mode === "flat" ? readFlatCam() : readGlobeCam();
+        var from = mode;
         $("flatBox").hidden = m !== "flat";
         $("globeBox").hidden = m !== "globe";
         root.style.background = m === "globe" ? "#16324a" : "#4e8cb2";
         mode = m;
         hoverEnt = -1;
         requestAnimationFrame(function () {
+            var to = views[m];
             to.resize();
-            if (c)
-                to.setCenter(c.lon, c.lat, z);
-            to.draw();
+            if (changed) {
+                var own = camHold[m], src = camHold[from];
+                if (own) {
+                    if (m === "flat")
+                        to.setCenter(own.lon, own.lat, own.k);
+                    else
+                        to.setCenter(own.lon, own.lat, own.z);
+                }
+                else if (src) {
+                    if (m === "globe")
+                        to.setCenter(src.lon, src.lat, globeZoomForSpan(flatSpan(src.k)));
+                    else
+                        to.setCenter(src.lon, src.lat, flatKForSpan(globeSpan(src.z)));
+                }
+            }
+            if (to.drawNow)
+                to.drawNow();
+            else
+                to.draw();
         });
     }
     function tagOne(e) {
