@@ -150,11 +150,15 @@ async function board(iata, fromLocal, toLocal, key) {
     signal: AbortSignal.timeout(12000)
   });
   if (!response.ok) {
+    const raw = await response.text();
     let detail = "";
     try {
-      const body = await response.json();
-      detail = String((body && (body.message || body.error)) || "").replace(/\s+/g, " ").slice(0, 160);
-    } catch (err) {}
+      const body = JSON.parse(raw);
+      detail = String((body && (body.message || body.error || body.details)) || "");
+    } catch (err) {
+      detail = raw;
+    }
+    detail = detail.replace(/\s+/g, " ").trim().slice(0, 180);
     const failure = new Error("upstream");
     failure.status = response.status;
     failure.detail = detail;
