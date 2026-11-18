@@ -140,9 +140,7 @@ function allowSearch() {
 
 async function board(iata, fromLocal, toLocal, key) {
   const url = "https://aerodatabox.p.rapidapi.com/flights/airports/iata/"
-    + encodeURIComponent(iata) + "/"
-    + encodeURIComponent(fromLocal) + "/"
-    + encodeURIComponent(toLocal)
+    + iata + "/" + fromLocal + "/" + toLocal
     + "?withLeg=true&direction=Departure&withCancelled=false";
   const response = await fetch(url, {
     headers: {
@@ -152,9 +150,15 @@ async function board(iata, fromLocal, toLocal, key) {
     signal: AbortSignal.timeout(12000)
   });
   if (!response.ok) {
-    const err = new Error("upstream");
-    err.status = response.status;
-    throw err;
+    let detail = "";
+    try {
+      const body = await response.json();
+      detail = String((body && (body.message || body.error)) || "").replace(/\s+/g, " ").slice(0, 160);
+    } catch (err) {}
+    const failure = new Error("upstream");
+    failure.status = response.status;
+    failure.detail = detail;
+    throw failure;
   }
   return response.json();
 }
@@ -170,20 +174,23 @@ export async function searchFlights(query, key) {
   if (saved) return { status: 200, body: { flights: saved, saved: true } };
   if (!key) return { status: 503, body: { error: "В Layero не задан ключ AERODATABOX_KEY" } };
   if (!allowSearch()) return { status: 429, body: { error: "Лимит поисков на этот месяц исчерпан" } };
-  const windows = [[date + "T00:00", date + "T12:00"], [date + "T12:00", date + "T23:59"]];
+  const windows = [[date + "T00:00", date + "T11:59"], [date + "T12:00", date + "T23:59"]];
   const merged = [];
   try {
-    const payloads = await Promise.all(windows.map(function (span) {
+    const settled = await Promise.allSettled(windows.map(function (span) {
       return board(from, span[0], span[1], key);
     }));
-    payloads.forEach(function (payload) {
-      pickFlights(payload, to).forEach(function (row) { merged.push(row); });
+    const ok = settled.filter(function (item) { return item.status === "fulfilled"; });
+    if (!ok.length) throw settled[0].reason;
+    ok.forEach(function (item) {
+      pickFlights(item.value, to).forEach(function (row) { merged.push(row); });
     });
   } catch (err) {
     const status = err && err.status;
+    const detail = err && err.detail ? ": " + err.detail : "";
     const message = status === 401 || status === 403
-      ? "Ключ AeroDataBox не принят"
-      : "Расписание сейчас не ответило";
+      ? "Ключ AeroDataBox не принят" + detail
+      : "Расписание не ответило" + (status ? " (" + status + ")" : "") + detail;
     return { status: 502, body: { error: message } };
   }
   const seen = {};
