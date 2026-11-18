@@ -1280,6 +1280,10 @@ body[data-section="diary"] #sheet .sheet-tools{display:flex!important}
 #boot-screen .track{width:140px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;flex:none}
 #boot-screen .track i{display:block;height:100%;width:35%;background:linear-gradient(90deg,#7ec8a3,#4a9b7a);border-radius:2px;animation:bootSlide 1.2s ease-in-out infinite}
 @keyframes bootSlide{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
+#f-flight-find{display:none;width:100%;margin-top:8px}
+#f-flight-list{margin-top:8px}
+#f-flight-list button{text-align:left}
+#f-flight-note{font-size:11px;color:var(--muted);margin-top:6px}
 button,.tab{cursor:pointer;border-radius:999px!important}
 button:disabled{cursor:default}
 </style>
@@ -1399,6 +1403,9 @@ button:disabled{cursor:default}
   <div class="an-block"><h3>Рекорды</h3><div id="stats-records"></div></div>
   <div class="an-block"><h3>Километры по транспорту</h3><div id="stats-transport"></div></div>
   <div class="an-block"><h3>Активные периоды</h3><div id="stats-timeline"></div></div>
+  <div class="an-block"><h3>Авиакомпании</h3><div id="an-airlines"></div></div>
+  <div class="an-block"><h3>Самолёты</h3><div id="an-aircraft"></div></div>
+  <div class="an-block"><h3>Время в полёте</h3><div id="an-airtime"></div></div>
   <div class="an-block"><h3>Достижения</h3><div id="an-badges"></div></div>
 </div>
 <div class="countries-open-wrap">
@@ -1640,7 +1647,7 @@ button:disabled{cursor:default}
       <div class="field"><label data-i18n="Дата">Дата</label><input id="f-date" type="date" /></div>
       <div class="field"><label data-i18n="Время">Время</label><input id="f-time" type="time" /></div>
     </div>
-    <div class="field" id="f-flight-wrap"><label id="lbl-flight">Рейс</label><input id="f-flight" type="text" placeholder="SU 100" /></div>
+    <div class="field" id="f-flight-wrap"><label id="lbl-flight">Рейс</label><input id="f-flight" type="text" placeholder="SU 100" /><button type="button" id="f-flight-find">Рейсы на эту дату</button><div id="f-flight-list" hidden></div><p id="f-flight-note"></p></div>
     <div class="modal-actions">
       <button type="button" class="btn-cancel" id="f-cancel" data-i18n="Отмена">Отмена</button>
       <button type="button" class="btn-save" id="f-save" data-i18n="Сохранить">Сохранить</button>
@@ -1739,6 +1746,6 @@ button:disabled{cursor:default}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=81"></script>
+<script type="module" src="src/main.js?v=82"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>

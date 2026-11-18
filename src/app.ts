@@ -946,7 +946,7 @@ function fillAnalytics(){
   if(!past.length){
     cards.innerHTML='<div class="an-card"><b>0</b><span>поездок</span></div>';
     var empty='<p class="up-empty">Нет данных. Добавьте поездку.</p>';
-    ["an-years","an-months","an-modes","stats-averages","stats-records","stats-transport","stats-timeline"].forEach(function(id){ var n=document.getElementById(id); if(n) n.innerHTML=empty; });
+    ["an-years","an-months","an-modes","stats-averages","stats-records","stats-transport","stats-timeline","an-airlines","an-aircraft","an-airtime"].forEach(function(id){ var n=document.getElementById(id); if(n) n.innerHTML=empty; });
     return;
   }
   var years={} as any, months={} as any, modes={} as any;
@@ -1035,6 +1035,35 @@ function fillAnalytics(){
   if(yKeys.length>=2) badges.push("Разные годы");
   var bBox=document.getElementById("an-badges");
   if(bBox) bBox.innerHTML=badges.length?badges.map(function(b){ return '<span class="an-card" style="display:inline-block;margin:4px">'+b+'</span>'; }).join(""):'<p class="up-empty">Пока нет достижений</p>';
+  paintAirStats(past);
+}
+function paintAirStats(past){
+  var airlines={} as any, aircraft={} as any, minutes=0, counted=0;
+  past.forEach(function(r){
+    if(r.mode!=="plane") return;
+    if(r.airline) airlines[r.airline]=(airlines[r.airline]||0)+1;
+    if(r.aircraft) aircraft[r.aircraft]=(aircraft[r.aircraft]||0)+1;
+    var mins=Number(r.airMin)||0;
+    if(mins>0){ minutes+=mins; counted++; }
+  });
+  function bars(box, map){
+    if(!box) return;
+    var keys=Object.keys(map).sort(function(a,b){ return map[b]-map[a]; });
+    var max=keys.reduce(function(a,k){ return Math.max(a,map[k]); },1);
+    box.innerHTML=keys.length?keys.map(function(k){
+      var w=Math.round(100*map[k]/max);
+      return '<div class="bar-row"><span>'+escLabel(k)+'</span><div class="bar"><i style="width:'+w+'%"></i></div><b>'+map[k]+'</b></div>';
+    }).join(""):'<p class="up-empty">Появится после выбора рейса из расписания</p>';
+  }
+  bars(document.getElementById("an-airlines"), airlines);
+  bars(document.getElementById("an-aircraft"), aircraft);
+  var air=document.getElementById("an-airtime");
+  if(air){
+    var hours=Math.floor(minutes/60), rest=minutes%60;
+    air.innerHTML=counted
+      ? '<div class="bar-row"><span>всего</span><b>'+hours+' ч '+rest+' мин</b></div><div class="bar-row"><span>рейсов</span><b>'+counted+'</b></div>'
+      : '<p class="up-empty">Появится после выбора рейса из расписания</p>';
+  }
 }
 function fillUpcoming(){
   var box=document.getElementById("up-body");
@@ -1471,6 +1500,8 @@ function updateLabels(){
   var fw=document.getElementById("f-flight-wrap");
   var fl=document.getElementById("lbl-flight");
   var fi=document.getElementById("f-flight");
+  var find=document.getElementById("f-flight-find");
+  if(find) find.style.display=m==="plane"?"":"none";
   if(m==="plane"){ fw.style.display=""; fl.textContent=t("Рейс"); fi.placeholder="SU 100"; }
   else if(m==="train"){ fw.style.display=""; fl.textContent=t("Поезд / номер"); fi.placeholder="Сапсан 756А"; }
   else if(m==="walk"||m==="bike"){ fw.style.display=""; fl.textContent=t("Название (необязательно)"); fi.placeholder=""; }
@@ -1637,6 +1668,53 @@ document.getElementById("f-cancel").onclick=closeForm;
 modal.addEventListener("click",function(e){ if(e.target===modal) closeForm(); });
 
 document.getElementById("f-save").onclick=function(){ saveCurrentForm(); };
+var flightFind=document.getElementById("f-flight-find");
+var flightList=document.getElementById("f-flight-list");
+var flightNote=document.getElementById("f-flight-note");
+var flightInput=document.getElementById("f-flight");
+if(flightInput) flightInput.addEventListener("input", function(){
+  if(pickedAir && pickedAir.flight!==flightInput.value.trim()) pickedAir=null;
+});
+if(flightFind) flightFind.onclick=async function(){
+  var from=place(fFrom.value.trim()), to=place(fTo.value.trim());
+  var date=document.getElementById("f-date").value;
+  var ca=airportCodeOf(from), cb=airportCodeOf(to);
+  if(!ca||!cb||!date){ alert("Укажите аэропорты из списка и дату"); return; }
+  flightFind.disabled=true;
+  if(flightNote) flightNote.textContent="Ищем рейсы…";
+  if(flightList){ flightList.hidden=true; flightList.innerHTML=""; }
+  try{
+    var res=await fetch("/api/flights?from="+encodeURIComponent(ca)+"&to="+encodeURIComponent(cb)+"&date="+encodeURIComponent(date));
+    var data=await res.json();
+    if(!res.ok){ if(flightNote) flightNote.textContent=data.error||"Не вышло"; return; }
+    var rows=data.flights||[];
+    if(!rows.length){ if(flightNote) flightNote.textContent="На эту дату рейсов нет"; return; }
+    if(flightList){
+      flightList.hidden=false;
+      flightList.innerHTML=rows.map(function(row, i){
+        var mins=Number(row.airMin)||0;
+        var clock=mins?(" · "+Math.floor(mins/60)+" ч "+(mins%60)+" мин"):"";
+        return '<button type="button" data-i="'+i+'">'+escLabel(row.flight)+' · '+escLabel(row.airline||"")+' · '+escLabel(row.aircraft||"")+' · '+escLabel(row.time||"")+clock+'</button>';
+      }).join("");
+      flightList.onclick=function(ev){
+        var btn=ev.target.closest("button");
+        if(!btn) return;
+        var row=rows[Number(btn.getAttribute("data-i"))];
+        if(!row) return;
+        flightInput.value=row.flight||"";
+        if(row.time) document.getElementById("f-time").value=row.time;
+        pickedAir={flight:row.flight||"",airline:row.airline||"",aircraft:row.aircraft||"",airMin:Number(row.airMin)||0};
+        flightList.hidden=true;
+        if(flightNote) flightNote.textContent="Расписание: AeroDataBox";
+      };
+    }
+    if(flightNote) flightNote.textContent="Расписание: AeroDataBox";
+  }catch(e){
+    if(flightNote) flightNote.textContent="Сервер рейсов не ответил";
+  }finally{
+    flightFind.disabled=false;
+  }
+};
 function buildRouteFromForm(){
   var mode=fMode.value;
   var from=fFrom.value.trim(), to=fTo.value.trim();
@@ -1771,6 +1849,10 @@ function buildRouteFromForm(){
   if(mode==="plane"){
     var ca=airportCodeOf(pa), cb=airportCodeOf(pb);
     if(ca) trip.fromCode=ca; if(cb) trip.toCode=cb;
+    var meta=pickedAir && pickedAir.flight===flight ? pickedAir : (prev && prev.flight===flight ? prev : null);
+    if(meta && meta.airline) trip.airline=meta.airline;
+    if(meta && meta.aircraft) trip.aircraft=meta.aircraft;
+    if(meta && Number(meta.airMin)>0) trip.airMin=Number(meta.airMin);
   }
   return trip;
 }
@@ -1794,13 +1876,14 @@ function saveCurrentForm(){
   editingId=null;
   selectedTripId=null;
   document.getElementById("modal-title").textContent=t("Новый маршрут");
-  closeForm(); fFrom.value=""; fTo.value=""; document.getElementById("f-flight").value=""; carWaypoints=[]; clearPickMarkers();
+  closeForm(); fFrom.value=""; fTo.value=""; document.getElementById("f-flight").value=""; pickedAir=null; carWaypoints=[]; clearPickMarkers();
   setSheet("mid"); render();
 }
 
 
 
 var editingId=null;
+var pickedAir=null;
 function openEdit(id){
   var r=null,i;
   for(i=0;i<ROUTES.length;i++) if(ROUTES[i].id===id) r=ROUTES[i];
@@ -1814,6 +1897,7 @@ function openEdit(id){
   document.getElementById("f-date").value=r.date||"";
   document.getElementById("f-time").value=r.time||"";
   document.getElementById("f-flight").value=r.flight||"";
+  pickedAir=r.airline||r.aircraft||r.airMin?{flight:r.flight||"",airline:r.airline||"",aircraft:r.aircraft||"",airMin:r.airMin||0}:null;
   if(r.mode==="car"){
     var cp=document.getElementById("f-car-path");
     if(cp) cp.value=r.carPath||(r.waypoints&&r.waypoints.length?"offroad":"road");
@@ -1837,6 +1921,9 @@ function openFormNew(){
   carWaypoints=[];
   fFrom.value=""; fTo.value="";
   document.getElementById("f-flight").value="";
+  pickedAir=null;
+  var list=document.getElementById("f-flight-list");
+  if(list){ list.hidden=true; list.innerHTML=""; }
   openForm();
 }
 
