@@ -8,10 +8,10 @@ import { fileURLToPath } from "node:url";
 
 const root = dirname(fileURLToPath(import.meta.url));
 const files = [
-  "src/parts/01-catalog.js",
-  "src/parts/02-cloud.js",
-  "src/parts/03-roads.js",
-  "src/parts/04-app.js",
+  "src/catalog.js",
+  "src/cloud.js",
+  "src/roads.js",
+  "src/app.js",
   "src/atlas.js",
   "src/text.js",
   "src/world.js",
@@ -71,8 +71,8 @@ for (const [file, deps] of graph) {
   const from = rel(file);
   for (const dep of deps) {
     const to = rel(dep);
-    const denied = (from === "parts/01-catalog.js" && (to.includes("02-cloud") || to.includes("04-app")))
-      || ((from === "parts/02-cloud.js" || from === "parts/03-roads.js") && to.includes("04-app"));
+    const denied = (from === "catalog.js" && (to === "cloud.js" || to === "app.js"))
+      || ((from === "cloud.js" || from === "roads.js") && to === "app.js");
     if (denied) {
       console.error("нельзя", from, "->", to);
       bad++;

@@ -716,7 +716,7 @@ var api = (function () {
     function entStrokeFlat(c, e) { for (var r = e.r0; r < e.r1; r++) if (RV[r]) ringStrokeFlat(c, r); }
     function entPath(c, e) { for (var r = e.r0; r < e.r1; r++) if (RV[r]) ringPath(c, r); }
     function entPathFull(c, e) { for (var r = e.r0; r < e.r1; r++) ringPath(c, r); }
-    var bc = document.createElement("canvas"), bctx = bc.getContext("2d"), bkey = "", snapTx = 0, snapTy = 0, snapK = 1, hold = 0, zoomIdle = 0;
+    var bc = document.createElement("canvas"), bctx = bc.getContext("2d"), bkey = "", snapTx = 0, snapTy = 0, snapK = 1, hold = 0, zoomIdle: any = 0;
     var rc = document.createElement("canvas"), rctx = rc.getContext("2d");
     var land = document.createElement("canvas"), lctx = land.getContext("2d"), lkey = "";
     function reliefSig() {
@@ -918,7 +918,7 @@ var api = (function () {
       tx += dx; ty += dy; last = { x: e.clientX, y: e.clientY }; clamp(); schedule(); if (hooks.move) hooks.move();
     });
     function end(e) { delete ptrs[e.pointerId]; pinch = 0; cv.classList.remove("drag"); var ids = Object.keys(ptrs); if (ids.length === 1) last = { x: ptrs[ids[0]].clientX, y: ptrs[ids[0]].clientY }; }
-    var lastTap = 0, lastTapPt = null, tapTimer = 0;
+    var lastTap = 0, lastTapPt = null, tapTimer: any = 0;
     cv.addEventListener("pointerup", function (e) {
       var click = moved <= 5, p = local(e); end(e);
       if (click) {
@@ -1146,7 +1146,7 @@ var api = (function () {
     }
     function initTex() { if (tex || !gready || sphereMode === "webgl") return; var c = document.createElement("canvas"); c.width = TW = gimg.width; c.height = TH = gimg.height; var x = c.getContext("2d"); x.drawImage(gimg, 0, 0); tex = x.getImageData(0, 0, TW, TH).data; }
     var SX = new Float32Array(NV), SY = new Float32Array(NV), ZV = new Uint8Array(NV), RVg = new Uint8Array(NR);
-    var lon0 = 60, lat0 = 25, zoom = 1, cw = 600, ch = 600, dpr = 1, spinning = false, moving = 0, raf = 0, idle = 0, cl, sl, cp, sp, R, cx, cy;
+    var lon0 = 60, lat0 = 25, zoom = 1, cw = 600, ch = 600, dpr = 1, spinning = false, moving = 0, raf = 0, idle: any = 0, cl, sl, cp, sp, R, cx, cy;
     function setCam() { var a = lon0 * PI / 180, b = lat0 * PI / 180; cl = Math.cos(a); sl = Math.sin(a); cp = Math.cos(b); sp = Math.sin(b); R = Math.min(cw, ch) / 2 * 0.9 * zoom; cx = cw / 2; cy = ch / 2; }
     var gBase = document.createElement("canvas"), gbx = gBase.getContext("2d"), gBaseOk = false;
     var gSphere = document.createElement("canvas"), gsx = gSphere.getContext("2d"), gSphereOk = false, sphereKey = "";
@@ -1573,7 +1573,7 @@ var api = (function () {
       var kq = 57.3 / R; lon0 -= dx * kq; lat0 = Math.max(-85, Math.min(85, lat0 + dy * kq)); last = { x: e.clientX, y: e.clientY }; moving = 1; schedule(); settle(); if (hooks.move) hooks.move();
     });
     function end(e) { delete ptrs[e.pointerId]; pinch = 0; cv.classList.remove("drag"); var ids = Object.keys(ptrs); if (ids.length === 1) last = { x: ptrs[ids[0]].clientX, y: ptrs[ids[0]].clientY }; if (!ids.length) { moving = 0; redraw(); } }
-    var gLastTap = 0, gLastPt = null, gTapTimer = 0;
+    var gLastTap = 0, gLastPt = null, gTapTimer: any = 0;
     cv.addEventListener("pointerup", function (e) {
       var click = moved <= 4, p = local(e); end(e);
       if (click) {

@@ -1,9 +1,8 @@
-import { STATIONS, densify, hav, shipCoords } from "./01-catalog.js?v=73";
-import { ROUTES, bindRail, place } from "./02-cloud.js?v=73";
-import { datedPast, isFuture } from "../when.js?v=73";
-import { ui } from "../screen.js?v=73";
+import { STATIONS, densify, hav, shipCoords } from "./catalog.js";
+import { ROUTES, bindRail, place } from "./cloud.js";
+import { datedPast, isFuture } from "./when.js";
+import { ui } from "./screen.js";
 export { datedPast, isFuture };
-"use strict";
 /* geometry */
 function flightArc(a, b, n) {
     n = n || 96;
@@ -599,7 +598,7 @@ function bridgeLine(a, b) {
         line.reverse();
     return line;
 }
-function stitchBridge(a, b, leg) {
+function stitchBridge(a, b, leg?) {
     var line = bridgeLine(a, b);
     var enter = { lat: line[0][0], lng: line[0][1] };
     var leave = { lat: line[line.length - 1][0], lng: line[line.length - 1][1] };
@@ -863,7 +862,6 @@ export var yearFilter = "all"; /* all | 2026 | ... */
 export var modeFilter = "all"; /* all | plane | train | car */
 export function setModeFilter(v) { modeFilter = v; }
 var liveMarkers = [];
-var animMarkers = {}; /* id -> marker for animated past trips when selected */
 var notifAsked = false;
 export function updateLiveTrip() {
     var box = document.getElementById("live-trip");
@@ -917,36 +915,6 @@ export function updateLiveTrip() {
             hideLive(live.map(function (r) { return r.id; }));
             updateLiveTrip();
         };
-}
-/* Анимация выбранного / текущего рейса по времени */
-function animateRouteOnMap(r) {
-    if (!r || !ui.map)
-        return;
-    var g = buildGeoSync(r);
-    if (!g || !g.coords || g.coords.length < 2)
-        return;
-    var id = r.id;
-    if (animMarkers[id]) {
-        try {
-            ui.map.removeLayer(animMarkers[id]);
-        }
-        catch (e) { }
-    }
-    var t = isInProgress(r) ? tripProgress(r) : (isFuture(r) ? 0 : 1);
-    var pt = pointAlong(g.coords, t);
-    if (!pt)
-        return;
-    var col = r.mode === "plane" ? "#5b9fff" : (r.mode === "train" ? "#3dd68c" : (r.mode === "car" ? "#f5a623" : "#8af"));
-    animMarkers[id] = ui.map.dot(pt, { radius: 7, color: "#fff", weight: 2, fillColor: col, fillOpacity: 1 }).addTo(ui.map);
-}
-function clearAnimMarkers() {
-    Object.keys(animMarkers).forEach(function (id) {
-        try {
-            ui.map.removeLayer(animMarkers[id]);
-        }
-        catch (e) { }
-    });
-    animMarkers = {};
 }
 /* Напоминание за час (Notification API) */
 function checkTripReminders() {
@@ -1036,7 +1004,7 @@ export function buildYearFilter() {
         })(btns[i]);
     }
 }
-export var tripPlay = { on: false, raf: 0, marker: null, timer: 0, gen: 0 };
+export var tripPlay: any = { on: false, raf: 0, marker: null, timer: 0, gen: 0 };
 function tripPlayRoutes() {
     var pool = ROUTES, ids = null, trips, i;
     if (ui.selectedTripId) {
@@ -1703,7 +1671,7 @@ function drawEndpointClusters(list) {
 }
 setInterval(updateLiveTrip, 20000);
 setInterval(checkTripReminders, 60000);
-/* ——— Офлайн: кэш тайлов + SW ——— */
+/* нет сети */
 function updateOfflinePill() {
     var pill = document.getElementById("offline-pill");
     if (!pill)
@@ -1716,76 +1684,6 @@ function updateOfflinePill() {
 window.addEventListener("online", updateOfflinePill);
 window.addEventListener("offline", updateOfflinePill);
 updateOfflinePill();
-function installTileCache() {
-    if (!("caches" in window))
-        return;
-    /* кэш тайлов — caches API + SW */
-}
-(function () {
-    function cacheTileUrl(url) {
-        if (!window.caches || !url || !(/arcgisonline|yandex\.net/i.test(url)))
-            return;
-        caches.open("travelek-tiles-v1").then(function (c) {
-            c.match(url).then(function (hit) {
-                if (hit)
-                    return;
-                fetch(url, { mode: "cors", credentials: "omit" }).then(function (r) {
-                    if (r && r.ok)
-                        c.put(url, r.clone());
-                }).catch(function () { });
-            });
-        });
-    }
-    function bindTiles() {
-        if (!ui.map || !ui.map.on) {
-            setTimeout(bindTiles, 40);
-            return;
-        }
-        if (ui.map.__tilesBound)
-            return;
-        ui.map.__tilesBound = 1;
-        ui.map.on("tileload", function (e) {
-            try {
-                if (e.tile && e.tile.src)
-                    cacheTileUrl(e.tile.src);
-            }
-            catch (err) { }
-        });
-    }
-    bindTiles();
-})();
-function registerOfflineSW() {
-    if (!("serviceWorker" in navigator))
-        return;
-    var swCode = [
-        "var CACHE='travelek-tiles-v1';",
-        "self.addEventListener('install',function(e){ self.skipWaiting(); });",
-        "self.addEventListener('activate',function(e){ e.waitUntil(self.clients.claim()); });",
-        "self.addEventListener('fetch',function(e){",
-        "  var u=e.request.url;",
-        "  if(/arcgisonline\\.com/i.test(u) || /yandex\\.net/i.test(u) || /tile/i.test(u) && /\\/\\d+\\/\\d+\\/\\d+/.test(u)){",
-        "    e.respondWith(caches.open(CACHE).then(function(c){",
-        "      return c.match(e.request).then(function(hit){",
-        "        if(hit) return hit;",
-        "        return fetch(e.request).then(function(res){",
-        "          if(res && res.ok) c.put(e.request, res.clone());",
-        "          return res;",
-        "        }).catch(function(){ return hit || Response.error(); });",
-        "      });",
-        "    }));",
-        "  }",
-        "});"
-    ].join("\\n");
-    try {
-        var blob = new Blob([swCode.replace(/\\\\n/g, "\\n")], { type: "text/javascript" });
-        var url = URL.createObjectURL(blob);
-        navigator.serviceWorker.register(url).catch(function () {
-            /* blob SW может не работать без HTTPS/same-origin — ок */
-        });
-    }
-    catch (e) { }
-}
-/* Кэш тайлов на лету через плагин Leaflet (перехват img) */
 export function pathKm(coords) {
     var km = 0, i;
     for (i = 1; i < coords.length; i++)
@@ -1805,13 +1703,15 @@ export function buildGeoSync(r) {
 }
 function computeGeo(r) {
     /* GPS-трек: готовые координаты */
+    var a: any, b: any;
     if (r.coords && r.coords.length >= 2) {
         var km = pathKm(r.coords);
-        var a = { lat: r.coords[0][0], lng: r.coords[0][1], label: r.from || "Старт" };
-        var b = { lat: r.coords[r.coords.length - 1][0], lng: r.coords[r.coords.length - 1][1], label: r.to || "Финиш" };
+        a = { lat: r.coords[0][0], lng: r.coords[0][1], label: r.from || "Старт" };
+        b = { lat: r.coords[r.coords.length - 1][0], lng: r.coords[r.coords.length - 1][1], label: r.to || "Финиш" };
         return { coords: r.coords, km: km, a: a, b: b, needRoad: false };
     }
-    var a = place(r.from, r.fromCode), b = place(r.to, r.toCode);
+    a = place(r.from, r.fromCode);
+    b = place(r.to, r.toCode);
     if (!a || !b)
         return null;
     var coords;
