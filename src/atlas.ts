@@ -1,1 +1,1 @@
-$(cat /tmp/atlas_patched.ts)
+PLACEHOLDER_WILL_BE_REPLACED
