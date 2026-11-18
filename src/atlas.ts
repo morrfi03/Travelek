@@ -60,12 +60,12 @@ var api = (function () {
   }
   (function mountAtlas() {
     var css = document.createElement("style");
-    css.textContent = "#flatBox,#globeBox{position:absolute;inset:0;overflow:hidden}#flatBox{background:#4e8cb2}#globeBox{background:#16324a}#cvF,#cvG,#cvGgl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}#cvGgl{pointer-events:none;z-index:0}#cvG{z-index:1;background:transparent}#cvF.drag,#cvG.drag{cursor:grabbing}#tipF,#tipG{position:absolute;z-index:4;pointer-events:none;background:#1f2a26;color:#fff;padding:5px 9px;border-radius:6px;font:600 13px/1.3 Manrope,system-ui,sans-serif;opacity:0;transform:translate(12px,12px);white-space:nowrap}#tipF small,#tipG small{display:block;opacity:.7;font-size:11px;font-weight:500}#atlas-html{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden}";
+    css.textContent = "#map{transition:background-color .5s ease}#flatBox,#globeBox{position:absolute;inset:0;overflow:hidden;transition:opacity .5s ease}#flatBox{background:#4e8cb2}#globeBox{background:#16324a;opacity:0;pointer-events:none}#cvF,#cvG,#cvGgl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}#cvGgl{pointer-events:none;z-index:0}#cvG{z-index:1;background:transparent}#cvF.drag,#cvG.drag{cursor:grabbing}#tipF,#tipG{position:absolute;z-index:4;pointer-events:none;background:#1f2a26;color:#fff;padding:5px 9px;border-radius:6px;font:600 13px/1.3 Manrope,system-ui,sans-serif;opacity:0;transform:translate(12px,12px);white-space:nowrap}#tipF small,#tipG small{display:block;opacity:.7;font-size:11px;font-weight:500}#atlas-html{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden;transition:opacity .35s ease}@media (prefers-reduced-motion:reduce){#map,#flatBox,#globeBox,#atlas-html{transition:none}}";
     document.head.appendChild(css);
     function box(id){ var d=document.createElement("div"); d.id=id; return d; }
     var fb=box("flatBox"), cv=document.createElement("canvas"); cv.id="cvF"; fb.appendChild(cv);
     var tip=document.createElement("div"); tip.id="tipF"; fb.appendChild(tip); root.appendChild(fb);
-    var gb=box("globeBox"); gb.hidden=true; var cv2=document.createElement("canvas"); cv2.id="cvG"; gb.appendChild(cv2);
+    var gb=box("globeBox"); var cv2=document.createElement("canvas"); cv2.id="cvG"; gb.appendChild(cv2);
     var tip2=document.createElement("div"); tip2.id="tipG"; gb.appendChild(tip2); root.appendChild(gb);
     var htmlPane=document.createElement("div"); htmlPane.id="atlas-html"; root.appendChild(htmlPane);
     root.style.background="#4e8cb2";
@@ -1634,18 +1634,31 @@ var api = (function () {
   }
   function flatKForSpan(deg) { return (2 * XMAX * 180 / PI) / Math.max(8, deg); }
   var camHold: any = { flat: null, globe: null };
+  var modeFade = 0;
   function readFlatCam() { var c = views.flat.getCenter(); return { lon: c.lon, lat: c.lat, k: views.flat.getK() }; }
   function readGlobeCam() { var c = views.globe.getCenter(); return { lon: c.lon, lat: c.lat, z: c.z }; }
+  function paintMode(m) {
+    var flat = $("flatBox"), globe = $("globeBox");
+    if (flat) { flat.hidden = false; flat.style.opacity = m === "flat" ? "1" : "0"; flat.style.pointerEvents = m === "flat" ? "auto" : "none"; }
+    if (globe) { globe.hidden = false; globe.style.opacity = m === "globe" ? "1" : "0"; globe.style.pointerEvents = m === "globe" ? "auto" : "none"; }
+  }
   function setMode(m) {
     if (m !== "flat" && m !== "globe") m = "flat";
     var changed = m !== mode;
     if (changed) camHold[mode] = mode === "flat" ? readFlatCam() : readGlobeCam();
     var from = mode;
-    $("flatBox").hidden = m !== "flat";
-    $("globeBox").hidden = m !== "globe";
-    root.style.background = m === "globe" ? "#16324a" : "#4e8cb2";
     mode = m; hoverEnt = -1;
+    root.style.background = m === "globe" ? "#16324a" : "#4e8cb2";
+    var labels = $("atlas-html");
+    var token = ++modeFade;
+    if (changed && labels) {
+      labels.style.transition = "none";
+      labels.style.opacity = "0";
+      void labels.offsetWidth;
+      labels.style.transition = "";
+    }
     requestAnimationFrame(function () {
+      if (token !== modeFade) return;
       var to = views[m];
       to.resize();
       if (changed) {
@@ -1659,6 +1672,16 @@ var api = (function () {
         }
       }
       if (to.drawNow) to.drawNow(); else to.draw();
+      requestAnimationFrame(function () {
+        if (token !== modeFade) return;
+        paintMode(m);
+        if (!changed || !labels) return;
+        var wait = (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) ? 0 : 480;
+        setTimeout(function () {
+          if (token !== modeFade || mode !== m) return;
+          labels.style.opacity = "1";
+        }, wait);
+      });
     });
   }
   function tagOne(e) {
