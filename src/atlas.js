@@ -1,5 +1,5 @@
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=80";
-import { countriesToPaint, regionMatches } from "./visit.js?v=80";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=81";
+import { countriesToPaint, regionMatches } from "./visit.js?v=81";
 var api = (function () {
     var PI = Math.PI, D2R = PI / 18000; // координаты хранятся в сотых долях градуса
     var $ = function (id) { return document.getElementById(id); };

@@ -1,4 +1,4 @@
-/* Собирает .js рядом с .ts и ставит ?v=80 на импорты.
+/* Собирает .js рядом с .ts и ставит ?v=81 на импорты.
    Layero этот скрипт не запускает: в репозиторий кладётся уже собранный JavaScript. */
 import { spawnSync } from "node:child_process";
 import { mkdtempSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const tsc = process.argv[2];
-const cacheV = "80";
+const cacheV = "81";
 if (!tsc) {
   console.error("нужен путь к tsc");
   process.exit(1);

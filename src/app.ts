@@ -2093,16 +2093,15 @@ if(trackStop) trackStop.onclick=function(){ stopTracking(true); };
 
 
 if(typeof ensureFlightPairs==="function") ensureFlightPairs();
-if(ROUTES.length && !ROUTES.some(isFuture)){
-  activeTab="past";
-  var bootTabs=document.querySelectorAll(".tab");
-  for(var bti=0;bti<bootTabs.length;bti++){
-    if(bootTabs[bti].getAttribute("data-tab")==="past") bootTabs[bti].classList.add("on");
-    else bootTabs[bti].classList.remove("on");
-  }
-}
 loadMapPrefs();
 setSheet("mid");
+if(document.body.getAttribute("data-section")!=="diary"){
+  activeTab="future";
+  var bootTabs=document.querySelectorAll(".tab");
+  for(var bti=0;bti<bootTabs.length;bti++){
+    bootTabs[bti].classList.toggle("on", bootTabs[bti].getAttribute("data-tab")==="future");
+  }
+}
 render();
 if(typeof applyGlobeEffect==="function") applyGlobeEffect();
 if(typeof drawNavZones==="function") drawNavZones();

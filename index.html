@@ -883,7 +883,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
     box-shadow:0 24px 70px rgba(0,0,0,.45);
   }
   .trip-window header{padding-top:12px}
-  #settings-panel.on,#countries-panel.on,#users-panel.on,#account-panel.on{
+  #countries-panel.on,#users-panel.on,#account-panel.on{
     left:50%;right:auto;bottom:auto;top:50%;transform:translate(-50%,-50%);
     width:min(480px,92vw);max-height:86dvh;border-radius:20px;border:1px solid var(--line);
   }
@@ -1255,13 +1255,20 @@ body[data-section="diary"] #sheet .sheet-tools{display:flex!important}
     border-radius:0;transform:none!important;
   }
   body[data-section="stats"] #sheet,
-  body[data-section="settings"] #settings-panel,
   body[data-section="catalog"] #countries-panel,
   #account-panel.on{
     top:0!important;bottom:0!important;left:var(--rail)!important;right:0!important;
     width:auto!important;height:auto!important;max-height:none!important;
     border-radius:0!important;transform:none!important;
   }
+  body[data-section="settings"] #settings-panel{
+    top:0!important;bottom:0!important;left:var(--rail)!important;right:0!important;
+    width:auto!important;height:auto!important;max-height:none!important;
+    border-radius:0!important;transform:none!important;
+    display:flex!important;flex-direction:column;align-items:center;
+    padding:48px 24px 72px!important;overflow-y:auto;background:var(--bg)!important;
+  }
+  body[data-section="settings"] #settings-panel > *{width:min(520px,100%);max-width:520px;margin-left:auto;margin-right:auto}
 }
 
 #boot-screen{position:fixed;inset:0;z-index:9999;background:radial-gradient(ellipse 80% 60% at 50% 40%,#1a2438 0%,#0c1018 70%);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;transition:opacity .4s ease}
@@ -1451,7 +1458,7 @@ button:disabled{cursor:default}
 </div>
 <div id="view-banner" hidden></div>
 
-<div id="settings-panel" style="max-height:86vh;overflow-y:auto">
+<div id="settings-panel">
   <div class="panel-head">
     <b data-i18n="Настройки">Настройки</b>
     <button type="button" id="set-close" class="panel-x" aria-label="Закрыть">×</button>
@@ -1732,6 +1739,6 @@ button:disabled{cursor:default}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=80"></script>
+<script type="module" src="src/main.js?v=81"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>

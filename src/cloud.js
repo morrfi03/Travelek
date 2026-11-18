@@ -1,8 +1,8 @@
-import { AIRPORTS, CITIES, PORTS, PORT_ALIASES, PORT_BY_ID, STATIONS, findPortByQuery, flightAllowed, formatPortLabel, isPassengerPort, portCityKey, portPath } from "./catalog.js?v=80";
-import { nameHas, norm } from "./text.js?v=80";
-import { WORLD } from "./world.js?v=80";
-import { ui } from "./screen.js?v=80";
-import { mergeUsers, nickIsAdmin, preferPack, readStoreDocument, repairVlad } from "./store.js?v=80";
+import { AIRPORTS, CITIES, PORTS, PORT_ALIASES, PORT_BY_ID, STATIONS, findPortByQuery, flightAllowed, formatPortLabel, isPassengerPort, portCityKey, portPath } from "./catalog.js?v=81";
+import { nameHas, norm } from "./text.js?v=81";
+import { WORLD } from "./world.js?v=81";
+import { ui } from "./screen.js?v=81";
+import { mergeUsers, nickIsAdmin, preferPack, readStoreDocument, repairVlad } from "./store.js?v=81";
 export { nameHas, norm, WORLD };
 "use strict";
 export function safeSetItem(key, val) {
