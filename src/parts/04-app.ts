@@ -810,7 +810,8 @@ function routeRepeatKey(r){
   }
   return [a,b].sort().join(" ⇄ ");
 }
-export function render(){
+export function render(opts?){
+  var keepMap=!!(opts && opts.keepMap);
   if(activeTab==="trips") activeTab="past";
   layer.clearLayers();
   if(typeof collectLabelPts==="function") collectLabelPts(typeof filtered==="function"?filtered():ROUTES);
@@ -872,7 +873,7 @@ export function render(){
     g.coords.forEach(function(c){bounds.push(c);});
   });
   if(typeof syncVisited==="function") syncVisited();
-  if(typeof drawCountries==="function") drawCountries();
+  if(!keepMap && typeof drawCountries==="function") drawCountries();
   try{layer.bringToFront();labelsLayer.bringToFront();}catch(e){}
   if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
   if(typeof renderCountryUi==="function") renderCountryUi();
@@ -915,6 +916,19 @@ export function render(){
   if(add2) add2.textContent=t("Добавить поездку");
   try{ fillAnalytics(); fillUpcoming(); }catch(e){}
 }
+
+function routesForSection(name){
+  var want=name==="map"?"future":(name==="diary"?"past":"");
+  if(!want) return;
+  var tabs=document.querySelectorAll(".tab"), i;
+  for(i=0;i<tabs.length;i++) tabs[i].classList.toggle("on", tabs[i].getAttribute("data-tab")===want);
+  if(activeTab===want) return;
+  activeTab=want;
+  selectedId=null;
+  sheetMore.on=false;
+  render({keepMap:true});
+}
+window.__routesForSection=routesForSection;
 
 
 

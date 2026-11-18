@@ -1003,7 +1003,18 @@ var api = (function () {
             L.ready = true;
             L.b64 = null;
         }
-        function resize() { var r = box.getBoundingClientRect(); cw = Math.max(200, r.width); ch = Math.max(100, r.height); dpr = Math.min(window.devicePixelRatio || 1, 2); cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); clamp(); }
+        function resize() {
+            var r = box.getBoundingClientRect();
+            var nw = Math.max(200, r.width), nh = Math.max(100, r.height), nd = Math.min(window.devicePixelRatio || 1, 2);
+            var pw = Math.round(nw * nd), ph = Math.round(nh * nd);
+            if (cw === nw && ch === nh && dpr === nd && cv.width === pw && cv.height === ph)
+                return false;
+            cw = nw;
+            ch = nh;
+            dpr = nd;
+            clamp();
+            return true;
+        }
         function clamp() {
             k = Math.max(kMin(), Math.min(KMAX, k));
             var kk = cw / WID * k, w = WID * kk, h = HF * kk;
@@ -1239,18 +1250,19 @@ var api = (function () {
             target.globalAlpha = 1;
             target.restore();
         }
-        function draw() {
+        function draw(routesOnly) {
+            var pw = Math.round(cw * dpr), ph = Math.round(ch * dpr);
             var dragging = cv.classList.contains("drag");
             var settled = !dragging && !hold;
             var key = [cw, ch, dpr, Math.round(k * 1000), settled ? Math.round(tx) : "m", settled ? Math.round(ty) : "m", show.rd ? 1 : 0, show.rl ? 1 : 0, show.rv ? 1 : 0, texF.complete ? 1 : 0, relF.complete ? 1 : 0, markRev].join("|");
-            if (bc.width !== cv.width || bc.height !== cv.height) {
-                bc.width = cv.width;
-                bc.height = cv.height;
-                rc.width = cv.width;
-                rc.height = cv.height;
+            if (bc.width !== pw || bc.height !== ph) {
+                bc.width = pw;
+                bc.height = ph;
+                rc.width = pw;
+                rc.height = ph;
                 bkey = "";
             }
-            if (settled && key !== bkey) {
+            if (settled && key !== bkey && !(routesOnly && bkey)) {
                 base();
                 bkey = key;
                 snapTx = tx;
@@ -1267,6 +1279,10 @@ var api = (function () {
                 var labels = document.getElementById("atlas-html");
                 if (labels)
                     labels.style.transform = "";
+            }
+            if (cv.width !== pw || cv.height !== ph) {
+                cv.width = pw;
+                cv.height = ph;
             }
             ctx.setTransform(1, 0, 0, 1, 0, 0);
             ctx.clearRect(0, 0, cv.width, cv.height);
@@ -1544,7 +1560,7 @@ var api = (function () {
             return out;
         }
         return {
-            resize: resize, draw: schedule, drawNow: draw, zoomAt: zoomAt, kMin: kMin,
+            resize: resize, draw: schedule, drawNow: draw, paintRoutes: function () { draw(true); }, zoomAt: zoomAt, kMin: kMin,
             getK: function () { return k; },
             getSize: function () { return { x: cw, y: ch }; },
             projectLL: function (lat, lng) { var f = flatXY(lng * PI / 180, lat * PI / 180), kk = cw / WID * k; return { x: f[0] * kk + tx, y: f[1] * kk + ty }; },
@@ -1711,7 +1727,18 @@ var api = (function () {
         var SX = new Float32Array(NV), SY = new Float32Array(NV), ZV = new Uint8Array(NV), RVg = new Uint8Array(NR);
         var lon0 = 60, lat0 = 25, zoom = 1, cw = 600, ch = 600, dpr = 1, spinning = false, moving = 0, raf = 0, idle = 0, cl, sl, cp, sp, R, cx, cy;
         function setCam() { var a = lon0 * PI / 180, b = lat0 * PI / 180; cl = Math.cos(a); sl = Math.sin(a); cp = Math.cos(b); sp = Math.sin(b); R = Math.min(cw, ch) / 2 * 0.9 * zoom; cx = cw / 2; cy = ch / 2; }
-        function resize() { var r = box.getBoundingClientRect(); cw = Math.max(200, r.width); ch = Math.max(200, r.height); dpr = Math.min(window.devicePixelRatio || 1, 2); cv.width = Math.round(cw * dpr); cv.height = Math.round(ch * dpr); }
+        var gBase = document.createElement("canvas"), gbx = gBase.getContext("2d"), gBaseOk = false;
+        function resize() {
+            var r = box.getBoundingClientRect();
+            var nw = Math.max(200, r.width), nh = Math.max(200, r.height), nd = Math.min(window.devicePixelRatio || 1, 2);
+            var pw = Math.round(nw * nd), ph = Math.round(nh * nd);
+            if (cw === nw && ch === nh && dpr === nd && cv.width === pw && cv.height === ph)
+                return false;
+            cw = nw;
+            ch = nh;
+            dpr = nd;
+            return true;
+        }
         function hq() { return Math.min(1, 960 / Math.max(cw, ch)); }
         function relief(q, fast) {
             var rw = Math.max(2, Math.round(cw * q)), rh = Math.max(2, Math.round(ch * q)), kq = 1 / q;
@@ -2041,6 +2068,11 @@ var api = (function () {
             });
         }
         function draw(q, fast) {
+            var pw = Math.round(cw * dpr), ph = Math.round(ch * dpr);
+            if (cv.width !== pw || cv.height !== ph) {
+                cv.width = pw;
+                cv.height = ph;
+            }
             setCam();
             var glOn = bootGL();
             if (glOn)
@@ -2282,6 +2314,30 @@ var api = (function () {
             ctx.strokeStyle = "rgba(0,0,0,.45)";
             ctx.lineWidth = 1.5;
             ctx.stroke();
+            if (!fast) {
+                if (gBase.width !== cv.width || gBase.height !== cv.height) {
+                    gBase.width = cv.width;
+                    gBase.height = cv.height;
+                }
+                gbx.setTransform(1, 0, 0, 1, 0, 0);
+                gbx.drawImage(cv, 0, 0);
+                gBaseOk = true;
+            }
+            if (hooks.paint) {
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                hooks.paint(ctx);
+            }
+        }
+        function paintRoutes() {
+            if (mode !== "globe")
+                return;
+            if (!gBaseOk || gBase.width !== cv.width || gBase.height !== cv.height) {
+                draw(hq(), false);
+                return;
+            }
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            ctx.clearRect(0, 0, cv.width, cv.height);
+            ctx.drawImage(gBase, 0, 0);
             if (hooks.paint) {
                 ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
                 hooks.paint(ctx);
@@ -2421,7 +2477,7 @@ var api = (function () {
             })(t0);
         }
         return {
-            resize: resize, draw: redraw, flyTo: flyTo,
+            resize: resize, draw: redraw, drawNow: function () { draw(hq(), false); }, paintRoutes: paintRoutes, flyTo: flyTo,
             zoomBy: function (f) { zoom = Math.max(1, Math.min(6, zoom * f)); redraw(); if (hooks.afterView)
                 hooks.afterView(); },
             projectLL: function (lat, lng) {
@@ -2695,7 +2751,7 @@ var api = (function () {
         facade.getContainer = function () { return root; };
         facade.getPane = function (name) { return facade._panes && facade._panes[name] || null; };
         facade.createPane = function (name) { facade._panes = facade._panes || {}; var d = document.createElement("div"); facade._panes[name] = d; return d; };
-        facade.invalidateSize = function () { views.flat.resize(); views.globe.resize(); views[mode].draw(); };
+        facade.invalidateSize = function () { fitActive(); };
         facade.on = function (ev, fn) { (facade._on[ev] = facade._on[ev] || []).push(fn); return facade; };
         facade.latLngToContainerPoint = function (ll) {
             var lat = ll && ll.lat != null ? ll.lat : ll[0], lng = ll && ll.lng != null ? ll.lng : ll[1];
@@ -2906,7 +2962,20 @@ var api = (function () {
         facade.networkOn = function () { return { roads: views.flat.netOn("rd"), rails: views.flat.netOn("rl") }; };
         facade.setMode = function (m) { setMode(m); };
         facade.setVisited = setVisited;
-        function redraw() { views[mode].draw(); }
+        var overlayQueued = 0;
+        function redraw() {
+            if (overlayQueued)
+                return;
+            overlayQueued = 1;
+            queueMicrotask(function () {
+                overlayQueued = 0;
+                var v = views[mode];
+                if (v && v.paintRoutes)
+                    v.paintRoutes();
+                else if (v)
+                    v.draw();
+            });
+        }
         facade._paint = redraw;
         facade.addLayer = function (l) {
             if (!l)
@@ -3134,9 +3203,18 @@ var api = (function () {
         };
         return facade;
     }
+    function fitActive() {
+        var v = views[mode];
+        if (!v || !v.resize())
+            return;
+        if (v.drawNow)
+            v.drawNow();
+        else
+            v.draw();
+    }
     if (window.ResizeObserver)
-        new ResizeObserver(function () { views[mode].resize(); views[mode].draw(); }).observe(root);
-    window.addEventListener("resize", function () { views[mode].resize(); views[mode].draw(); });
+        new ResizeObserver(fitActive).observe(root);
+    window.addEventListener("resize", fitActive);
     views.flat.resize();
     views.flat.draw();
     return { createMap: buildFacade, setVisited: setVisited, setMode: setMode };

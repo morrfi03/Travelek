@@ -1,7 +1,7 @@
 import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=73";
 import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=73";
 import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=73";
-import { createMap } from "../atlas.js?v=74";
+import { createMap } from "../atlas.js?v=75";
 import { bindScreen } from "../screen.js?v=73";
 import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=73";
 import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js?v=73";
@@ -1062,7 +1062,8 @@ function routeRepeatKey(r) {
     }
     return [a, b].sort().join(" ⇄ ");
 }
-export function render() {
+export function render(opts) {
+    var keepMap = !!(opts && opts.keepMap);
     if (activeTab === "trips")
         activeTab = "past";
     layer.clearLayers();
@@ -1171,7 +1172,7 @@ export function render() {
     });
     if (typeof syncVisited === "function")
         syncVisited();
-    if (typeof drawCountries === "function")
+    if (!keepMap && typeof drawCountries === "function")
         drawCountries();
     try {
         layer.bringToFront();
@@ -1235,6 +1236,21 @@ export function render() {
     }
     catch (e) { }
 }
+function routesForSection(name) {
+    var want = name === "map" ? "future" : (name === "diary" ? "past" : "");
+    if (!want)
+        return;
+    var tabs = document.querySelectorAll(".tab"), i;
+    for (i = 0; i < tabs.length; i++)
+        tabs[i].classList.toggle("on", tabs[i].getAttribute("data-tab") === want);
+    if (activeTab === want)
+        return;
+    activeTab = want;
+    selectedId = null;
+    sheetMore.on = false;
+    render({ keepMap: true });
+}
+window.__routesForSection = routesForSection;
 function fillAnalytics() {
     var cards = document.getElementById("an-cards");
     if (!cards)

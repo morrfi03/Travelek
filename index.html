@@ -1686,7 +1686,11 @@ body[data-section="diary"] #sheet .sheet-tools{display:flex!important}
       }
     }
     if(name==="map") tabBtn=document.querySelector('.tab[data-tab="future"]');
-    if(tabBtn && !tabBtn.classList.contains("on")) tabBtn.click();
+    if(name==="diary" || name==="map"){
+      window.dispatchEvent(new Event("resize"));
+      if(window.__routesForSection) window.__routesForSection(name);
+      else if(tabBtn && !tabBtn.classList.contains("on")) tabBtn.click();
+    }
     requestAnimationFrame(function(){ window.dispatchEvent(new Event("resize")); });
   }
   document.getElementById("dock").addEventListener("click", function(e){
@@ -1726,6 +1730,6 @@ body[data-section="diary"] #sheet .sheet-tools{display:flex!important}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=74"></script>
+<script type="module" src="src/main.js?v=75"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>
