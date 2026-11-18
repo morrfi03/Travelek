@@ -1,8 +1,8 @@
-import { AIRPORTS, CITIES, PORTS, PORT_ALIASES, PORT_BY_ID, STATIONS, findPortByQuery, flightAllowed, formatPortLabel, isPassengerPort, portCityKey, portPath } from "./catalog.js?v=83";
-import { nameHas, norm } from "./text.js?v=83";
-import { WORLD } from "./world.js?v=83";
-import { ui } from "./screen.js?v=83";
-import { mergeUsers, nickIsAdmin, preferPack, readStoreDocument, repairVlad } from "./store.js?v=83";
+import { AIRPORTS, CITIES, PORTS, PORT_ALIASES, PORT_BY_ID, STATIONS, findPortByQuery, flightAllowed, formatPortLabel, isPassengerPort, portCityKey, portPath } from "./catalog.js?v=84";
+import { nameHas, norm } from "./text.js?v=84";
+import { WORLD } from "./world.js?v=84";
+import { ui } from "./screen.js?v=84";
+import { mergeUsers, nickIsAdmin, preferPack, readStoreDocument, repairVlad } from "./store.js?v=84";
 export { nameHas, norm, WORLD };
 "use strict";
 export function safeSetItem(key, val) {
@@ -24,7 +24,7 @@ export function scheduleCloudSave() {
         return;
     clearTimeout(cloudTimer);
     cloudTimer = setTimeout(function () {
-        var keys = ["travelek-extra", "travelek-del", "travelek-app-settings", "travelek-mapprefs", "travelek-theme", "travelek-theme-pref", "travelek-countries", "travelek-countries-off", "travelek-regions", "travelek-regions-off", "travelek-trips"];
+        var keys = ["travelek-extra", "travelek-del", "travelek-app-settings", "travelek-mapprefs", "travelek-theme", "travelek-theme-pref", "travelek-countries", "travelek-countries-off", "travelek-regions", "travelek-regions-off", "travelek-trips", "travelek-schedules"];
         var pack = {}, i;
         for (i = 0; i < keys.length; i++)
             pack[keys[i]] = localStorage.getItem(keys[i]);
@@ -176,7 +176,7 @@ wipeRoutesOnce();
         return;
     window.__TRAVELEK_PRIVATE = true;
     var USERS = "travelek-users", SESSION = "travelek-session", VAULT = "travelek-vault";
-    var KEYS = ["travelek-extra", "travelek-del", "travelek-app-settings", "travelek-mapprefs", "travelek-theme", "travelek-theme-pref", "travelek-countries", "travelek-countries-off", "travelek-regions", "travelek-regions-off", "travelek-trips"];
+    var KEYS = ["travelek-extra", "travelek-del", "travelek-app-settings", "travelek-mapprefs", "travelek-theme", "travelek-theme-pref", "travelek-countries", "travelek-countries-off", "travelek-regions", "travelek-regions-off", "travelek-trips", "travelek-schedules"];
     var STORE_URL = window.__TRAVELEK_API || "https://keepjson.fourlegs.workers.dev/bins/BkoU663gNtadZ-zfQvPYx";
     var STORE_KEY = window.__TRAVELEK_API ? "" : "kj_w_qgNZJtClt_6vg01Eq5c8j1wpxzMTpSzUKrazvkb12AY";
     window.__TRAVELEK_STORE_URL = STORE_URL;

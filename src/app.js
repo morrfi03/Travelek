@@ -1,10 +1,10 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./catalog.js?v=83";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=83";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js?v=83";
-import { createMap } from "./atlas.js?v=83";
-import { bindScreen } from "./screen.js?v=83";
-import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "./diary.js?v=83";
-import { marksForTab, placesVisitKey, routeBagKey } from "./visit.js?v=83";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./catalog.js?v=84";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=84";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js?v=84";
+import { createMap } from "./atlas.js?v=84";
+import { bindScreen } from "./screen.js?v=84";
+import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "./diary.js?v=84";
+import { marksForTab, placesVisitKey, routeBagKey } from "./visit.js?v=84";
 "use strict";
 /* map */
 export var map;
@@ -2261,6 +2261,11 @@ if (flightFind)
             alert("Укажите аэропорты из списка и дату");
             return;
         }
+        var known = cachedSchedule(ca, cb, date);
+        if (known) {
+            showFoundFlights(known, "Из сохранённых рейсов");
+            return;
+        }
         flightFind.disabled = true;
         if (flightNote)
             flightNote.textContent = "Ищем рейсы…";
@@ -2277,36 +2282,8 @@ if (flightFind)
                 return;
             }
             var rows = data.flights || [];
-            if (!rows.length) {
-                if (flightNote)
-                    flightNote.textContent = "На эту дату рейсов нет";
-                return;
-            }
-            if (flightList) {
-                flightList.hidden = false;
-                flightList.innerHTML = rows.map(function (row, i) {
-                    var mins = Number(row.airMin) || 0;
-                    var clock = mins ? (" · " + Math.floor(mins / 60) + " ч " + (mins % 60) + " мин") : "";
-                    return '<button type="button" data-i="' + i + '">' + escLabel(row.flight) + ' · ' + escLabel(row.airline || "") + ' · ' + escLabel(row.aircraft || "") + ' · ' + escLabel(row.time || "") + clock + '</button>';
-                }).join("");
-                flightList.onclick = function (ev) {
-                    var btn = ev.target.closest("button");
-                    if (!btn)
-                        return;
-                    var row = rows[Number(btn.getAttribute("data-i"))];
-                    if (!row)
-                        return;
-                    flightInput.value = row.flight || "";
-                    if (row.time)
-                        document.getElementById("f-time").value = row.time;
-                    pickedAir = { flight: row.flight || "", airline: row.airline || "", aircraft: row.aircraft || "", airMin: Number(row.airMin) || 0 };
-                    flightList.hidden = true;
-                    if (flightNote)
-                        flightNote.textContent = "Расписание: AeroDataBox";
-                };
-            }
-            if (flightNote)
-                flightNote.textContent = "Расписание: AeroDataBox";
+            rememberSchedule(ca, cb, date, rows);
+            showFoundFlights(rows, data.saved ? "Из сохранённых рейсов" : "Сохранено в базу");
         }
         catch (e) {
             if (flightNote)
@@ -2316,6 +2293,38 @@ if (flightFind)
             flightFind.disabled = false;
         }
     };
+function showFoundFlights(rows, note) {
+    if (flightNote)
+        flightNote.textContent = note || "";
+    if (!flightList)
+        return;
+    if (!rows.length) {
+        flightList.hidden = true;
+        flightList.innerHTML = "";
+        if (flightNote)
+            flightNote.textContent = "На эту дату рейсов нет";
+        return;
+    }
+    flightList.hidden = false;
+    flightList.innerHTML = rows.map(function (row, i) {
+        var mins = Number(row.airMin) || 0;
+        var clock = mins ? (" · " + Math.floor(mins / 60) + " ч " + (mins % 60) + " мин") : "";
+        return '<button type="button" data-i="' + i + '">' + escLabel(row.flight) + ' · ' + escLabel(row.airline || "") + ' · ' + escLabel(row.aircraft || "") + ' · ' + escLabel(row.time || "") + clock + '</button>';
+    }).join("");
+    flightList.onclick = function (ev) {
+        var btn = ev.target.closest("button");
+        if (!btn)
+            return;
+        var row = rows[Number(btn.getAttribute("data-i"))];
+        if (!row)
+            return;
+        flightInput.value = row.flight || "";
+        if (row.time)
+            document.getElementById("f-time").value = row.time;
+        pickedAir = { flight: row.flight || "", airline: row.airline || "", aircraft: row.aircraft || "", airMin: Number(row.airMin) || 0 };
+        flightList.hidden = true;
+    };
+}
 function buildRouteFromForm() {
     var mode = fMode.value;
     var from = fFrom.value.trim(), to = fTo.value.trim();
@@ -5552,6 +5561,28 @@ function adsbNote(text) {
 }
 var twPick = null;
 var twSchedToken = 0;
+function scheduleId(from, to, date) { return from + "|" + to + "|" + date; }
+function scheduleDb() {
+    try {
+        var db = JSON.parse(localStorage.getItem("travelek-schedules") || "{}");
+        return db && typeof db === "object" ? db : {};
+    }
+    catch (e) {
+        return {};
+    }
+}
+function cachedSchedule(from, to, date) {
+    var row = scheduleDb()[scheduleId(from, to, date)];
+    return Array.isArray(row) ? row : null;
+}
+function rememberSchedule(from, to, date, rows) {
+    var db = scheduleDb();
+    db[scheduleId(from, to, date)] = rows || [];
+    try {
+        localStorage.setItem("travelek-schedules", JSON.stringify(db));
+    }
+    catch (e) { }
+}
 function loadTripSchedule() {
     var box = document.getElementById("tw-sched");
     if (!box)
@@ -5575,6 +5606,11 @@ function loadTripSchedule() {
         box.innerHTML = '<p class="more-link">Укажите дату — покажу реальные рейсы</p>';
         return;
     }
+    var known = cachedSchedule(ca, cb, date);
+    if (known) {
+        paintTripFlights(box, known, ca, cb, date, "Из сохранённых рейсов");
+        return;
+    }
     var token = ++twSchedToken;
     box.hidden = false;
     box.innerHTML = '<p class="more-link">Ищем реальные рейсы…</p>';
@@ -5588,33 +5624,37 @@ function loadTripSchedule() {
             return;
         }
         var rows = pack.data.flights || [];
-        if (!rows.length) {
-            box.innerHTML = '<p class="more-link">На эту дату рейсов нет</p>';
-            return;
-        }
-        box.innerHTML = rows.map(function (row, i) {
-            var mins = Number(row.airMin) || 0;
-            var clock = mins ? (" · " + Math.floor(mins / 60) + " ч " + (mins % 60) + " мин") : "";
-            return '<button type="button" data-sched="' + i + '">' + escLabel(row.flight) + " · " + escLabel(row.airline || "") + " · " + escLabel(row.aircraft || "") + " · " + escLabel(row.time || "") + clock + "</button>";
-        }).join("");
-        box.onclick = function (ev) {
-            var btn = ev.target.closest && ev.target.closest("[data-sched]");
-            if (!btn)
-                return;
-            var row = rows[Number(btn.getAttribute("data-sched"))];
-            if (!row)
-                return;
-            twPick = { from: ca, to: cb, date: date, flight: row.flight || "", airline: row.airline || "", aircraft: row.aircraft || "", airMin: Number(row.airMin) || 0, time: row.time || "" };
-            var timeEl = document.getElementById("tw-time");
-            if (timeEl && row.time)
-                timeEl.value = row.time;
-            box.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b === btn); });
-        };
+        rememberSchedule(ca, cb, date, rows);
+        paintTripFlights(box, rows, ca, cb, date, pack.data.saved ? "Из сохранённых рейсов" : "Сохранено в базу");
     }).catch(function () {
         if (token !== twSchedToken)
             return;
         box.innerHTML = '<p class="more-link">Сервер рейсов не ответил</p>';
     });
+}
+function paintTripFlights(box, rows, ca, cb, date, note) {
+    if (!rows.length) {
+        box.innerHTML = '<p class="more-link">На эту дату рейсов нет</p>';
+        return;
+    }
+    box.innerHTML = '<p class="more-link">' + escLabel(note) + "</p>" + rows.map(function (row, i) {
+        var mins = Number(row.airMin) || 0;
+        var clock = mins ? (" · " + Math.floor(mins / 60) + " ч " + (mins % 60) + " мин") : "";
+        return '<button type="button" data-sched="' + i + '">' + escLabel(row.flight) + " · " + escLabel(row.airline || "") + " · " + escLabel(row.aircraft || "") + " · " + escLabel(row.time || "") + clock + "</button>";
+    }).join("");
+    box.onclick = function (ev) {
+        var btn = ev.target.closest && ev.target.closest("[data-sched]");
+        if (!btn)
+            return;
+        var row = rows[Number(btn.getAttribute("data-sched"))];
+        if (!row)
+            return;
+        twPick = { from: ca, to: cb, date: date, flight: row.flight || "", airline: row.airline || "", aircraft: row.aircraft || "", airMin: Number(row.airMin) || 0, time: row.time || "" };
+        var timeEl = document.getElementById("tw-time");
+        if (timeEl && row.time)
+            timeEl.value = row.time;
+        box.querySelectorAll("button").forEach(function (b) { b.classList.toggle("on", b === btn); });
+    };
 }
 function adsbFetch(url, opt) {
     var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;

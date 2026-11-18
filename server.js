@@ -7,6 +7,32 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 3000);
+
+function scheduleFile() {
+  return process.env.TRAVELEK_SCHEDULES || path.join(root, "data", "schedules.json");
+}
+
+function readDb() {
+  try {
+    const db = JSON.parse(fs.readFileSync(scheduleFile(), "utf8"));
+    return db && typeof db === "object" ? db : {};
+  } catch (err) {
+    return {};
+  }
+}
+
+export function readSchedule(from, to, date) {
+  const row = readDb()[from + "|" + to + "|" + date];
+  return Array.isArray(row) ? row : null;
+}
+
+export function writeSchedule(from, to, date, flights) {
+  const db = readDb();
+  db[from + "|" + to + "|" + date] = flights;
+  const file = scheduleFile();
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, JSON.stringify(db));
+}
 const types = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -139,6 +165,8 @@ export async function searchFlights(query, key) {
   if (!/^[A-Z]{3}$/.test(from) || !/^[A-Z]{3}$/.test(to) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return { status: 400, body: { error: "Нужны аэропорты и дата" } };
   }
+  const saved = readSchedule(from, to, date);
+  if (saved) return { status: 200, body: { flights: saved, saved: true } };
   if (!key) return { status: 503, body: { error: "В Layero не задан ключ AERODATABOX_KEY" } };
   if (!allowSearch()) return { status: 429, body: { error: "Лимит поисков на этот месяц исчерпан" } };
   const windows = [[date + "T00:00", date + "T12:00"], [date + "T12:00", date + "T23:59"]];
@@ -161,7 +189,8 @@ export async function searchFlights(query, key) {
     seen[row.flight] = 1;
     return true;
   }).sort(function (a, b) { return a.time.localeCompare(b.time); });
-  return { status: 200, body: { flights: flights } };
+  try { writeSchedule(from, to, date, flights); } catch (err) {}
+  return { status: 200, body: { flights: flights, saved: false } };
 }
 
 function filePath(urlPath) {
@@ -171,6 +200,7 @@ function filePath(urlPath) {
   rel = path.posix.normalize(rel);
   const parts = rel.split("/").filter(Boolean);
   if (!parts.length || parts.some(function (part) { return part === ".." || part.startsWith("."); })) return null;
+  if (parts[0] === "data") return null;
   const resolved = path.resolve(root, parts.join("/"));
   if (resolved !== root && !resolved.startsWith(root + path.sep)) return null;
   return resolved;
