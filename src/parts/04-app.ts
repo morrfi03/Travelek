@@ -811,7 +811,6 @@ function routeRepeatKey(r){
   return [a,b].sort().join(" ⇄ ");
 }
 export function render(opts?){
-  var keepMap=!!(opts && opts.keepMap);
   if(activeTab==="trips") activeTab="past";
   layer.clearLayers();
   if(typeof collectLabelPts==="function") collectLabelPts(typeof filtered==="function"?filtered():ROUTES);
@@ -873,7 +872,7 @@ export function render(opts?){
     g.coords.forEach(function(c){bounds.push(c);});
   });
   if(typeof syncVisited==="function") syncVisited();
-  if(!keepMap && typeof drawCountries==="function") drawCountries();
+  if(typeof drawCountries==="function") drawCountries();
   try{layer.bringToFront();labelsLayer.bringToFront();}catch(e){}
   if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
   if(typeof renderCountryUi==="function") renderCountryUi();

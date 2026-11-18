@@ -1078,23 +1078,38 @@ var api = (function () {
             ringPath(c, r); }
         var bc = document.createElement("canvas"), bctx = bc.getContext("2d"), bkey = "", snapTx = 0, snapTy = 0, snapK = 1, hold = 0, zoomIdle = 0;
         var rc = document.createElement("canvas"), rctx = rc.getContext("2d");
+        var land = document.createElement("canvas"), lctx = land.getContext("2d"), lkey = "";
+        function reliefSig() {
+            return [cw, ch, dpr, Math.round(k * 1000), Math.round(tx), Math.round(ty), texF.complete ? 1 : 0, relF.complete ? 1 : 0].join("|");
+        }
         function base() {
-            var c = bctx, kk = cw / WID * k;
+            var kk = cw / WID * k, vx0 = -tx / kk, vx1 = (cw - tx) / kk, vy0 = -ty / kk, vy1 = (ch - ty) / kk, px1 = 1.4 / kk, r;
             thr2 = Math.pow(1.3 / kk, 2);
+            stampIso();
+            for (r = 0; r < NR; r++)
+                RV[r] = (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1 || (rbx1[r] - rbx0[r] < px1 && rby1[r] - rby0[r] < px1)) ? 0 : 1;
+            var rk = reliefSig();
+            if (land.width !== bc.width || land.height !== bc.height || rk !== lkey) {
+                land.width = bc.width;
+                land.height = bc.height;
+                lctx.setTransform(1, 0, 0, 1, 0, 0);
+                lctx.clearRect(0, 0, land.width, land.height);
+                lctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                lctx.save();
+                lctx.translate(tx, ty);
+                lctx.scale(kk, kk);
+                paintCrisp(lctx, vx0, vy0, vx1, vy1);
+                lctx.restore();
+                lkey = rk;
+            }
+            var c = bctx;
             c.setTransform(1, 0, 0, 1, 0, 0);
             c.clearRect(0, 0, bc.width, bc.height);
+            c.drawImage(land, 0, 0);
             c.setTransform(dpr, 0, 0, dpr, 0, 0);
             c.save();
             c.translate(tx, ty);
             c.scale(kk, kk);
-            var vx0 = -tx / kk, vx1 = (cw - tx) / kk, vy0 = -ty / kk, vy1 = (ch - ty) / kk, px1 = 1.4 / kk;
-            stampIso();
-            for (var r = 0; r < NR; r++)
-                RV[r] = (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1 || (rbx1[r] - rbx0[r] < px1 && rby1[r] - rby0[r] < px1)) ? 0 : 1;
-            paintCrisp(c, vx0, vy0, vx1, vy1);
-            var lw = 1 / kk;
-            c.lineJoin = "round";
-            c.lineCap = "round";
             function showSmall(e) {
                 for (var r = e.r0; r < e.r1; r++) {
                     if (rbx1[r] < vx0 || rbx0[r] > vx1 || rby1[r] < vy0 || rby0[r] > vy1)
@@ -1560,7 +1575,7 @@ var api = (function () {
             return out;
         }
         return {
-            resize: resize, draw: schedule, drawNow: draw, paintRoutes: function () { draw(true); }, zoomAt: zoomAt, kMin: kMin,
+            resize: resize, draw: schedule, drawNow: draw, paintRoutes: function () { draw(true); }, paintColors: function () { draw(); }, zoomAt: zoomAt, kMin: kMin,
             getK: function () { return k; },
             getSize: function () { return { x: cw, y: ch }; },
             projectLL: function (lat, lng) { var f = flatXY(lng * PI / 180, lat * PI / 180), kk = cw / WID * k; return { x: f[0] * kk + tx, y: f[1] * kk + ty }; },
@@ -1728,6 +1743,7 @@ var api = (function () {
         var lon0 = 60, lat0 = 25, zoom = 1, cw = 600, ch = 600, dpr = 1, spinning = false, moving = 0, raf = 0, idle = 0, cl, sl, cp, sp, R, cx, cy;
         function setCam() { var a = lon0 * PI / 180, b = lat0 * PI / 180; cl = Math.cos(a); sl = Math.sin(a); cp = Math.cos(b); sp = Math.sin(b); R = Math.min(cw, ch) / 2 * 0.9 * zoom; cx = cw / 2; cy = ch / 2; }
         var gBase = document.createElement("canvas"), gbx = gBase.getContext("2d"), gBaseOk = false;
+        var gSphere = document.createElement("canvas"), gsx = gSphere.getContext("2d"), gSphereOk = false, sphereKey = "";
         function resize() {
             var r = box.getBoundingClientRect();
             var nw = Math.max(200, r.width), nh = Math.max(200, r.height), nd = Math.min(window.devicePixelRatio || 1, 2);
@@ -2067,75 +2083,100 @@ var api = (function () {
                 }
             });
         }
-        function draw(q, fast) {
+        function draw(q, fast, colorsOnly) {
             var pw = Math.round(cw * dpr), ph = Math.round(ch * dpr);
-            if (cv.width !== pw || cv.height !== ph) {
-                cv.width = pw;
-                cv.height = ph;
-            }
             setCam();
-            var glOn = bootGL();
-            if (glOn)
-                paintSphere();
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            ctx.clearRect(0, 0, cv.width, cv.height);
-            if (glOn) {
-                try {
-                    if (gl)
-                        gl.flush();
-                    ctx.drawImage(glcv, 0, 0);
-                    glcv.style.opacity = "0";
+            var sphereSig = [pw, ph, Math.round(lon0 * 100), Math.round(lat0 * 100), Math.round(zoom * 1000), gready ? 1 : 0].join("|");
+            var reuseSphere = !!(colorsOnly && gSphereOk && sphereKey === sphereSig && gSphere.width === pw && gSphere.height === ph);
+            if (reuseSphere) {
+                if (cv.width !== pw || cv.height !== ph) {
+                    cv.width = pw;
+                    cv.height = ph;
                 }
-                catch (err) {
-                    glcv.style.opacity = "1";
-                }
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.clearRect(0, 0, cv.width, cv.height);
+                ctx.drawImage(gSphere, 0, 0);
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
             }
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-            if (!glOn) {
-                if (!gready) {
-                    ctx.fillStyle = "#96b8d0";
+            else {
+                if (cv.width !== pw || cv.height !== ph) {
+                    cv.width = pw;
+                    cv.height = ph;
+                }
+                setCam();
+                var glOn = bootGL();
+                if (glOn)
+                    paintSphere();
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.clearRect(0, 0, cv.width, cv.height);
+                if (glOn) {
+                    try {
+                        if (gl)
+                            gl.flush();
+                        ctx.drawImage(glcv, 0, 0);
+                        glcv.style.opacity = "0";
+                    }
+                    catch (err) {
+                        glcv.style.opacity = "1";
+                    }
+                }
+                ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+                if (!glOn) {
+                    if (!gready) {
+                        ctx.fillStyle = "#96b8d0";
+                        ctx.beginPath();
+                        ctx.arc(cx, cy, R, 0, 2 * PI);
+                        ctx.fill();
+                    }
+                    else {
+                        initTex();
+                        if (tex) {
+                            relief(fast ? 0.85 : (q || hq()), !!fast);
+                            ctx.save();
+                            ctx.beginPath();
+                            ctx.arc(cx, cy, R, 0, 2 * PI);
+                            ctx.clip();
+                            ctx.imageSmoothingEnabled = true;
+                            ctx.imageSmoothingQuality = fast ? "low" : "high";
+                            ctx.drawImage(rbuf, 0, 0, cw, ch);
+                            ctx.restore();
+                        }
+                    }
+                }
+                if (!fast && !glOn) {
+                    var g = ctx.createRadialGradient(cx - R * 0.28, cy - R * 0.32, R * 0.15, cx, cy, R);
+                    g.addColorStop(0, "rgba(255,255,255,.07)");
+                    g.addColorStop(0.72, "rgba(255,255,255,0)");
+                    g.addColorStop(1, "rgba(0,20,40,.18)");
+                    ctx.fillStyle = g;
                     ctx.beginPath();
                     ctx.arc(cx, cy, R, 0, 2 * PI);
                     ctx.fill();
+                    var atm = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * 1.06);
+                    atm.addColorStop(0, "rgba(150,196,230,0)");
+                    atm.addColorStop(0.72, "rgba(150,196,230,.28)");
+                    atm.addColorStop(1, "rgba(150,196,230,0)");
+                    ctx.fillStyle = atm;
+                    ctx.beginPath();
+                    ctx.arc(cx, cy, R * 1.06, 0, 2 * PI);
+                    ctx.fill();
                 }
-                else {
-                    initTex();
-                    if (tex) {
-                        relief(fast ? 0.85 : (q || hq()), !!fast);
-                        ctx.save();
-                        ctx.beginPath();
-                        ctx.arc(cx, cy, R, 0, 2 * PI);
-                        ctx.clip();
-                        ctx.imageSmoothingEnabled = true;
-                        ctx.imageSmoothingQuality = fast ? "low" : "high";
-                        ctx.drawImage(rbuf, 0, 0, cw, ch);
-                        ctx.restore();
-                    }
-                }
-            }
-            if (!fast && !glOn) {
-                var g = ctx.createRadialGradient(cx - R * 0.28, cy - R * 0.32, R * 0.15, cx, cy, R);
-                g.addColorStop(0, "rgba(255,255,255,.07)");
-                g.addColorStop(0.72, "rgba(255,255,255,0)");
-                g.addColorStop(1, "rgba(0,20,40,.18)");
-                ctx.fillStyle = g;
                 ctx.beginPath();
                 ctx.arc(cx, cy, R, 0, 2 * PI);
-                ctx.fill();
-                var atm = ctx.createRadialGradient(cx, cy, R * 0.9, cx, cy, R * 1.06);
-                atm.addColorStop(0, "rgba(150,196,230,0)");
-                atm.addColorStop(0.72, "rgba(150,196,230,.28)");
-                atm.addColorStop(1, "rgba(150,196,230,0)");
-                ctx.fillStyle = atm;
-                ctx.beginPath();
-                ctx.arc(cx, cy, R * 1.06, 0, 2 * PI);
-                ctx.fill();
+                ctx.strokeStyle = "rgba(170,200,230,.45)";
+                ctx.lineWidth = fast ? 1.5 : 2.2;
+                ctx.stroke();
+                if (!fast) {
+                    if (gSphere.width !== cv.width || gSphere.height !== cv.height) {
+                        gSphere.width = cv.width;
+                        gSphere.height = cv.height;
+                    }
+                    gsx.setTransform(1, 0, 0, 1, 0, 0);
+                    gsx.drawImage(cv, 0, 0);
+                    gSphereOk = true;
+                    sphereKey = sphereSig;
+                }
             }
-            ctx.beginPath();
-            ctx.arc(cx, cy, R, 0, 2 * PI);
-            ctx.strokeStyle = "rgba(170,200,230,.45)";
-            ctx.lineWidth = fast ? 1.5 : 2.2;
-            ctx.stroke();
             var stride = 1;
             project(stride);
             stampIso();
@@ -2343,6 +2384,11 @@ var api = (function () {
                 hooks.paint(ctx);
             }
         }
+        function paintColors() {
+            if (mode !== "globe")
+                return;
+            draw(hq(), false, true);
+        }
         function redraw() { if (mode === "globe")
             draw(hq(), false); }
         function schedule() { if (raf)
@@ -2477,7 +2523,7 @@ var api = (function () {
             })(t0);
         }
         return {
-            resize: resize, draw: redraw, drawNow: function () { draw(hq(), false); }, paintRoutes: paintRoutes, flyTo: flyTo,
+            resize: resize, draw: redraw, drawNow: function () { draw(hq(), false); }, paintRoutes: paintRoutes, paintColors: paintColors, flyTo: flyTo,
             zoomBy: function (f) { zoom = Math.max(1, Math.min(6, zoom * f)); redraw(); if (hooks.afterView)
                 hooks.afterView(); },
             projectLL: function (lat, lng) {
@@ -2665,6 +2711,18 @@ var api = (function () {
             });
         });
     }
+    function refreshMarks() {
+        if (views.flat.paintColors)
+            views.flat.paintColors();
+        else
+            views.flat.draw();
+        if (mode === "globe") {
+            if (views.globe.paintColors)
+                views.globe.paintColors();
+            else
+                views.globe.draw();
+        }
+    }
     var visitSig = "";
     function setVisited(countries, regions, tone) {
         visitTone = tone === "future" ? "future" : "past";
@@ -2674,9 +2732,7 @@ var api = (function () {
             if (stampIso()) {
                 rebuildWash();
                 markRev++;
-                views.flat.draw();
-                if (mode === "globe")
-                    views.globe.draw();
+                refreshMarks();
             }
             return;
         }
@@ -2697,9 +2753,7 @@ var api = (function () {
         });
         stampIso();
         rebuildWash();
-        views.flat.draw();
-        if (mode === "globe")
-            views.globe.draw();
+        refreshMarks();
     }
     function buildFacade() {
         var pane = document.getElementById("atlas-html");

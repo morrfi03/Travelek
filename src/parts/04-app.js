@@ -1,7 +1,7 @@
 import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./01-catalog.js?v=73";
 import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./02-cloud.js?v=73";
 import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./03-roads.js?v=73";
-import { createMap } from "../atlas.js?v=75";
+import { createMap } from "../atlas.js?v=76";
 import { bindScreen } from "../screen.js?v=73";
 import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../diary.js?v=73";
 import { marksForTab, placesVisitKey, routeBagKey } from "../visit.js?v=73";
@@ -1063,7 +1063,6 @@ function routeRepeatKey(r) {
     return [a, b].sort().join(" ⇄ ");
 }
 export function render(opts) {
-    var keepMap = !!(opts && opts.keepMap);
     if (activeTab === "trips")
         activeTab = "past";
     layer.clearLayers();
@@ -1172,7 +1171,7 @@ export function render(opts) {
     });
     if (typeof syncVisited === "function")
         syncVisited();
-    if (!keepMap && typeof drawCountries === "function")
+    if (typeof drawCountries === "function")
         drawCountries();
     try {
         layer.bringToFront();
