@@ -915,11 +915,7 @@ export function render(opts?){
   var el=document.getElementById("list");
   paintSheetList(el, list);
   lastBounds=bounds;
-  /* не дёргаем карту при каждом render — только при смене вкладки / старте */
-  if(bounds.length&&!selectedId&&!window.__mapInited){
-    window.__mapInited=true;
-    try{map.fitBounds(bounds,{padding:[40,100],maxZoom:5});}catch(e){}
-  }
+  (window as any).__mapInited=true;
   if(typeof buildYearFilter==="function") buildYearFilter();
   var yf=document.getElementById("year-filter");
   if(yf) yf.style.display=activeTab==="trips"?"none":"";
@@ -937,7 +933,8 @@ function routesForSection(name){
   activeTab=want;
   selectedId=null;
   sheetMore.on=false;
-  render({keepMap:true});
+  if(map&&(map as any).keepCamera) (map as any).keepCamera(function(){ render({keepMap:true}); });
+  else render({keepMap:true});
 }
 window.__routesForSection=routesForSection;
 

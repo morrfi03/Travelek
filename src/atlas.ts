@@ -1130,6 +1130,8 @@ var api = (function () {
     return {
       resize: resize, draw: schedule, drawNow: draw, paintRoutes: function () { draw(true); }, paintColors: function () { draw(); }, zoomAt: zoomAt, kMin: kMin,
       getK: function () { return k; },
+      pose: function () { return { k: k, tx: tx, ty: ty }; },
+      poseSet: function (p: { k: number, tx: number, ty: number }) { k = p.k; tx = p.tx; ty = p.ty; bkey = ""; schedule(); },
       getSize: function () { return { x: cw, y: ch }; },
       projectLL: function (lat, lng) { var f = flatXY(lng * PI / 180, lat * PI / 180), kk = cw / WID * k; return { x: f[0] * kk + tx, y: f[1] * kk + ty }; },
       flatOf: function (lat, lng) { return flatXY(lng * PI / 180, lat * PI / 180); },
@@ -1706,6 +1708,8 @@ var api = (function () {
       },
       getSize: function () { return { x: cw, y: ch }; },
       getCenter: function () { return { lon: lon0, lat: lat0, z: zoom }; },
+      pose: function () { return { lon: lon0, lat: lat0, z: zoom }; },
+      poseSet: function (p: { lon: number, lat: number, z: number }) { stopFly(); lon0 = p.lon; lat0 = p.lat; zoom = p.z; redraw(); },
       setCenter: function (lon, lat, z) { lon0 = lon; lat0 = Math.max(-85, Math.min(85, lat)); zoom = Math.max(1, Math.min(6, z || 1)); },
       glance: function (lon, lat) { lon0 = lon; lat0 = Math.max(-70, Math.min(70, lat)); moving = 1; schedule(); settle(); }
     };
@@ -2001,6 +2005,12 @@ var api = (function () {
     facade.setZoom = function (z) { var c = this.getCenter(); this.setView([c.lat, c.lng], z); };
     facade.getSize = function () { var s = size(); return { x: s.x, y: s.y }; };
     facade.getCenter = function () { var c = (mode === "globe" ? views.globe : views.flat).getCenter(); return { lat: c.lat, lng: c.lon }; };
+    facade.keepCamera = function (fn: () => void) {
+      var v: any = views[mode];
+      var p = v && v.pose ? v.pose() : null;
+      fn();
+      if (p && v && v.poseSet) v.poseSet(p);
+    };
     facade.getContainer = function () { return root; };
     facade.getPane = function (name) { return facade._panes && facade._panes[name] || null; };
     facade.createPane = function (name) { facade._panes = facade._panes || {}; var d = document.createElement("div"); facade._panes[name] = d; return d; };

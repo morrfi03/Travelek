@@ -1,7 +1,7 @@
 import { AIRPORTS, BUILTIN, CITIES, STATIONS, airportCodeOf, ensureFlightPairs, flightAllowed, hav, loadCatalog, planeNavWarnings } from "./catalog.js?v=97";
 import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=103";
 import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, reindexStations, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js?v=97";
-import { createMap } from "./atlas.js?v=107";
+import { createMap } from "./atlas.js?v=108";
 import { bindScreen } from "./screen.js?v=97";
 import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "./diary.js?v=97";
 import { marksForTab, placesVisitKey, routeBagKey } from "./visit.js?v=97";
@@ -1235,14 +1235,7 @@ export function render(opts) {
     var el = document.getElementById("list");
     paintSheetList(el, list);
     lastBounds = bounds;
-    /* не дёргаем карту при каждом render — только при смене вкладки / старте */
-    if (bounds.length && !selectedId && !window.__mapInited) {
-        window.__mapInited = true;
-        try {
-            map.fitBounds(bounds, { padding: [40, 100], maxZoom: 5 });
-        }
-        catch (e) { }
-    }
+    window.__mapInited = true;
     if (typeof buildYearFilter === "function")
         buildYearFilter();
     var yf = document.getElementById("year-filter");
@@ -1269,7 +1262,10 @@ function routesForSection(name) {
     activeTab = want;
     selectedId = null;
     sheetMore.on = false;
-    render({ keepMap: true });
+    if (map && map.keepCamera)
+        map.keepCamera(function () { render({ keepMap: true }); });
+    else
+        render({ keepMap: true });
 }
 window.__routesForSection = routesForSection;
 function fillAnalytics() {
@@ -2158,6 +2154,25 @@ function syncWpPanel() {
         }).join("<br/>");
 }
 fMode.onchange = updateLabels;
+(function () {
+    var bar = document.getElementById("f-mode-ui");
+    if (!bar)
+        return;
+    function sync() {
+        var buttons = bar.querySelectorAll("button"), i;
+        for (i = 0; i < buttons.length; i++)
+            buttons[i].classList.toggle("on", buttons[i].getAttribute("data-v") === fMode.value);
+    }
+    bar.addEventListener("click", function (e) {
+        var b = e.target.closest && e.target.closest("button");
+        if (!b || !bar.contains(b))
+            return;
+        fMode.value = b.getAttribute("data-v");
+        sync();
+        updateLabels();
+    });
+    sync();
+})();
 document.getElementById("f-car-path").onchange = syncWpPanel;
 /* выбор точки на карте для авто (Россия) */
 var pickTarget = null, pickMarkers = [];

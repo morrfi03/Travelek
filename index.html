@@ -3,9 +3,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" /><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"><title>ТравелЕк</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="modulepreload" href="src/main.js?v=113">
-<link rel="modulepreload" href="src/app.js?v=113">
-<link rel="modulepreload" href="src/atlas.js?v=107">
+<link rel="modulepreload" href="src/main.js?v=114">
+<link rel="modulepreload" href="src/app.js?v=114">
+<link rel="modulepreload" href="src/atlas.js?v=108">
 <link rel="modulepreload" href="geo/atlas-data.js?v=97">
 <link rel="modulepreload" href="src/cloud.js?v=103">
 <link rel="modulepreload" href="src/roads.js?v=97">
@@ -1598,6 +1598,30 @@ body.is-switching[data-move="back"] #countries-panel.on{
   body.is-switching #countries-panel.on,
   .trip-window.on,.modal-bg.on .modal{animation:none}
 }
+select,option{color-scheme:dark;background-color:#1c1c1e;color:#f2f2f7}
+:root[data-theme="light"] select,:root[data-theme="light"] option{color-scheme:light;background-color:#fff;color:#111}
+.native-hidden{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important}
+.mode-picks{display:flex;gap:4px;padding:3px;background:var(--chip);border-radius:12px}
+.mode-picks button{flex:1;height:36px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:15px}
+.mode-picks button.on{background:var(--panel-solid);color:var(--text)}
+body[data-section="diary"] #diary-mode{display:none!important}
+body[data-section="diary"] #diary-tools{
+  display:flex!important;flex-direction:column!important;gap:14px!important;
+  overflow:visible!important;position:relative!important;
+}
+body[data-section="diary"] #mode-filter,
+body[data-section="diary"] #year-filter,
+body[data-section="diary"] .sheet-actions,
+body[data-section="diary"] #diary-find{
+  position:static!important;top:auto!important;left:auto!important;right:auto!important;
+  margin:0!important;transform:none!important;float:none!important;
+  width:100%!important;flex:0 0 auto!important;
+}
+body[data-section="diary"] #mode-filter{overflow:hidden!important;min-height:40px!important}
+body[data-section="diary"] #year-filter{
+  overflow-x:auto!important;flex-wrap:nowrap!important;padding:0 0 6px!important;gap:8px!important;
+}
+body[data-section="diary"] #play-trips{flex:0 0 auto!important}
 </style>
 </head>
 <body>
@@ -1931,11 +1955,16 @@ body.is-switching[data-move="back"] #countries-panel.on{
     <h2 id="modal-title">Новый маршрут</h2>
     <div class="field">
       <label data-i18n="Тип">Тип</label>
-      <select id="f-mode">
+      <select id="f-mode" class="native-hidden">
         <option value="plane" data-i18n="Самолёт">Самолёт</option>
         <option value="train" data-i18n="Поезд">Поезд</option>
         <option value="car" data-i18n="Авто">Авто</option>
       </select>
+      <div class="mode-picks" id="f-mode-ui">
+        <button type="button" data-v="plane">Самолёт</button>
+        <button type="button" data-v="train">Поезд</button>
+        <button type="button" data-v="car">Авто</button>
+      </div>
     </div>
     <div class="field">
       <label id="lbl-from">Откуда (аэропорт)</label>
@@ -2034,11 +2063,9 @@ body.is-switching[data-move="back"] #countries-panel.on{
     }
     if(name==="map") tabBtn=document.querySelector('.tab[data-tab="future"]');
     if(name==="diary" || name==="map"){
-      window.dispatchEvent(new Event("resize"));
       if(window.__routesForSection) window.__routesForSection(name);
       else if(tabBtn && !tabBtn.classList.contains("on")) tabBtn.click();
     }
-    requestAnimationFrame(function(){ window.dispatchEvent(new Event("resize")); });
   }
   document.getElementById("dock").addEventListener("click", function(e){
     var button=e.target.closest("button");
@@ -2082,6 +2109,6 @@ body.is-switching[data-move="back"] #countries-panel.on{
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=113"></script>
+<script type="module" src="src/main.js?v=114"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>
