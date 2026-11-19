@@ -46,7 +46,11 @@ function flightArc(a, b, n) {
 }
 /* rail graph */
 var RAIL_NODES = {};
-STATIONS.forEach(function (s) { RAIL_NODES[s.id] = [s.lat, s.lng]; });
+function indexStations(){
+  STATIONS.forEach(function (s) { RAIL_NODES[s.id] = [s.lat, s.lng]; });
+}
+indexStations();
+export function reindexStations(){ indexStations(); }
 /* intermediate rail points */
 [["klin", 56.333, 36.730], ["bologoe", 57.880, 34.092], ["okulovka", 58.381, 33.301], ["chudovo", 59.125, 31.659], ["malaya_vish", 59.541, 30.878], ["vyshny", 57.585, 34.563], ["podolsk", 55.431, 37.545], ["serpukhov", 54.916, 37.411], ["orekhovo", 55.807, 38.967], ["kovrov", 56.357, 41.319], ["dzerzhinsk", 56.238, 43.460]].forEach(function (x) { RAIL_NODES[x[0]] = [x[1], x[2]]; });
 var RAIL_EDGES = [

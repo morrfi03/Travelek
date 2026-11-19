@@ -1,5 +1,5 @@
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=93";
-import { countriesToPaint, regionMatches } from "./visit.js?v=93";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=94";
+import { countriesToPaint, regionMatches } from "./visit.js?v=94";
 var api = (function () {
     var PI = Math.PI, D2R = PI / 18000; // координаты хранятся в сотых долях градуса
     var $ = function (id) { return document.getElementById(id); };
@@ -692,7 +692,7 @@ var api = (function () {
         function kMin() { var need = HF / WID * cw; return Math.max(0.4, Math.min(1, ch / Math.max(1, need))); }
         var texF = new Image();
         texF.onload = function () { texPix = null; byLayer.W.forEach(function (i) { ents[i]._fill = null; }); schedule(); };
-        texF.src = "geo/atlas-tf.jpg?v=91";
+        texF.src = "geo/atlas-tf.jpg?v=94";
         var relF = new Image();
         var texPix = null, texPW = 0, texPH = 0, relPix = null, relW = 0, relH = 0, seaRGB = [78, 140, 178];
         relF.onload = function () {
@@ -705,7 +705,17 @@ var api = (function () {
                 setTimeout(kick, 50);
             schedule();
         };
-        relF.src = "geo/atlas-rs.jpg?v=92";
+        var reliefStarted = false;
+        function startRelief() {
+            if (reliefStarted)
+                return;
+            reliefStarted = true;
+            relF.src = "geo/atlas-rs.jpg?v=94";
+        }
+        if (typeof requestIdleCallback === "function")
+            requestIdleCallback(startRelief, { timeout: 2500 });
+        else
+            setTimeout(startRelief, 1500);
         function grab(img, maxW) {
             if (!img.complete || !img.naturalWidth)
                 return null;
@@ -1650,7 +1660,12 @@ var api = (function () {
             uploadSphere();
             schedule();
         } };
-        gimg.src = "geo/atlas-tg.jpg?v=92";
+        function startGlobe() { if (!gimg.getAttribute("src"))
+            gimg.src = "geo/atlas-tg.jpg?v=94"; }
+        if (typeof requestIdleCallback === "function")
+            requestIdleCallback(startGlobe, { timeout: 4000 });
+        else
+            setTimeout(startGlobe, 2500);
         function bootGL() {
             if (sphereMode)
                 return sphereMode === "webgl";
