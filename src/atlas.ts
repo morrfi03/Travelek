@@ -466,14 +466,25 @@ var api = (function () {
     var texF = new Image(); texF.onload = function () { texPix = null; byLayer.W.forEach(function (i) { ents[i]._fill = null; }); schedule(); }; texF.src = "geo/atlas-tf.jpg?v=91";
     var relF = new Image();
     var texPix = null, texPW = 0, texPH = 0, relPix = null, relW = 0, relH = 0, seaRGB = [78, 140, 178];
-    relF.onload = function () { relPix = null; relMips = null; schedule(); }; relF.src = "geo/atlas-rs.jpg?v=91";
-    function grab(img) {
+    relF.onload = function () {
+      relPix = null; relMips = null;
+      var kick = function () { ensureRelief(); schedule(); };
+      if (typeof requestIdleCallback === "function") requestIdleCallback(kick, { timeout: 700 });
+      else setTimeout(kick, 50);
+      schedule();
+    }; relF.src = "geo/atlas-rs.jpg?v=92";
+    function grab(img, maxW) {
       if (!img.complete || !img.naturalWidth) return null;
+      var scale = maxW ? Math.min(1, maxW / img.naturalWidth) : 1;
+      var w = Math.max(1, Math.round(img.naturalWidth * scale));
+      var h = Math.max(1, Math.round(img.naturalHeight * scale));
       var cv = document.createElement("canvas");
-      cv.width = img.naturalWidth; cv.height = img.naturalHeight;
+      cv.width = w; cv.height = h;
       var g = cv.getContext("2d", { willReadFrequently: true });
-      g.drawImage(img, 0, 0);
-      return { d: g.getImageData(0, 0, cv.width, cv.height).data, w: cv.width, h: cv.height };
+      g.imageSmoothingEnabled = true;
+      g.imageSmoothingQuality = "high";
+      g.drawImage(img, 0, 0, w, h);
+      return { d: g.getImageData(0, 0, w, h).data, w: w, h: h };
     }
     function pixAt(f) {
       if (!texPix || !f) return null;
@@ -485,17 +496,18 @@ var api = (function () {
     function isWater(col) { return col && col[2] > col[0] + 10 && col[2] > col[1] + 2; }
     function ensurePix() {
       if (!texPix) {
-        var t = grab(texF);
+        var t = grab(texF, 2000);
         if (t) {
           texPix = t.d; texPW = t.w; texPH = t.h;
           var sea = pixAt(flatXY(-40 * PI / 180, 25 * PI / 180));
           if (sea && isWater(sea)) seaRGB = sea;
         }
       }
-      if (!relPix) {
-        var r = grab(relF);
-        if (r) { relPix = r.d; relW = r.w; relH = r.h; }
-      }
+    }
+    function ensureRelief() {
+      if (relPix || !relF.complete || !relF.naturalWidth) return;
+      var r = grab(relF, 3600);
+      if (r) { relPix = r.d; relW = r.w; relH = r.h; }
     }
     function countryFill(e) {
       if (e._fill) return e._fill;
@@ -1080,7 +1092,7 @@ var api = (function () {
     var glcv = document.createElement("canvas"); glcv.id = "cvGgl"; glcv.style.opacity = "0"; glcv.style.pointerEvents = "none"; box.insertBefore(glcv, cv);
     var tex = null, TW = 0, TH = 0, rbuf = document.createElement("canvas"), rctx = rbuf.getContext("2d"), rimg = null, gimg = new Image(), gready = false;
     var gl = null, glProg = null, glBuf = null, glTex = null, uLoc = null, sphereMode = "";
-    gimg.onload = function () { gready = true; if (mode === "globe") { uploadSphere(); schedule(); } }; gimg.src = "geo/atlas-tg.jpg?v=91";
+    gimg.onload = function () { gready = true; if (mode === "globe") { uploadSphere(); schedule(); } }; gimg.src = "geo/atlas-tg.jpg?v=92";
     function bootGL() {
       if (sphereMode) return sphereMode === "webgl";
       var opts = { alpha: true, antialias: false, depth: false, stencil: false, premultipliedAlpha: false, preserveDrawingBuffer: true };
