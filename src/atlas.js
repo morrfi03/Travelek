@@ -1089,6 +1089,7 @@ var api = (function () {
         }
         function resize() {
             var r = box.getBoundingClientRect();
+            var nw = Math.max(200, r.width), nh = Math.max(100, r.height);
             var nd = window.devicePixelRatio || 1;
             nd = nw * nh > 900000 ? Math.min(nd, 1.25) : Math.min(nd, 1.5);
             var pw = Math.round(nw * nd), ph = Math.round(nh * nd);
@@ -1847,6 +1848,7 @@ var api = (function () {
         var gSphere = document.createElement("canvas"), gsx = gSphere.getContext("2d"), gSphereOk = false, sphereKey = "";
         function resize() {
             var r = box.getBoundingClientRect();
+            var nw = Math.max(200, r.width), nh = Math.max(200, r.height);
             var nd = window.devicePixelRatio || 1;
             nd = nw * nh > 900000 ? Math.min(nd, 1.25) : Math.min(nd, 1.5);
             var pw = Math.round(nw * nd), ph = Math.round(nh * nd);

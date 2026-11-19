@@ -1,7 +1,7 @@
 import { AIRPORTS, BUILTIN, CITIES, STATIONS, airportCodeOf, ensureFlightPairs, flightAllowed, hav, loadCatalog, planeNavWarnings } from "./catalog.js?v=97";
 import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=103";
 import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, reindexStations, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js?v=97";
-import { createMap } from "./atlas.js?v=105";
+import { createMap } from "./atlas.js?v=106";
 import { bindScreen } from "./screen.js?v=97";
 import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "./diary.js?v=97";
 import { marksForTab, placesVisitKey, routeBagKey } from "./visit.js?v=97";
@@ -16,8 +16,12 @@ window.__onRoads = function () {
     if (typeof render === "function")
         render();
 };
-map = createMap();
-hideBoot();
+try {
+    map = createMap();
+}
+finally {
+    hideBoot();
+}
 function startCatalog() {
     loadCatalog().then(function () {
         reindexStations();
