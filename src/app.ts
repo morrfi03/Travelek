@@ -866,8 +866,13 @@ export function render(opts?){
     var g=buildGeoSync(r); if(!g||!g.coords) return;
     var fut=isFuture(r);
     var theme=document.documentElement.getAttribute("data-theme")||"dark";
-    var col=realFlight(r)?(theme==="light"?"#0369a1":"#38bdf8"):(theme==="light"?"#334155":"#d5dbe3");
-    var casing=theme==="light"?"#ffffff":"#f4f8fc";
+    var light=theme==="light";
+    var col=light?"#3c4a5c":"#d5dbe3";
+    if(r.mode==="train") col=light?"#6d5848":"#cbb89a";
+    else if(r.mode==="car"||r.mode==="walk"||r.mode==="bike") col=light?"#4a564e":"#aeb8aa";
+    else if(r.mode==="ship") col=light?"#3e5560":"#9aafb8";
+    if(realFlight(r)||(selectedId===r.id&&r.mode==="plane")) col=light?"#1d4e6f":"#8ec4de";
+    var casing=light?"rgba(255,255,255,.9)":"rgba(8,12,16,.55)";
     var repeats=routeCounts[routeRepeatKey(r)]||1;
     var w=repeats>1?5.2:2.15;
     if(selectedId===r.id) w+=1.2;
