@@ -3,6 +3,7 @@
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
+import zlib from "node:zlib";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -234,7 +235,19 @@ function serveFile(req, res) {
       return;
     }
     const type = types[path.extname(full).toLowerCase()] || "application/octet-stream";
-    res.writeHead(200, { "content-type": type });
+    const ext = path.extname(full).toLowerCase();
+    const headers = { "content-type": type };
+    headers["cache-control"] = ext === ".html" ? "no-cache" : "public, max-age=604800";
+    const accept = String(req.headers["accept-encoding"] || "");
+    const text = ext === ".html" || ext === ".js" || ext === ".json" || ext === ".svg" || ext === ".css";
+    if (text && stat.size > 2048 && /\bgzip\b/.test(accept)) {
+      headers["content-encoding"] = "gzip";
+      headers.vary = "Accept-Encoding";
+      res.writeHead(200, headers);
+      fs.createReadStream(full).pipe(zlib.createGzip({ level: 6 })).pipe(res);
+      return;
+    }
+    res.writeHead(200, headers);
     fs.createReadStream(full).pipe(res);
   });
 }

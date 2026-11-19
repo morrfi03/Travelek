@@ -3350,7 +3350,7 @@ function bootGeo(){
   }).catch(function(){ PLACE_LABELS=[]; finish(); });
 }
 bootGeo();
-setTimeout(loadWorldPlaces, 800);
+setTimeout(loadWorldPlaces, 2200);
 function syncMapSwitch(){
   var sw=document.getElementById("map-switch");
   if(!sw) return;

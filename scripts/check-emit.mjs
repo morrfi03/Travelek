@@ -8,7 +8,7 @@ import { fileURLToPath } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const tsc = process.argv[2];
-const cacheV = "90";
+const cacheV = "91";
 if (!tsc) {
   console.error("нужен путь к tsc");
   process.exit(1);

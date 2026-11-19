@@ -1,5 +1,5 @@
-import { ATLAS_G as G } from "../geo/atlas-data.js?v=90";
-import { countriesToPaint, regionMatches } from "./visit.js?v=90";
+import { ATLAS_G as G } from "../geo/atlas-data.js?v=91";
+import { countriesToPaint, regionMatches } from "./visit.js?v=91";
 var api = (function () {
     var PI = Math.PI, D2R = PI / 18000; // координаты хранятся в сотых долях градуса
     var $ = function (id) { return document.getElementById(id); };
@@ -692,13 +692,11 @@ var api = (function () {
         function kMin() { var need = HF / WID * cw; return Math.max(0.4, Math.min(1, ch / Math.max(1, need))); }
         var texF = new Image();
         texF.onload = function () { texPix = null; byLayer.W.forEach(function (i) { ents[i]._fill = null; }); schedule(); };
-        texF.src = G.tf;
+        texF.src = "geo/atlas-tf.jpg?v=91";
         var relF = new Image();
         var texPix = null, texPW = 0, texPH = 0, relPix = null, relW = 0, relH = 0, seaRGB = [78, 140, 178];
-        if (G.rs) {
-            relF.onload = function () { relPix = null; relMips = null; schedule(); };
-            relF.src = G.rs;
-        }
+        relF.onload = function () { relPix = null; relMips = null; schedule(); };
+        relF.src = "geo/atlas-rs.jpg?v=91";
         function grab(img) {
             if (!img.complete || !img.naturalWidth)
                 return null;
@@ -730,7 +728,7 @@ var api = (function () {
                         seaRGB = sea;
                 }
             }
-            if (!relPix && G.rs) {
+            if (!relPix) {
                 var r = grab(relF);
                 if (r) {
                     relPix = r.d;
@@ -1636,7 +1634,7 @@ var api = (function () {
             uploadSphere();
             schedule();
         } };
-        gimg.src = G.tg;
+        gimg.src = "geo/atlas-tg.jpg?v=91";
         function bootGL() {
             if (sphereMode)
                 return sphereMode === "webgl";
