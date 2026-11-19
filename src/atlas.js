@@ -950,11 +950,11 @@ var api = (function () {
                 return;
             }
             c.imageSmoothingEnabled = true;
-            c.imageSmoothingQuality = "high";
+            c.imageSmoothingQuality = "low";
             c.drawImage(texF, 0, 0, WID, HF);
             if (relPix) {
                 buildMips();
-                var w = Math.max(2, Math.round(cw)), h = Math.max(2, Math.round(ch)), kk = cw / WID * k, cap = 650000;
+                var w = Math.max(2, Math.round(cw)), h = Math.max(2, Math.round(ch)), kk = cw / WID * k, cap = 180000;
                 if (w * h > cap) {
                     var sc = Math.sqrt(cap / (w * h));
                     w = Math.max(2, Math.round(w * sc));
@@ -1089,7 +1089,8 @@ var api = (function () {
         }
         function resize() {
             var r = box.getBoundingClientRect();
-            var nw = Math.max(200, r.width), nh = Math.max(100, r.height), nd = Math.min(window.devicePixelRatio || 1, 2);
+            var nd = window.devicePixelRatio || 1;
+            nd = nw * nh > 900000 ? Math.min(nd, 1.25) : Math.min(nd, 1.5);
             var pw = Math.round(nw * nd), ph = Math.round(nh * nd);
             if (cw === nw && ch === nh && dpr === nd && cv.width === pw && cv.height === ph)
                 return false;
@@ -1846,7 +1847,8 @@ var api = (function () {
         var gSphere = document.createElement("canvas"), gsx = gSphere.getContext("2d"), gSphereOk = false, sphereKey = "";
         function resize() {
             var r = box.getBoundingClientRect();
-            var nw = Math.max(200, r.width), nh = Math.max(200, r.height), nd = Math.min(window.devicePixelRatio || 1, 2);
+            var nd = window.devicePixelRatio || 1;
+            nd = nw * nh > 900000 ? Math.min(nd, 1.25) : Math.min(nd, 1.5);
             var pw = Math.round(nw * nd), ph = Math.round(nh * nd);
             if (cw === nw && ch === nh && dpr === nd && cv.width === pw && cv.height === ph)
                 return false;
@@ -2326,25 +2328,9 @@ var api = (function () {
                     ctx.fill("evenodd");
                 });
             });
-            /* country borders only on globe — thin */
-            ctx.lineWidth = 1.0;
-            ctx.strokeStyle = "rgba(30,22,10,.5)";
-            ctx.lineJoin = "round";
-            byLayer.W.forEach(function (i) {
-                var e = ents[i];
-                if (e.name === "Украина")
-                    return; // drawn via fillGeo below
-                if (!fast)
-                    projectFull(e);
-                ctx.beginPath();
-                fillRings(e);
-                ctx.stroke();
-            });
             ctx.lineWidth = 1.1;
-            if (fillGeo("RU", true))
-                ctx.stroke();
-            if (fillGeo("UA", true))
-                ctx.stroke();
+            ctx.strokeStyle = "rgba(30,22,10,.55)";
+            ctx.lineJoin = "round";
             if (strokeRuUaFrontier(ctx, function (lng, lat) {
                 var lo = lng * PI / 180, la = lat * PI / 180, X = Math.cos(la) * Math.sin(lo), Y = Math.sin(la), Z = Math.cos(la) * Math.cos(lo);
                 var x1 = X * cl - Z * sl, zz = X * sl + Z * cl, y2 = Y * cp - zz * sp, zc = Y * sp + zz * cp;
@@ -2501,7 +2487,7 @@ var api = (function () {
             draw(hq(), false); }
         function schedule() { if (raf)
             return; raf = requestAnimationFrame(function () { raf = 0; if (mode !== "globe")
-            return; var drag = moving || spinning; draw(drag ? 0.45 : hq(), drag); if (spinning) {
+            return; var drag = moving || spinning; draw(drag ? 0.28 : hq(), drag); if (spinning) {
             lon0 += 0.25;
             schedule();
         } }); }

@@ -3,9 +3,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" /><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"><title>ТравелЕк</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="modulepreload" href="src/main.js?v=109">
-<link rel="modulepreload" href="src/app.js?v=109">
-<link rel="modulepreload" href="src/atlas.js?v=104">
+<link rel="modulepreload" href="src/main.js?v=110">
+<link rel="modulepreload" href="src/app.js?v=110">
+<link rel="modulepreload" href="src/atlas.js?v=105">
 <link rel="modulepreload" href="geo/atlas-data.js?v=97">
 <link rel="modulepreload" href="src/cloud.js?v=103">
 <link rel="modulepreload" href="src/roads.js?v=97">
@@ -1538,6 +1538,33 @@ body[data-section="stats"] .fleet-plane .plane-svg{width:32px;height:20px;color:
 .seg button.on{background:var(--panel-solid);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.18)}
 .trip-window header{background:var(--bg);border-bottom:.5px solid var(--line)}
 .trip-window header b{flex:1;text-align:center;font-size:17px;margin-right:36px}
+body[data-section="stats"] #analytics{
+  width:min(880px,100%);margin:0 auto;padding:8px 20px 48px!important;
+}
+body[data-section="stats"] .an-block{margin:0 0 16px;padding:14px 16px 10px}
+body[data-section="stats"] .an-block h3{
+  margin:0 0 10px;font-size:13px;font-weight:600;letter-spacing:-.01em;text-transform:none;color:var(--muted);
+}
+@media (min-width:980px){
+  body[data-section="stats"] #analytics{
+    display:grid!important;grid-template-columns:1fr 1fr;gap:8px 20px;align-content:start;
+  }
+  body[data-section="stats"] #analytics > .an-filters,
+  body[data-section="stats"] #analytics > .an-cards,
+  body[data-section="stats"] #analytics > .an-block:nth-child(4){grid-column:1 / -1}
+}
+body[data-section="diary"] #sheet .sheet-head{flex-wrap:wrap;align-items:center}
+body[data-section="diary"] .sheet-title{font-size:28px}
+body[data-section="diary"] #sheet .tabs{
+  order:3;flex:1 0 100%;display:flex;gap:0;margin-top:8px;padding:2px;
+  background:var(--chip);border-radius:9px;
+}
+body[data-section="diary"] #sheet .tab{
+  flex:1;border:0;border-radius:7px;min-height:32px;background:transparent;
+}
+body[data-section="diary"] #sheet .tab.on{background:var(--panel-solid);color:var(--text)}
+body[data-section="diary"] #year-filter{flex-wrap:nowrap!important;overflow-x:auto!important}
+body[data-section="diary"] #play-trips{flex:0 0 auto!important}
 @keyframes ios-forward{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
 @keyframes ios-back{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
 @keyframes ios-up{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
@@ -2044,6 +2071,6 @@ body.is-switching[data-move="back"] #countries-panel.on{
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=109"></script>
+<script type="module" src="src/main.js?v=110"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>
