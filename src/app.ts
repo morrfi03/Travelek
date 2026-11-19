@@ -821,8 +821,7 @@ function routeRepeatKey(r){
 export function render(opts?){
   if(activeTab==="trips") activeTab="past";
   layer.clearLayers();
-  var mapRoutes=filterRoutes(ROUTES, "all", { mode: typeof modeFilter!=="undefined"?modeFilter:"all" });
-  if(typeof collectLabelPts==="function") collectLabelPts(mapRoutes);
+  if(typeof collectLabelPts==="function") collectLabelPts(typeof filtered==="function"?filtered():ROUTES);
   var list=filtered(), kmP=0, kmT=0, kmC=0, bounds=[];
   var kmW=0,kmB=0,kmS=0,nP=0,nT=0,nC=0,nW=0,nB=0,nS=0;
   var section=document.body.getAttribute("data-section");
@@ -863,7 +862,7 @@ export function render(opts?){
   var routeCounts= {} as any;
   ROUTES.forEach(function(r){var k=routeRepeatKey(r);if(k&&k!==" ⇄ ")routeCounts[k]=(routeCounts[k]||0)+1;});
 
-  mapRoutes.forEach(function(r){
+  list.forEach(function(r){
     var g=buildGeoSync(r); if(!g||!g.coords) return;
     var fut=isFuture(r);
     var theme=document.documentElement.getAttribute("data-theme")||"dark";
