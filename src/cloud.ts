@@ -1,4 +1,4 @@
-import { AIRPORTS, CITIES, PORTS, PORT_ALIASES, PORT_BY_ID, STATIONS, findPortByQuery, flightAllowed, formatPortLabel, isPassengerPort, portCityKey, portPath } from "./catalog.js";
+import { AIRPORTS, CITIES, STATIONS, flightAllowed } from "./catalog.js";
 import { nameHas, norm } from "./text.js";
 import { WORLD } from "./world.js";
 import { ui } from "./screen.js";
@@ -786,17 +786,6 @@ export function place(name, code?){
     if(norm(a.n)===k || norm(airportLabel(a))===k || norm(airportLabel(a)+" ("+a.code+")")===k || norm(a.n+" ("+a.code+")")===k)
       return {lat:a.lat,lng:a.lng,label:airportLabel(a)+" ("+a.code+")"};
   }
-  /* речные/морские порты раньше городов (Ярославль → речной) */
-  if(typeof findPortByQuery==="function"){
-    var fp=findPortByQuery(k);
-    if(fp) return {lat:fp.lat,lng:fp.lng,label:fp.n,portId:fp.id};
-  } else if(typeof PORTS!=="undefined"){
-    for(i=0;i<PORTS.length;i++){
-      if(/фарватер|центр/.test(PORTS[i].n)) continue;
-      if(norm(PORTS[i].n)===k || portCityKey(PORTS[i].n)===k)
-        return {lat:PORTS[i].lat,lng:PORTS[i].lng,label:PORTS[i].n,portId:PORTS[i].id};
-    }
-  }
   /* city exact */
   for(i=0;i<CITIES.length;i++){
     c = CITIES[i];
@@ -893,34 +882,19 @@ export function searchCatalog(mode, q, fromHint?){
       push(it.n, it.n);
     }
   } else if(mode==="ship"){
-    /* ——— Корабль: только порты; «Куда» — есть путь по воде ——— */
-    var seen= {} as any, p, fromPort=null;
-    if(fromHint && typeof findPortByQuery==="function") fromPort=findPortByQuery(fromHint);
-    function addPort(p){
-      if(!isPassengerPort(p)||seen[p.id]||out.length>=12) return;
-      if(fromPort && fromPort.id===p.id) return;
-      if(fromPort && typeof portPath==="function" && !portPath(fromPort.id, p.id)) return;
-      seen[p.id]=1;
-      push(formatPortLabel(p), p.n, p.id);
+    var seenCity= {} as any, exact=[], rest=[];
+    for(i=0;i<IDX_CITY.length;i++){
+      it=IDX_CITY[i];
+      if(seenCity[it.key]) continue;
+      if(it.key===q){ seenCity[it.key]=1; exact.push(it); }
     }
-    if(PORT_ALIASES[q] && PORT_BY_ID[PORT_ALIASES[q]]) addPort(PORT_BY_ID[PORT_ALIASES[q]]);
-    for(i=0;i<PORTS.length && out.length<12;i++){
-      p=PORTS[i];
-      if(!isPassengerPort(p)) continue;
-      var nk=norm(p.n), ck=portCityKey(p.n);
-      if(ck===q || nk===q || norm(formatPortLabel(p))===q) addPort(p);
+    for(i=0;i<IDX_CITY.length;i++){
+      it=IDX_CITY[i];
+      if(seenCity[it.key]) continue;
+      if(it.key.indexOf(q)>=0){ seenCity[it.key]=1; rest.push(it); }
     }
-    for(i=0;i<PORTS.length && out.length<12;i++){
-      p=PORTS[i];
-      if(!isPassengerPort(p)) continue;
-      nk=norm(p.n); ck=portCityKey(p.n);
-      if(ck.indexOf(q)===0 || nk.indexOf(q)===0) addPort(p);
-    }
-    for(i=0;i<PORTS.length && out.length<12;i++){
-      p=PORTS[i];
-      if(!isPassengerPort(p)) continue;
-      if(norm(p.n).indexOf(q)>=0 || portCityKey(p.n).indexOf(q)>=0) addPort(p);
-    }
+    exact.concat(rest).forEach(function(it){ push(it.n, it.n); });
+    if(out.length<12 && q.length>=2) fillWorldCities(q, out, push);
   } else {
     /* авто / пешком / вело — только города, без повторов */
     var seenCity= {} as any, exact=[], rest=[];

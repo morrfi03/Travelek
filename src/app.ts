@@ -1,4 +1,4 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, loadCatalog, planeNavWarnings } from "./catalog.js";
+import { AIRPORTS, BUILTIN, CITIES, STATIONS, airportCodeOf, ensureFlightPairs, flightAllowed, hav, loadCatalog, planeNavWarnings } from "./catalog.js";
 import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js";
 import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, reindexStations, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js";
 import { createMap } from "./atlas.js";
@@ -439,7 +439,6 @@ function buildWorldLabels(){
   }
   (typeof CITIES!=="undefined"?CITIES:[]).forEach(function(c){ add(c.n, c.lat, c.lng); });
   (typeof STATIONS!=="undefined"?STATIONS:[]).forEach(function(c: any){ add(c.n||c.name, c.lat, c.lng); });
-  (typeof PORTS!=="undefined"?PORTS:[]).forEach(function(c: any){ add(c.n||c.name, c.lat, c.lng); });
   (typeof AIRPORTS!=="undefined"?AIRPORTS:[]).forEach(function(c){ add(c.n, c.lat, c.lng); });
   CITY_LABELS.forEach(function(c){ add(c.name, c.lat, c.lng); });
   worldLabelCache=out;
@@ -1525,7 +1524,7 @@ function updateLabels(){
   if(map && map.setNetwork) map.setNetwork({roads:false, rails:false});
   var ph=document.getElementById("pick-hint");
   if(ph){
-    if(m==="ship") ph.textContent="Корабль: порты из списка или 📍 на воде; маршрут по фарватеру";
+    if(m==="ship") ph.textContent="Паром: город из списка или точка на карте";
     else if(m==="car") ph.textContent="Авто: город или точка на карте";
     else if(m==="walk"||m==="bike") ph.textContent="Точка на карте 📍 или запись GPS (кнопка ●)";
   }
@@ -1817,19 +1816,8 @@ function buildRouteFromForm(){
   }
 
   if(mode==="ship"){
-    var pCheck=findPortByQuery(from)||findPortByQuery(norm(from));
-    var pCheck2=findPortByQuery(to)||findPortByQuery(norm(to));
-    /* если place вернул город без portId — перепривязать к порту */
-    if(!pa.portId){
-      var rp=findPortByQuery(from);
-      if(rp){ pa={lat:rp.lat,lng:rp.lng,label:formatPortLabel(rp),portId:rp.id}; }
-      else { alert("Откуда: выберите порт из списка (не город)"); return; }
-    }
-    if(!pb.portId){
-      var rp2=findPortByQuery(to);
-      if(rp2){ pb={lat:rp2.lat,lng:rp2.lng,label:formatPortLabel(rp2),portId:rp2.id}; }
-      else { alert("Куда: выберите порт из списка (не город)"); return; }
-    }
+    if(!pa){ alert("Откуда: выберите город из списка"); return; }
+    if(!pb){ alert("Куда: выберите город из списка"); return; }
   }
   if(mode==="ship"){
     var nw=shipNavWarnings(pa,pb,date);
@@ -3263,7 +3251,6 @@ function bindRegionCities(){
   walk(typeof CITY_LABELS!=="undefined"?CITY_LABELS:null,"name");
   walk(typeof AIRPORTS!=="undefined"?AIRPORTS:null,"n");
   walk(typeof STATIONS!=="undefined"?STATIONS:null,"n");
-  walk(typeof PORTS!=="undefined"?PORTS:null,"n");
   var qi=0;
   (function step(){
     var t0=Date.now();
