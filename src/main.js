@@ -1,5 +1,5 @@
 /* Точка входа. Части дневника — модули и импортируют друг друга.
    Сборки Vite нет: Layero отдаёт репозиторий как статику. */
-import "./gate.js?v=96";
-import "./app.js?v=96";
-import "./accounts.js?v=96";
+import "./gate.js?v=97";
+import "./app.js?v=97";
+import "./accounts.js?v=97";

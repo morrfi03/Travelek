@@ -1,8 +1,8 @@
-import { AIRPORTS, CITIES, STATIONS, flightAllowed } from "./catalog.js?v=96";
-import { nameHas, norm } from "./text.js?v=96";
-import { WORLD } from "./world.js?v=96";
-import { ui } from "./screen.js?v=96";
-import { mergeUsers, nickIsAdmin, preferPack, readStoreDocument, repairVlad } from "./store.js?v=96";
+import { AIRPORTS, CITIES, STATIONS, flightAllowed } from "./catalog.js?v=97";
+import { nameHas, norm } from "./text.js?v=97";
+import { WORLD } from "./world.js?v=97";
+import { ui } from "./screen.js?v=97";
+import { mergeUsers, nickIsAdmin, preferPack, readStoreDocument, repairVlad } from "./store.js?v=97";
 export { nameHas, norm, WORLD };
 "use strict";
 export function safeSetItem(key, val) {

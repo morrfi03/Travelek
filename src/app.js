@@ -1,10 +1,10 @@
-import { AIRPORTS, BUILTIN, CITIES, STATIONS, airportCodeOf, ensureFlightPairs, flightAllowed, hav, loadCatalog, planeNavWarnings } from "./catalog.js?v=96";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=96";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, reindexStations, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js?v=96";
-import { createMap } from "./atlas.js?v=96";
-import { bindScreen } from "./screen.js?v=96";
-import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "./diary.js?v=96";
-import { marksForTab, placesVisitKey, routeBagKey } from "./visit.js?v=96";
+import { AIRPORTS, BUILTIN, CITIES, STATIONS, airportCodeOf, ensureFlightPairs, flightAllowed, hav, loadCatalog, planeNavWarnings } from "./catalog.js?v=97";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=97";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, reindexStations, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js?v=97";
+import { createMap } from "./atlas.js?v=97";
+import { bindScreen } from "./screen.js?v=97";
+import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "./diary.js?v=97";
+import { marksForTab, placesVisitKey, routeBagKey } from "./visit.js?v=97";
 "use strict";
 /* map */
 export var map;
@@ -5737,6 +5737,12 @@ function pickBoard(payload, toCode) {
     return out;
 }
 function askAero(from, to, date) {
+    from = String(from || "").toUpperCase();
+    to = String(to || "").toUpperCase();
+    var asked = new Date(date + "T12:00:00").getTime();
+    if (isFinite(asked) && Date.now() - asked > 364 * 86400000) {
+        return Promise.resolve({ rows: [], error: "Расписание есть только за последний год. На эту дату AeroDataBox уже ничего не отдаёт." });
+    }
     return ensureAeroKeys().then(function (keys) {
         if (!keys.length)
             return { rows: [], error: "Нет рабочего ключа AeroDataBox. Лимит мог кончиться до конца месяца." };
@@ -5746,9 +5752,18 @@ function askAero(from, to, date) {
             return Promise.all(windows.map(function (span) {
                 var url = "https://aerodatabox.p.rapidapi.com/flights/airports/iata/" + from + "/" + span[0] + "/" + span[1] + "?withLeg=true&direction=Departure&withCancelled=false";
                 return fetch(url, { headers: { "X-RapidAPI-Key": key, "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com" } }).then(function (res) {
-                    if (!res.ok)
-                        throw new Error(String(res.status));
-                    return res.json();
+                    if (res.ok)
+                        return res.json();
+                    return res.text().then(function (text) {
+                        var detail = "";
+                        try {
+                            detail = String((JSON.parse(text) || {}).message || "");
+                        }
+                        catch (e) { }
+                        var err = new Error(String(res.status));
+                        err.detail = detail;
+                        throw err;
+                    });
                 });
             })).then(function (payloads) {
                 var seen = {}, rows = [];
@@ -5764,6 +5779,15 @@ function askAero(from, to, date) {
                 return { rows: rows, error: "" };
             });
         }
+        function aeroError(err) {
+            var status = String(err && err.message || "");
+            var detail = String(err && err.detail || "");
+            if (/365 day|earlier than/i.test(detail))
+                return "Расписание есть только за последний год. На эту дату AeroDataBox уже ничего не отдаёт.";
+            if (/12 hours/i.test(detail))
+                return "Запрос расписания слишком длинный. Попробуйте ещё раз.";
+            return "Расписание не ответило" + (status ? " (" + status + ")" : "") + (detail ? ": " + detail : "");
+        }
         function next() {
             if (at >= keys.length)
                 return Promise.resolve({ rows: [], error: "Лимит всех ключей на этот месяц исчерпан." });
@@ -5776,7 +5800,7 @@ function askAero(from, to, date) {
                 }
                 if (status === "401" || status === "403" || status === "451")
                     return next();
-                return { rows: [], error: "Расписание не ответило" + (status ? " (" + status + ")" : "") };
+                return { rows: [], error: aeroError(err) };
             });
         }
         return next();
