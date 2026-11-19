@@ -1165,7 +1165,10 @@ export function render(opts) {
         routeCounts[k] = (routeCounts[k] || 0) + 1; });
     list.forEach(function (r) {
         var g = buildGeoSync(r);
-        if (!g || !g.coords)
+        var line = g && g.coords && g.coords.length >= 2 ? g.coords : null;
+        if (!line && g && g.a && g.b)
+            line = [[g.a.lat, g.a.lng], [g.b.lat, g.b.lng]];
+        if (!line)
             return;
         var fut = isFuture(r);
         var theme = document.documentElement.getAttribute("data-theme") || "dark";
@@ -1184,7 +1187,7 @@ export function render(opts) {
         var w = repeats > 1 ? 5.2 : 2.15;
         if (selectedId === r.id)
             w += 1.2;
-        var coords = g.coords, n = coords.length, drawn = coords;
+        var coords = line, n = coords.length, drawn = coords;
         if (n > 200) {
             var step = Math.ceil(n / 180), i;
             drawn = [coords[0]];
