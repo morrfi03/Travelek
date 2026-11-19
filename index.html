@@ -3,9 +3,9 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" /><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"><title>ТравелЕк</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="modulepreload" href="src/main.js?v=111">
-<link rel="modulepreload" href="src/app.js?v=111">
-<link rel="modulepreload" href="src/atlas.js?v=106">
+<link rel="modulepreload" href="src/main.js?v=112">
+<link rel="modulepreload" href="src/app.js?v=112">
+<link rel="modulepreload" href="src/atlas.js?v=107">
 <link rel="modulepreload" href="geo/atlas-data.js?v=97">
 <link rel="modulepreload" href="src/cloud.js?v=103">
 <link rel="modulepreload" href="src/roads.js?v=97">
@@ -63,6 +63,9 @@ html,body{
   position:fixed;inset:0;
 }
 input,select,textarea,button{font-family:inherit}
+input,select,textarea{background:var(--chip);color:var(--text);border:1px solid var(--line);appearance:none;-webkit-appearance:none}
+:root,:root[data-theme="dark"]{color-scheme:dark}
+:root[data-theme="light"]{color-scheme:light}
 #map,#globe{position:fixed;inset:0;z-index:0;background:var(--map-bg);touch-action:none}
 
 /* ——— Top bar (Flighty-style glass) ——— */
@@ -1181,10 +1184,13 @@ body[data-section="stats"] #stats-grid{display:none}
 .fleet-top span{font-size:16px;font-weight:750}
 .fleet-plane{background:#12342c}
 .fleet-plane .plane-svg{width:44px;height:28px;background:transparent;padding:0;color:#d7efe4}
-.card-air{display:flex;align-items:center;gap:8px;margin:8px 36px 0 0}
-.card-logo{width:40px;height:40px;object-fit:contain;background:#fff;border-radius:10px;padding:4px;flex:none}
-.card-air .plane-svg{width:108px;height:32px}
-.card-air b{font-size:14px;font-weight:700}
+.card-air{display:flex;align-items:center;gap:8px;margin:8px 0 0;min-width:0;flex-wrap:wrap}
+.card-logo{width:28px;height:28px;object-fit:contain;background:#fff;border-radius:8px;padding:3px;flex:none}
+.card-air .plane-svg{width:64px;height:22px;flex:none}
+.card-air b{font-size:13px;font-weight:650;min-width:0}
+.row{overflow:hidden}
+.row .title{min-width:0}
+.row .title span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 body[data-section="stats"] #sheet{display:flex!important;flex-direction:column;overflow:hidden}
 body[data-section="stats"] #analytics{display:flex!important;flex-direction:column;flex:1;min-height:0;overflow-y:auto}
 .stat-line{display:flex;justify-content:space-between;gap:16px;padding:12px 0;border-top:1px solid var(--line);font-size:16px}
@@ -1336,8 +1342,13 @@ body[data-section="diary"] #sheet{
 }
 body[data-section="diary"] #sheet .handle-wrap{display:none!important}
 body[data-section="diary"] #sheet .sheet-head{
-  display:flex!important;align-items:center;justify-content:space-between;
-  flex:0 0 auto;padding:16px 16px 4px;gap:12px;
+  display:grid!important;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"title tools" "tabs tabs";
+  align-items:center;gap:8px 12px;flex:0 0 auto;padding:16px 16px 8px;
+}
+body[data-section="diary"] .sheet-title{grid-area:title;min-width:0}
+body[data-section="diary"] #sheet .sheet-tools{grid-area:tools;margin:0!important}
+body[data-section="diary"] #sheet .tabs{
+  grid-area:tabs;width:100%;margin:0!important;order:0;
 }
 body[data-section="diary"] .sheet-title{display:block}
 body[data-section="diary"] #sheet .sheet-tools{display:flex!important;gap:8px;padding:0;margin-left:auto}
@@ -1543,7 +1554,7 @@ body[data-section="stats"] #analytics{
 }
 body[data-section="stats"] .an-block{margin:0 0 16px;padding:14px 16px 10px}
 body[data-section="stats"] .an-block h3{
-  margin:0 0 10px;font-size:13px;font-weight:600;letter-spacing:-.01em;text-transform:none;color:var(--muted);
+  margin:0 0 10px!important;font-size:13px;font-weight:600;letter-spacing:-.01em;text-transform:none;color:var(--muted);
 }
 @media (min-width:980px){
   body[data-section="stats"] #analytics{
@@ -2071,6 +2082,6 @@ body.is-switching[data-move="back"] #countries-panel.on{
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=111"></script>
+<script type="module" src="src/main.js?v=112"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>

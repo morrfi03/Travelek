@@ -1095,19 +1095,13 @@ var api = (function () {
             var pw = Math.round(nw * nd), ph = Math.round(nh * nd);
             if (cw === nw && ch === nh && dpr === nd && cv.width === pw && cv.height === ph)
                 return false;
-            var q = (cw > 0 && ch > 0) ? llAt(cw / 2, ch / 2) : null;
-            var keepK = k;
             cw = nw;
             ch = nh;
             dpr = nd;
-            if (q) {
-                var f = flatXY((q[0] / 100) * PI / 180, (q[1] / 100) * PI / 180);
-                k = Math.max(kMin(), Math.min(KMAX, keepK));
-                var kk = cw / WID * k;
-                tx = cw / 2 - f[0] * kk;
-                ty = ch / 2 - f[1] * kk;
+            if (!fitted) {
+                fitted = true;
+                clamp();
             }
-            clamp();
             return true;
         }
         function clamp() {
@@ -1171,7 +1165,7 @@ var api = (function () {
                 ringPath(c, r); }
         function entPathFull(c, e) { for (var r = e.r0; r < e.r1; r++)
             ringPath(c, r); }
-        var bc = document.createElement("canvas"), bctx = bc.getContext("2d"), bkey = "", snapTx = 0, snapTy = 0, snapK = 1, hold = 0, zoomIdle = 0;
+        var bc = document.createElement("canvas"), bctx = bc.getContext("2d"), bkey = "", snapTx = 0, snapTy = 0, snapK = 1, hold = 0, zoomIdle = 0, fitted = false;
         var rc = document.createElement("canvas"), rctx = rc.getContext("2d");
         var land = document.createElement("canvas"), lctx = land.getContext("2d"), lkey = "";
         function reliefSig() {
