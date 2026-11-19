@@ -1,10 +1,10 @@
-import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./catalog.js?v=92";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=92";
-import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js?v=92";
-import { createMap } from "./atlas.js?v=92";
-import { bindScreen } from "./screen.js?v=92";
-import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "./diary.js?v=92";
-import { marksForTab, placesVisitKey, routeBagKey } from "./visit.js?v=92";
+import { AIRPORTS, BUILTIN, CITIES, PORTS, STATIONS, airportCodeOf, ensureFlightPairs, findPortByQuery, flightAllowed, formatPortLabel, hav, planeNavWarnings } from "./catalog.js?v=93";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=93";
+import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js?v=93";
+import { createMap } from "./atlas.js?v=93";
+import { bindScreen } from "./screen.js?v=93";
+import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "./diary.js?v=93";
+import { marksForTab, placesVisitKey, routeBagKey } from "./visit.js?v=93";
 "use strict";
 /* map */
 export var map;
@@ -4486,13 +4486,8 @@ function bootGeo() {
             scheduleNet();
         if (window.__fillAccount && document.getElementById("account-panel") && document.getElementById("account-panel").classList.contains("on"))
             window.__fillAccount();
-        var boot = document.getElementById("boot-screen");
-        if (boot) {
-            boot.classList.add("hide");
-            setTimeout(function () { if (boot.parentNode)
-                boot.parentNode.removeChild(boot); }, 400);
-        }
     }
+    hideBoot();
     if (!countryLayer && map && map.group)
         countryLayer = map.group().addTo(map);
     ensureHoverLayer();
@@ -4506,22 +4501,36 @@ function bootGeo() {
             render();
     }).catch(function () { COUNTRY_LIST = COUNTRY_LIST || []; if (map && map.setCountryList)
         map.setCountryList(COUNTRY_LIST); finish(); });
-    loadGeo("./geo/russia.json?v=8").then(function (data) {
-        RUSSIA_REGIONS = ((data && data.items) || []).map(function (r) { r.id = r.id || r.n; r.c = "RU"; return r; });
-        finish();
-    }).catch(function () { RUSSIA_REGIONS = []; finish(); });
-    loadGeo("./geo/china.json?v=8").then(function (data) {
-        CHINA_REGIONS = ((data && data.items) || []).map(function (r) { r.id = r.id || ("CN:" + r.n); r.c = "CN"; return r; });
-        finish();
-    }).catch(function () { CHINA_REGIONS = []; finish(); });
-    loadGeo("./geo/regions.json?v=8").then(function (data) {
-        WORLD_REGIONS = ((data && data.items) || []).map(function (r) { r.id = r.id || ((r.c || "") + " " + r.n); return r; });
-        finish();
-    }).catch(function () { WORLD_REGIONS = []; finish(); });
-    loadGeo("./geo/labels.json?v=1").then(function (data) {
-        PLACE_LABELS = Array.isArray(data) ? data : ((data && data.items) || []);
-        finish();
-    }).catch(function () { PLACE_LABELS = []; finish(); });
+    var rest = function () {
+        loadGeo("./geo/russia.json?v=8").then(function (data) {
+            RUSSIA_REGIONS = ((data && data.items) || []).map(function (r) { r.id = r.id || r.n; r.c = "RU"; return r; });
+            finish();
+        }).catch(function () { RUSSIA_REGIONS = []; finish(); });
+        loadGeo("./geo/china.json?v=8").then(function (data) {
+            CHINA_REGIONS = ((data && data.items) || []).map(function (r) { r.id = r.id || ("CN:" + r.n); r.c = "CN"; return r; });
+            finish();
+        }).catch(function () { CHINA_REGIONS = []; finish(); });
+        loadGeo("./geo/regions.json?v=8").then(function (data) {
+            WORLD_REGIONS = ((data && data.items) || []).map(function (r) { r.id = r.id || ((r.c || "") + " " + r.n); return r; });
+            finish();
+        }).catch(function () { WORLD_REGIONS = []; finish(); });
+        loadGeo("./geo/labels.json?v=1").then(function (data) {
+            PLACE_LABELS = Array.isArray(data) ? data : ((data && data.items) || []);
+            finish();
+        }).catch(function () { PLACE_LABELS = []; finish(); });
+    };
+    if (typeof requestIdleCallback === "function")
+        requestIdleCallback(rest, { timeout: 900 });
+    else
+        setTimeout(rest, 300);
+}
+function hideBoot() {
+    var boot = document.getElementById("boot-screen");
+    if (!boot || boot.classList.contains("hide"))
+        return;
+    boot.classList.add("hide");
+    setTimeout(function () { if (boot.parentNode)
+        boot.parentNode.removeChild(boot); }, 400);
 }
 bootGeo();
 setTimeout(loadWorldPlaces, 2200);

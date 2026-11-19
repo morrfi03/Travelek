@@ -3320,9 +3320,8 @@ function bootGeo(){
     if(globeOn && typeof scheduleGlobe==="function") scheduleGlobe();
     if(typeof scheduleNet==="function") scheduleNet();
     if(window.__fillAccount && document.getElementById("account-panel") && document.getElementById("account-panel").classList.contains("on")) window.__fillAccount();
-    var boot=document.getElementById("boot-screen");
-    if(boot){ boot.classList.add("hide"); setTimeout(function(){ if(boot.parentNode) boot.parentNode.removeChild(boot); }, 400); }
   }
+  hideBoot();
   if(!countryLayer && map && map.group) countryLayer=map.group().addTo(map);
   ensureHoverLayer();
   globeLand=null;
@@ -3332,6 +3331,7 @@ function bootGeo(){
     finish();
     if(typeof render==="function") render();
   }).catch(function(){ COUNTRY_LIST=COUNTRY_LIST||[]; if(map&&map.setCountryList) map.setCountryList(COUNTRY_LIST); finish(); });
+  var rest=function(){
   loadGeo("./geo/russia.json?v=8").then(function(data){
     RUSSIA_REGIONS=((data&&data.items)||[]).map(function(r){ r.id=r.id||r.n; r.c="RU"; return r; });
     finish();
@@ -3348,6 +3348,15 @@ function bootGeo(){
     PLACE_LABELS=Array.isArray(data)?data:((data&&data.items)||[]);
     finish();
   }).catch(function(){ PLACE_LABELS=[]; finish(); });
+  };
+  if(typeof requestIdleCallback==="function") requestIdleCallback(rest, {timeout:900});
+  else setTimeout(rest, 300);
+}
+function hideBoot(){
+  var boot=document.getElementById("boot-screen");
+  if(!boot || boot.classList.contains("hide")) return;
+  boot.classList.add("hide");
+  setTimeout(function(){ if(boot.parentNode) boot.parentNode.removeChild(boot); }, 400);
 }
 bootGeo();
 setTimeout(loadWorldPlaces, 2200);
