@@ -1,7 +1,7 @@
 import { AIRPORTS, BUILTIN, CITIES, STATIONS, airportCodeOf, ensureFlightPairs, flightAllowed, hav, loadCatalog, planeNavWarnings } from "./catalog.js?v=97";
-import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=97";
+import { ROUTES, assembleRoutes, deleted, drawNavZones, isStrictRoutes, loadAppSettings, loadDeleted, loadExtra, loadWorldPlaces, navLimitsOn, navZonesOn, norm, place, safeSetItem, saveAppSettings, saveDeleted, saveExtra, scheduleCloudSave, searchCatalog, setDeleted, setRoutes, shipNavWarnings, shownPlace, worldRegionMap } from "./cloud.js?v=103";
 import { CITY_LABELS, COLORS, buildGeoSync, buildYearFilter, carAllowed, datedPast, isFuture, modeFilter, pathKm, pumpRoads, reindexStations, roadCache, roadKey, roadQueue, setModeFilter, startTripPlay, stopTripPlay, trainAllowed, tripPlay, updateLiveTrip, yearFilter } from "./roads.js?v=97";
-import { createMap } from "./atlas.js?v=97";
+import { createMap } from "./atlas.js?v=104";
 import { bindScreen } from "./screen.js?v=97";
 import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "./diary.js?v=97";
 import { marksForTab, placesVisitKey, routeBagKey } from "./visit.js?v=97";
@@ -18,11 +18,17 @@ window.__onRoads = function () {
 };
 map = createMap();
 hideBoot();
-loadCatalog().then(function () {
-    reindexStations();
-    if (typeof render === "function")
-        render();
-});
+function startCatalog() {
+    loadCatalog().then(function () {
+        reindexStations();
+        if (typeof render === "function")
+            render();
+    });
+}
+if (typeof requestIdleCallback === "function")
+    requestIdleCallback(startCatalog, { timeout: 1200 });
+else
+    setTimeout(startCatalog, 400);
 if (!map)
     throw new Error("Карта не загрузилась");
 try {
@@ -1406,33 +1412,93 @@ function fillAnalytics() {
         bBox.innerHTML = badges.length ? badges.map(function (b) { return '<span class="an-chip">' + b + '</span>'; }).join("") : '<p class="up-empty">Пока нет достижений</p>';
     paintAirStats(past);
 }
+var AIRLINE_IATA = {"aeroflot":"SU","аэрофлот":"SU","s7 airlines":"S7","s7":"S7","pobeda":"DP","победа":"DP","ural airlines":"U6","уральские авиалинии":"U6","rossiya":"FV","россия":"FV","utair":"UT","ютейр":"UT","ютэйр":"UT","nordwind":"N4","nordwind airlines":"N4","azur air":"ZF","red wings":"WZ","smartavia":"5N","yamal":"YC","azimuth":"A4","азимут":"A4","nordstar":"Y7","aurora":"HZ","аврора":"HZ","yakutia":"R3","якутия":"R3","alrosa":"6R","алроса":"6R","rusline":"7R","izhavia":"I8","ижавиа":"I8","iraero":"IO","ираеро":"IO","ираэро":"IO","severstal":"D2","royal flight":"RL","belavia":"B2","белавиа":"B2","air astana":"KC","flyarystan":"KC","qazaq air":"IQ","scat":"DV","uzbekistan airways":"HY","узбекистон хаво йуллари":"HY","somon air":"SZ","georgian airways":"A9","azerbaijan airlines":"J2","azal":"J2","flyone":"5F","fly one":"5F","air moldova":"9U","ukraine international":"PS","mau":"PS","skyup":"PQ","windrose":"7W","turkish airlines":"TK","thy":"TK","ajet":"VF","anadolujet":"VF","pegasus":"PC","sunexpress":"XQ","corendon":"XC","corendon dutch":"CD","freebird":"FH","southwind":"2S","lufthansa":"LH","lufthansa cityline":"CL","eurowings":"EW","discover airlines":"4Y","swiss":"LX","edelweiss":"WK","helvetic":"2L","austrian":"OS","brussels airlines":"SN","air dolomiti":"EN","air france":"AF","hop":"A5","klm":"KL","klm cityhopper":"WA","transavia":"HV","transavia france":"TO","british airways":"BA","virgin atlantic":"VS","jet2":"LS","tui airways":"BY","tui fly":"X3","tuifly":"X3","tui fly netherlands":"OR","condor":"DE","ryanair":"FR","ryanair uk":"RK","buzz":"RR","malta air":"AL","lauda":"LW","easyjet":"U2","easyjet europe":"EC","wizz air malta":"W4","wizz air uk":"W9","wizz air abu dhabi":"5W","wizz air":"W6","wizzair":"W6","vueling":"VY","iberia express":"I2","iberia":"IB","air europa":"UX","volotea":"V7","tap air portugal":"TP","tap portugal":"TP","finnair":"AY","sas":"SK","norwegian":"DY","norse atlantic":"N0","icelandair":"FI","air greenland":"GL","wideroe":"WF","atlantic airways":"RC","aer lingus":"EI","luxair":"LG","lot polish":"LO","lot":"LO","air baltic":"BT","airbaltic":"BT","smartlynx":"6Y","air serbia":"JU","croatia airlines":"OU","smartwings":"QS","czech airlines":"OK","aegean":"A3","sky express":"GQ","bulgaria air":"FB","tarom":"RO","ita airways":"AZ","alitalia":"AZ","neos":"NO","air nostrum":"YW","binter":"NT","plus ultra":"PU","iberojet":"E9","aeroitalia":"XZ","cyprus airways":"CY","enter air":"E4","bh air":"8H","emirates":"EK","qatar airways":"QR","etihad":"EY","etihad airways":"EY","flydubai":"FZ","air arabia":"G9","gulf air":"GF","oman air":"WY","saudia":"SV","saudi arabian":"SV","flynas":"XY","flyadeal":"F3","jazeera":"J9","royal jordanian":"RJ","middle east airlines":"ME","egyptair":"MS","royal air maroc":"AT","tunisair":"TU","air algerie":"AH","nouvelair":"BJ","el al":"LY","arkia":"IZ","israir":"6H","air china":"CA","china southern":"CZ","china eastern":"MU","hainan":"HU","hainan airlines":"HU","хайнань":"HU","sichuan":"3U","sichuan airlines":"3U","сычуань":"3U","xiamen airlines":"MF","xiamenair":"MF","shenzhen airlines":"ZH","shanghai airlines":"FM","juneyao":"HO","spring airlines":"9C","lucky air":"8L","capital airlines":"JD","cathay pacific":"CX","hong kong airlines":"HX","hk express":"UO","china airlines":"CI","eva air":"BR","starlux":"JX","korean air":"KE","asiana":"OZ","jeju air":"7C","jin air":"LJ","tway":"TW","t way":"TW","air busan":"BX","japan airlines":"JL","jal":"JL","all nippon":"NH","ana":"NH","peach":"MM","skymark":"BC","jetstar japan":"GK","spring japan":"IJ","singapore airlines":"SQ","scoot":"TR","malaysia airlines":"MH","airasia x":"D7","airasia":"AK","air asia":"AK","thai airasia x":"XJ","thai airasia":"FD","thai air asia":"FD","thai lion":"SL","thai airways":"TG","thai smile":"WE","bangkok airways":"PG","nok air":"DD","vietnam airlines":"VN","vietjet":"VJ","bamboo airways":"QH","garuda":"GA","lion air":"JT","batik air":"ID","citilink":"QG","philippine airlines":"PR","cebu pacific":"5J","royal brunei":"BI","srilankan":"UL","air india express":"IX","air india":"AI","indigo":"6E","spicejet":"SG","vistara":"UK","akasa":"QP","pakistan international":"PK","pia":"PK","biman":"BG","nepal airlines":"RA","drukair":"KB","qantas":"QF","jetstar":"JQ","virgin australia":"VA","air new zealand":"NZ","fiji airways":"FJ","american airlines":"AA","delta air lines":"DL","delta":"DL","united airlines":"UA","united":"UA","jetblue":"B6","southwest":"WN","alaska airlines":"AS","spirit":"NK","frontier":"F9","hawaiian":"HA","allegiant":"G4","air canada":"AC","westjet":"WS","porter":"PD","air transat":"TS","aeromexico":"AM","volaris":"Y4","viva aerobus":"VB","avianca":"AV","latam":"LA","sky airline":"H2","jetsmart":"JA","copa":"CM","aerolineas argentinas":"AR","gol":"G3","azul":"AD","ethiopian":"ET","kenya airways":"KQ","south african":"SA","flysafair":"FA","rwandair":"WB","air mauritius":"MK","corsair":"SS","air caraibes":"TX","air austral":"UU"};
+function airlineCode(name, flight, saved){
+    var known = String(saved || "").toUpperCase();
+    if (/^[A-Z0-9]{2}$/.test(known)) return known;
+    var key = String(name || "").toLowerCase().replace(/ё/g, "е").replace(/[^a-zа-я0-9]+/g, " ").trim();
+    if (AIRLINE_IATA[key]) return AIRLINE_IATA[key];
+    var names = Object.keys(AIRLINE_IATA), i, best = "", bestLen = 0;
+    for (i = 0; i < names.length; i++) {
+        var n = names[i];
+        if (!key || n.length < 3) continue;
+        if (key.indexOf(n) >= 0 || (n.indexOf(key) >= 0 && key.length > 3)) {
+            if (n.length > bestLen) { best = n; bestLen = n.length; }
+        }
+    }
+    if (best) return AIRLINE_IATA[best];
+    var no = String(flight || "").toUpperCase().replace(/\s+/g, "");
+    var m = no.match(/^([A-Z][A-Z0-9])\d/);
+    return m ? m[1] : "";
+}
+function airlineMark(name, code){
+    if (code) return code;
+    var parts = String(name || "").trim().split(/\s+/).filter(Boolean);
+    if (parts.length > 1) return (parts[0][0] + parts[1][0]).toUpperCase();
+    return String(name || "?").slice(0, 2).toUpperCase();
+}
+function planeKind(model){
+    var s = String(model || "").toLowerCase();
+    if (/a380|747|ан-124|an-124/.test(s)) return "jumbo";
+    if (/a330|a340|a350|767|777|787|иль?юшин|il-96|ил-96/.test(s)) return "wide";
+    if (/atr|dash|q400|ан-24|an-24|ил-114|il-114|турбовин/.test(s)) return "prop";
+    if (/e1[79]|e190|e195|e175|crj|ssj|superjet|сухой|erj|embraer|rj85|rj100/.test(s)) return "regional";
+    return "narrow";
+}
+function planeSvg(kind){
+    var d = {
+        narrow: "M4 16h34l12-9h8l-5 9h42l10-6h7l-5 6h6v3h-8l5 6h-7l-10-6H53l5 9h-8l-12-9H4a3 3 0 0 1 0-3z",
+        wide: "M2 17h40l14-10h9l-6 10h46l12-7h8l-6 7h7v3h-9l6 7h-8l-12-7H59l6 10h-9l-14-10H2a3 3 0 0 1 0-3z",
+        jumbo: "M2 18h36l8-6h22l-6 6h40l12-7h8l-6 7h6v3h-8l6 7h-8l-12-7H62l6 8H46l-8-8H2a3 3 0 0 1 0-3z",
+        regional: "M8 16h28l10-8h7l-4 8h30l8-5h6l-4 5h5v3h-7l4 5h-6l-8-5H49l4 8h-7l-10-8H8a3 3 0 0 1 0-3z",
+        prop: "M6 16h22l8-7h6l-3 7h18c6 0 10-2 14-2 3 0 4 2 4 3s-1 3-4 3c-4 0-8-2-14-2H39l3 7h-6l-8-7H6a3 3 0 0 1 0-3z"
+    };
+    var extra = kind === "prop" ? '<circle cx="78" cy="18" r="8" fill="none" stroke="currentColor" stroke-width="1.6"/>' : (kind === "jumbo" ? '<path fill="currentColor" d="M46 12h16l-2 4H48z"/>' : "");
+    return '<svg class="plane-svg" viewBox="0 0 128 36" aria-hidden="true">' + extra + '<path fill="currentColor" d="' + (d[kind] || d.narrow) + '"/></svg>';
+}
 function paintAirStats(past) {
     var airlines = {}, aircraft = {}, minutes = 0, counted = 0;
     past.forEach(function (r) {
         if (r.mode !== "plane")
             return;
-        if (r.airline)
-            airlines[r.airline] = (airlines[r.airline] || 0) + 1;
-        if (r.aircraft)
-            aircraft[r.aircraft] = (aircraft[r.aircraft] || 0) + 1;
+        var name = String(r.airline || "").trim();
+        var code = airlineCode(name, r.flight, r.airlineIata);
+        if (!name && code)
+            name = code;
+        if (!name)
+            name = "Без выбранного рейса";
+        if (!airlines[name])
+            airlines[name] = { n: 0, iata: "" };
+        airlines[name].n++;
+        if (!airlines[name].iata)
+            airlines[name].iata = code;
+        var craft = String(r.aircraft || "").trim() || "Модель не записана";
+        aircraft[craft] = (aircraft[craft] || 0) + 1;
         var mins = Number(r.airMin) || 0;
         if (mins > 0) {
             minutes += mins;
             counted++;
         }
     });
-    function bars(box, map) {
-        if (!box)
-            return;
-        var keys = Object.keys(map).sort(function (a, b) { return map[b] - map[a]; });
-        var max = keys.reduce(function (a, k) { return Math.max(a, map[k]); }, 1);
-        box.innerHTML = keys.length ? keys.map(function (k) {
-            var w = Math.round(100 * map[k] / max);
-            return '<div class="bar-row"><span>' + escLabel(k) + '</span><div class="bar"><i style="width:' + w + '%"></i></div><b>' + map[k] + '</b></div>';
+    var airBox = document.getElementById("an-airlines");
+    if (airBox) {
+        var aKeys = Object.keys(airlines).sort(function (a, b) { return airlines[b].n - airlines[a].n; });
+        var aMax = aKeys.reduce(function (m, k) { return Math.max(m, airlines[k].n); }, 1);
+        airBox.innerHTML = aKeys.length ? aKeys.map(function (k) {
+            var row = airlines[k], w = Math.round(100 * row.n / aMax), code = row.iata, mark = escLabel(airlineMark(k, code));
+            var logo = '<span class="fleet-badge">' + mark + (code ? '<img alt="" src="https://pics.avs.io/al_square/64/64/' + code + '.png">' : "") + '</span>';
+            return '<div class="fleet-row">' + logo + '<div class="fleet-main"><div class="fleet-top"><b>' + escLabel(k) + '</b><span>' + row.n + '</span></div><div class="bar"><i style="width:' + w + '%"></i></div></div></div>';
         }).join("") : '<p class="up-empty">Появится после выбора рейса из расписания</p>';
     }
-    bars(document.getElementById("an-airlines"), airlines);
-    bars(document.getElementById("an-aircraft"), aircraft);
+    var acBox = document.getElementById("an-aircraft");
+    if (acBox) {
+        var pKeys = Object.keys(aircraft).sort(function (a, b) { return aircraft[b] - aircraft[a]; });
+        var pMax = pKeys.reduce(function (m, k) { return Math.max(m, aircraft[k]); }, 1);
+        acBox.innerHTML = pKeys.length ? pKeys.map(function (k) {
+            var w = Math.round(100 * aircraft[k] / pMax);
+            return '<div class="fleet-row"><span class="fleet-badge fleet-plane">' + planeSvg(planeKind(k)) + '</span><div class="fleet-main"><div class="fleet-top"><b>' + escLabel(k) + '</b><span>' + aircraft[k] + '</span></div><div class="bar"><i style="width:' + w + '%"></i></div></div></div>';
+        }).join("") : '<p class="up-empty">Появится после выбора рейса из расписания</p>';
+    }
     var air = document.getElementById("an-airtime");
     if (air) {
         var hours = Math.floor(minutes / 60), rest = minutes % 60;
@@ -2338,7 +2404,7 @@ function showFoundFlights(rows, note) {
         flightInput.value = row.flight || "";
         if (row.time)
             document.getElementById("f-time").value = row.time;
-        pickedAir = { flight: row.flight || "", airline: row.airline || "", aircraft: row.aircraft || "", airMin: Number(row.airMin) || 0 };
+        pickedAir = { flight: row.flight || "", airline: row.airline || "", airlineIata: row.airlineIata || "", aircraft: row.aircraft || "", airMin: Number(row.airMin) || 0 };
         flightList.hidden = true;
     };
 }
@@ -2515,6 +2581,8 @@ function buildRouteFromForm() {
         var meta = pickedAir && pickedAir.flight === flight ? pickedAir : (prev && prev.flight === flight ? prev : null);
         if (meta && meta.airline)
             trip.airline = meta.airline;
+        if (meta && meta.airlineIata)
+            trip.airlineIata = meta.airlineIata;
         if (meta && meta.aircraft)
             trip.aircraft = meta.aircraft;
         if (meta && Number(meta.airMin) > 0)
@@ -2578,7 +2646,7 @@ function openEdit(id) {
     document.getElementById("f-date").value = r.date || "";
     document.getElementById("f-time").value = r.time || "";
     document.getElementById("f-flight").value = r.flight || "";
-    pickedAir = r.airline || r.aircraft || r.airMin ? { flight: r.flight || "", airline: r.airline || "", aircraft: r.aircraft || "", airMin: r.airMin || 0 } : null;
+    pickedAir = r.airline || r.aircraft || r.airMin ? { flight: r.flight || "", airline: r.airline || "", airlineIata: r.airlineIata || "", aircraft: r.aircraft || "", airMin: r.airMin || 0 } : null;
     if (r.mode === "car") {
         var cp = document.getElementById("f-car-path");
         if (cp)
@@ -2953,6 +3021,27 @@ if (trackStart)
 var trackStop = document.getElementById("track-stop");
 if (trackStop)
     trackStop.onclick = function () { stopTracking(true); };
+window.__reportClient = function (where, message) {
+    var text = String(message || "").replace(/\s+/g, " ").trim().slice(0, 180);
+    if (!text || /favicon|client-log/i.test(text))
+        return;
+    var body = JSON.stringify({ where: String(where || "browser").slice(0, 24), message: text });
+    try {
+        if (navigator.sendBeacon && navigator.sendBeacon("/api/client-log", new Blob([body], { type: "application/json" })))
+            return;
+    }
+    catch (e) { }
+    fetch("/api/client-log", { method: "POST", headers: { "content-type": "application/json" }, body: body, keepalive: true }).catch(function () { });
+};
+window.addEventListener("error", function (ev) {
+    if (window.__reportClient)
+        window.__reportClient("window", ev && ev.message);
+});
+window.addEventListener("unhandledrejection", function (ev) {
+    var reason = ev && ev.reason;
+    if (window.__reportClient)
+        window.__reportClient("promise", reason && reason.message ? reason.message : reason);
+});
 if (typeof ensureFlightPairs === "function")
     ensureFlightPairs();
 loadMapPrefs();
@@ -2986,7 +3075,7 @@ setInterval(render, 60000);
         dl.onclick = function (e) {
             e.preventDefault();
             e.stopPropagation();
-            fetch("/travelek.html").then(function (r) {
+            fetch("./index.html").then(function (r) {
                 if (!r.ok)
                     throw new Error("missing");
                 return r.blob();
@@ -4522,7 +4611,7 @@ function hideBoot() {
         boot.parentNode.removeChild(boot); }, 400);
 }
 bootGeo();
-setTimeout(loadWorldPlaces, 2200);
+setTimeout(loadWorldPlaces, 5000);
 function syncMapSwitch() {
     var sw = document.getElementById("map-switch");
     if (!sw)
@@ -5078,13 +5167,20 @@ function routeCardHtml(r) {
     var toL = g && g.b ? shortPlaceLabel(r.to, g.b.lat, g.b.lng) : shortPlaceLabel(r.to);
     var dur = formatTripDuration(r, km);
     var kmNote = g && g.railMiss ? (" · " + t("нет железной дороги")) : (g && g.roadMiss ? (" · " + t("нет автодороги")) : (km ? " · " + km.toLocaleString(currentLang() === "en" ? "en" : "ru-RU") + " " + t("км") : ""));
+    var air = "";
+    if (r.mode === "plane") {
+        var code = airlineCode(r.airline, r.flight, r.airlineIata);
+        var logo = code ? '<img class="card-logo" alt="" src="https://pics.avs.io/al_square/64/64/' + code + '.png">' : "";
+        var model = String(r.aircraft || "").trim();
+        air = '<div class="card-air">' + logo + planeSvg(planeKind(model)) + "<b>" + escLabel(model || code || "Модель не записана") + "</b></div>";
+    }
     return '<div class="row ' + (selectedId === r.id ? "on " : "") + (fut ? "future " : "") + (realFlight(r) ? "real" : "") + '" data-id="' + r.id + '">' +
         '<button type="button" class="edit" data-edit="' + r.id + '" title="' + t("Изменить") + '">✎</button>' +
         '<button type="button" class="del" data-del="' + r.id + '" title="' + t("Удалить") + '">×</button>' +
         '<div class="title">' + modeMark(r.mode) + '<span>' + fromL + " → " + toL + "</span></div>" +
         '<div class="meta"><span class="badge ' + bc + '">' + (r.flight || r.mode) + "</span>" +
         (fut ? '<span class="badge fut">' + t("скоро") + '</span>' : "") + " " + (r.date || "") +
-        (r.time ? " · " + r.time : "") + kmNote + (dur ? " · " + dur : "") + "</div></div>";
+        (r.time ? " · " + r.time : "") + kmNote + (dur ? " · " + dur : "") + "</div>" + air + "</div>";
 }
 function tripYear(tp, tab) {
     var routes = tripRoutesFor(tp, tab), y = "", i, d;
@@ -5175,6 +5271,17 @@ function paintSheetList(el, list) {
         return;
     }
     el.innerHTML = html + loose;
+    var ids = [], rows = el.querySelectorAll(".row[data-id]"), ri;
+    for (ri = 0; ri < rows.length; ri++)
+        ids.push(rows[ri].getAttribute("data-id"));
+    var sig = ids.join(",");
+    if (sig !== (el.getAttribute("data-ids") || "")) {
+        el.setAttribute("data-ids", sig);
+        for (ri = 0; ri < rows.length; ri++) {
+            rows[ri].style.animationDelay = Math.min(ri, 10) * 35 + "ms";
+            rows[ri].classList.add("card-in");
+        }
+    }
     el.querySelectorAll(".row[data-id]").forEach(function (row) {
         row.addEventListener("click", function (ev) {
             if (ev.target.closest(".edit,.del,[data-route-del],[data-route-edit]"))
@@ -5723,9 +5830,12 @@ function pickBoard(payload, toCode) {
         var depTime = dep.scheduledTime || dep.scheduledTimeLocal || "";
         var arrTime = arr.scheduledTime || arr.scheduledTimeLocal || "";
         var airline = row.airline, aircraft = row.aircraft;
+        var airName = typeof airline === "string" ? airline : String((airline && airline.name) || "");
+        var airIata = typeof airline === "string" ? "" : String((airline && (airline.iata || airline.iataCode)) || "").toUpperCase();
         out.push({
             flight: no,
-            airline: typeof airline === "string" ? airline : String((airline && airline.name) || ""),
+            airline: airName,
+            airlineIata: /^[A-Z0-9]{2}$/.test(airIata) ? airIata : "",
             aircraft: typeof aircraft === "string" ? aircraft : String((aircraft && (aircraft.model || aircraft.name)) || ""),
             time: boardClock(depTime),
             airMin: boardMinutes(depTime, arrTime),
@@ -5743,68 +5853,17 @@ function askAero(from, to, date) {
     if (isFinite(asked) && Date.now() - asked > 364 * 86400000) {
         return Promise.resolve({ rows: [], error: "Расписание есть только за последний год. На эту дату AeroDataBox уже ничего не отдаёт." });
     }
-    return ensureAeroKeys().then(function (keys) {
-        if (!keys.length)
-            return { rows: [], error: "Нет рабочего ключа AeroDataBox. Лимит мог кончиться до конца месяца." };
-        var at = 0;
-        function one(key) {
-            var windows = [[date + "T00:00", date + "T11:59"], [date + "T12:00", date + "T23:59"]];
-            return Promise.all(windows.map(function (span) {
-                var url = "https://aerodatabox.p.rapidapi.com/flights/airports/iata/" + from + "/" + span[0] + "/" + span[1] + "?withLeg=true&direction=Departure&withCancelled=false";
-                return fetch(url, { headers: { "X-RapidAPI-Key": key, "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com" } }).then(function (res) {
-                    if (res.ok)
-                        return res.json();
-                    return res.text().then(function (text) {
-                        var detail = "";
-                        try {
-                            detail = String((JSON.parse(text) || {}).message || "");
-                        }
-                        catch (e) { }
-                        var err = new Error(String(res.status));
-                        err.detail = detail;
-                        throw err;
-                    });
-                });
-            })).then(function (payloads) {
-                var seen = {}, rows = [];
-                payloads.forEach(function (payload) {
-                    pickBoard(payload, to).forEach(function (row) {
-                        if (seen[row.flight])
-                            return;
-                        seen[row.flight] = 1;
-                        rows.push(row);
-                    });
-                });
-                rows.sort(function (a, b) { return String(a.time).localeCompare(String(b.time)); });
-                return { rows: rows, error: "" };
-            });
-        }
-        function aeroError(err) {
-            var status = String(err && err.message || "");
-            var detail = String(err && err.detail || "");
-            if (/365 day|earlier than/i.test(detail))
-                return "Расписание есть только за последний год. На эту дату AeroDataBox уже ничего не отдаёт.";
-            if (/12 hours/i.test(detail))
-                return "Запрос расписания слишком длинный. Попробуйте ещё раз.";
-            return "Расписание не ответило" + (status ? " (" + status + ")" : "") + (detail ? ": " + detail : "");
-        }
-        function next() {
-            if (at >= keys.length)
-                return Promise.resolve({ rows: [], error: "Лимит всех ключей на этот месяц исчерпан." });
-            var key = keys[at++];
-            return one(key).catch(function (err) {
-                var status = String(err && err.message || "");
-                if (status === "429") {
-                    markAeroSpent(key);
-                    return next();
-                }
-                if (status === "401" || status === "403" || status === "451")
-                    return next();
-                return { rows: [], error: aeroError(err) };
-            });
-        }
-        return next();
-    });
+    var headers = {};
+    var own = ownAeroKey();
+    if (own)
+        headers["X-Aero-Key"] = own;
+    return fetch("/api/flights?from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to) + "&date=" + encodeURIComponent(date), { headers: headers }).then(function (res) {
+        return res.json().catch(function () { return {}; }).then(function (body) {
+            if (!res.ok)
+                return { rows: [], error: (body && body.error) || ("Расписание не ответило (" + res.status + ")") };
+            return { rows: (body && body.flights) || [], error: "" };
+        });
+    }).catch(function () { return { rows: [], error: "Расписание не ответило" }; });
 }
 function loadTripSchedule() {
     var box = document.getElementById("tw-sched");
@@ -5870,7 +5929,7 @@ function paintTripFlights(box, rows, ca, cb, date, note) {
         var row = rows[Number(btn.getAttribute("data-sched"))];
         if (!row)
             return;
-        twPick = { from: ca, to: cb, date: date, flight: row.flight || "", airline: row.airline || "", aircraft: row.aircraft || "", airMin: Number(row.airMin) || 0, time: row.time || "" };
+        twPick = { from: ca, to: cb, date: date, flight: row.flight || "", airline: row.airline || "", airlineIata: row.airlineIata || "", aircraft: row.aircraft || "", airMin: Number(row.airMin) || 0, time: row.time || "" };
         var timeEl = document.getElementById("tw-time");
         if (timeEl && row.time)
             timeEl.value = row.time;
@@ -5961,6 +6020,10 @@ function adsbApply(trip, flight) {
         return Promise.resolve(trip);
     if (flight.callsign)
         trip.flight = String(flight.callsign).trim();
+    if (flight.model && !trip.aircraft)
+        trip.aircraft = String(flight.model);
+    if (flight.operator && !trip.airline)
+        trip.airline = String(flight.operator);
     var tm = String(flight.start_ts || "").slice(11, 16);
     if (tm && !trip.time)
         trip.time = tm;
@@ -5975,6 +6038,10 @@ function adsbApply(trip, flight) {
         return Promise.resolve(trip);
     return adsbFetch("https://adsb.aero/api/v1/flights/" + encodeURI(flight.flight_id)).then(function (full) {
         var body = (full && full.flight) || full || {};
+        if (body.model && !trip.aircraft)
+            trip.aircraft = String(body.model);
+        if (body.operator && !trip.airline)
+            trip.airline = String(body.operator);
         var coords = adsbPath(body.path || full.path);
         if (coords)
             trip.coords = coords;
@@ -6151,6 +6218,8 @@ function bindTripWindow() {
             made.flight = twPick.flight || made.flight;
             if (twPick.airline)
                 made.airline = twPick.airline;
+            if (twPick.airlineIata)
+                made.airlineIata = twPick.airlineIata;
             if (twPick.aircraft)
                 made.aircraft = twPick.aircraft;
             if (twPick.airMin)

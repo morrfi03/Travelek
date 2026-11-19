@@ -16,6 +16,7 @@ export function scheduleCloudSave(){
   if(typeof window.__cloudPush!=="function") return;
   clearTimeout(cloudTimer);
   cloudTimer=setTimeout(function(){
+    cloudTimer=null;
     var keys=["travelek-extra","travelek-del","travelek-app-settings","travelek-mapprefs","travelek-theme","travelek-theme-pref","travelek-countries","travelek-countries-off","travelek-regions","travelek-regions-off","travelek-trips","travelek-schedules"];
     var pack= {} as any, i;
     for(i=0;i<keys.length;i++) pack[keys[i]]=localStorage.getItem(keys[i]);
@@ -308,7 +309,13 @@ wipeRoutesOnce();
         window.__TRAVELEK_STORE_CHANGED=after!==before;
         if(needSave || repaired) return saveStoreNow();
       });
-    }).catch(function(){}).then(function(){ window.__TRAVELEK_STORE_READY=true; if(!window.__TRAVELEK_POLL) window.__TRAVELEK_POLL=setInterval(pullRemote, 8000); });
+    }).catch(function(){}).then(function(){
+      window.__TRAVELEK_STORE_READY=true;
+      if(window.__TRAVELEK_POLL) return;
+      window.__TRAVELEK_POLL=setInterval(pullRemote, 8000);
+      document.addEventListener("visibilitychange", function(){ if(!document.hidden) pullRemote(); });
+      window.addEventListener("online", pullRemote);
+    });
     return storePromise;
   }
   function apply(pack){

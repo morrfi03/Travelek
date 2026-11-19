@@ -49,7 +49,7 @@ var api = (function () {
       drawing=false;
       for(i=0;i<ring.length;i++){
         a=ring[i]; b=ring[(i+1)%ring.length];
-        if(edgeInDNRLNR((a[0]+b[0])/2, (a[1]+b[1])/2)){ drawing=false; continue; }
+        if(hideRuUaCut(a[0], a[1], b[0], b[1])){ drawing=false; continue; }
         p=flatXY(a[0]*PI/180, a[1]*PI/180);
         q=flatXY(b[0]*PI/180, b[1]*PI/180);
         if(!drawing){ ctx.moveTo(p[0], p[1]); drawing=true; }
@@ -279,20 +279,86 @@ var api = (function () {
     }
     return c;
   }
-  var dnrlEnts = null;
-  function edgeInDNRLNR(lng, lat) {
-    var ei, e, i, lo, la;
-    if (!dnrlEnts) {
-      dnrlEnts = [];
-      if (!byLayer || !byLayer.R) return false;
-      for (ei = 0; ei < byLayer.R.length; ei++) {
-        e = ents[byLayer.R[ei]];
-        if (e.name === "Донецкая Народная Республика" || e.name === "Луганская Народная Республика") dnrlEnts.push(e);
+  var dnrlEnts = null, newRegEnts = null;
+  function entsNamed(names){
+    var out = [], ei, e;
+    if(!byLayer || !byLayer.R) return out;
+    for(ei=0; ei<byLayer.R.length; ei++){
+      e = ents[byLayer.R[ei]];
+      if(names[e.name]) out.push(e);
+    }
+    return out;
+  }
+  function hideReps(){
+    if(dnrlEnts) return dnrlEnts;
+    dnrlEnts = entsNamed({ "Донецкая Народная Республика": 1, "Луганская Народная Республика": 1 });
+    return dnrlEnts;
+  }
+  function frontierReps(){
+    if(newRegEnts) return newRegEnts;
+    newRegEnts = entsNamed({
+      "Донецкая Народная Республика": 1,
+      "Луганская Народная Республика": 1,
+      "Запорожская область": 1,
+      "Херсонская область": 1,
+      "Республика Крым": 1,
+      "Севастополь": 1
+    });
+    return newRegEnts;
+  }
+  function inList(list, lng, lat){
+    var lo = lng * 100, la = lat * 100, i;
+    for(i=0;i<list.length;i++) if(inside(list[i], lo, la)) return true;
+    return false;
+  }
+  function inCountryDeg(iso, lng, lat){
+    var rings = countryRings(iso), r, ring, i, j, inn, xi, yi, xj, yj;
+    for(r=0;r<rings.length;r++){
+      ring = rings[r]; inn = false; j = ring.length - 1;
+      for(i=0;i<ring.length;i++){
+        xi = ring[i][0]; yi = ring[i][1]; xj = ring[j][0]; yj = ring[j][1];
+        if((yi > lat) !== (yj > lat) && lng < (xj - xi) * (lat - yi) / ((yj - yi) || 1e-12) + xi) inn = !inn;
+        j = i;
+      }
+      if(inn) return true;
+    }
+    return false;
+  }
+  function hideRuUaCut(lng, lat, lng2, lat2){
+    var list = hideReps(), mx = (lng + lng2) / 2, my = (lat + lat2) / 2;
+    var dx = lng2 - lng, dy = lat2 - lat, len = Math.hypot(dx, dy) || 1e-9;
+    var ox = -dy / len * 0.12, oy = dx / len * 0.12;
+    if(inList(list, mx + ox, my + oy) && inList(list, mx - ox, my - oy)) return true;
+    if(inCountryDeg("UA", mx + ox, my + oy) || inCountryDeg("UA", mx - ox, my - oy)) return false;
+    return inList(list, mx, my);
+  }
+  function strokeRuUaFrontier(ctx, projectPt){
+    var reps = frontierReps(), ei, e, r, s, n, j, a, b, lng1, lat1, lng2, lat2, mx, my, dx, dy, len, ox, oy, outLng, outLat, q1, q2, drew = false;
+    if(!reps.length) return false;
+    ctx.beginPath();
+    for(ei=0; ei<reps.length; ei++){
+      e = reps[ei];
+      for(r=e.r0; r<e.r1; r++){
+        if(rHole[r]) continue;
+        s = rStart[r]; n = rLen[r];
+        for(j=0; j<n; j++){
+          a = s + j; b = s + ((j + 1) % n);
+          lng1 = LX[a] / 100; lat1 = LY[a] / 100; lng2 = LX[b] / 100; lat2 = LY[b] / 100;
+          mx = (lng1 + lng2) / 2; my = (lat1 + lat2) / 2;
+          dx = lng2 - lng1; dy = lat2 - lat1; len = Math.hypot(dx, dy) || 1e-9;
+          ox = -dy / len * 0.1; oy = dx / len * 0.1;
+          if(inList(reps, mx + ox, my + oy) && inList(reps, mx - ox, my - oy)) continue;
+          if(inList(reps, mx + ox, my + oy)){ outLng = mx - ox; outLat = my - oy; }
+          else { outLng = mx + ox; outLat = my + oy; }
+          if(inList(reps, outLng, outLat) || !inCountryDeg("UA", outLng, outLat)) continue;
+          q1 = projectPt(lng1, lat1); q2 = projectPt(lng2, lat2);
+          if(!q1 || !q2) continue;
+          ctx.moveTo(q1[0], q1[1]); ctx.lineTo(q2[0], q2[1]);
+          drew = true;
+        }
       }
     }
-    lo = lng * 100; la = lat * 100;
-    for (i = 0; i < dnrlEnts.length; i++) if (inside(dnrlEnts[i], lo, la)) return true;
-    return false;
+    return drew;
   }
   function geoCovers(lo, la) {
     var rings = countryRings("UA");
@@ -479,8 +545,8 @@ var api = (function () {
       reliefStarted = true;
       relF.src = "geo/atlas-rs.jpg?v=94";
     }
-    if (typeof requestIdleCallback === "function") requestIdleCallback(startRelief, { timeout: 2500 });
-    else setTimeout(startRelief, 1500);
+    if (typeof requestIdleCallback === "function") requestIdleCallback(startRelief, { timeout: 6000 });
+    else setTimeout(startRelief, 4000);
     function grab(img, maxW) {
       if (!img.complete || !img.naturalWidth) return null;
       var scale = maxW ? Math.min(1, maxW / img.naturalWidth) : 1;
@@ -812,6 +878,7 @@ var api = (function () {
       c.lineWidth = Math.max(0.8, 1.1) / kk;
       if (traceFlat(c, "RU", true)) c.stroke();
       if (traceFlat(c, "UA", true)) c.stroke();
+      if (strokeRuUaFrontier(c, function (lng, lat) { return flatXY(lng * PI / 180, lat * PI / 180); })) c.stroke();
       (function paintFlatOverlays(){
         var ids = Object.keys(washIso), k, iso, rings, ring, i, p, minx, miny, maxx, maxy, sw, sh;
         for (k in markC) if (ids.indexOf(k) < 0) ids.push(k);
@@ -842,6 +909,7 @@ var api = (function () {
         }
       })();
       c.restore();
+      paintNets(bctx);
     }
     function paintNets(target) {
       var kk = cw / WID * k, vx0 = -tx / kk, vx1 = (cw - tx) / kk, vy0 = -ty / kk, vy1 = (ch - ty) / kk, any = false;
@@ -889,9 +957,6 @@ var api = (function () {
         var s = k / snapK;
         ctx.setTransform(s, 0, 0, s, (tx - snapTx * s) * dpr, (ty - snapTy * s) * dpr);
         ctx.drawImage(bc, 0, 0);
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        paintNets(ctx);
-        ctx.setTransform(s, 0, 0, s, (tx - snapTx * s) * dpr, (ty - snapTy * s) * dpr);
         ctx.drawImage(rc, 0, 0);
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         var labels2 = document.getElementById("atlas-html");
@@ -899,7 +964,6 @@ var api = (function () {
       } else {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.drawImage(bc, 0, 0);
-        paintNets(ctx);
         ctx.drawImage(rc, 0, 0);
       }
       if (!settled) return;
@@ -1334,7 +1398,7 @@ var api = (function () {
           a=pts[i]; b=pts[(i+1)%n];
           if(clip){
             g0=rings[r][i]; g1=rings[r][(i+1)%n];
-            if(edgeInDNRLNR((g0[0]+g1[0])/2, (g0[1]+g1[1])/2)){ started=false; continue; }
+            if(hideRuUaCut(g0[0], g0[1], g1[0], g1[1])){ started=false; continue; }
           }
           if(a.z<=0.025 && b.z<=0.025) continue;
           if(!started){
@@ -1447,7 +1511,7 @@ var api = (function () {
         sphereKey = sphereSig;
       }
       }
-      var stride = 1;
+      var stride = fast ? 2 : 1;
       project(stride); stampIso(); ctx.save(); ctx.beginPath(); ctx.arc(cx, cy, R, 0, 2 * PI); ctx.clip();
       byLayer.W.forEach(function (i) {
         var e = ents[i];
@@ -1485,11 +1549,17 @@ var api = (function () {
       byLayer.W.forEach(function (i) {
         var e = ents[i];
         if (e.name === "Украина") return; // drawn via fillGeo below
-        projectFull(e); ctx.beginPath(); fillRings(e); ctx.stroke();
+        if (!fast) projectFull(e); ctx.beginPath(); fillRings(e); ctx.stroke();
       });
       ctx.lineWidth = 1.1;
       if (fillGeo("RU", true)) ctx.stroke();
       if (fillGeo("UA", true)) ctx.stroke();
+      if (strokeRuUaFrontier(ctx, function (lng, lat) {
+        var lo = lng * PI / 180, la = lat * PI / 180, X = Math.cos(la) * Math.sin(lo), Y = Math.sin(la), Z = Math.cos(la) * Math.cos(lo);
+        var x1 = X * cl - Z * sl, zz = X * sl + Z * cl, y2 = Y * cp - zz * sp, zc = Y * sp + zz * cp;
+        if (zc <= 0.02) return null;
+        return [cx + R * x1, cy - R * y2];
+      })) ctx.stroke();
       ([[hoverEnt, "rgba(255,248,220,.66)"], [selEnt, "rgba(255,214,140,.72)"]] as [number, string][]).forEach(function (h) {
         if (h[0] < 0) return;
         var e = ents[h[0]], hi, host, hosts = hostEntities(e);
@@ -1640,8 +1710,9 @@ var api = (function () {
         lon0 = a.lon + dl * e; lat0 = a.lat + (la - a.lat) * e; zoom = a.z + (z - a.z) * e; draw(t < 1 ? 0.4 : hq(), t < 1); if (t < 1) fly = requestAnimationFrame(step);
       })(t0);
     }
+    function stopFly() { cancelAnimationFrame(fly); fly = 0; }
     return {
-      resize: resize, draw: redraw, drawNow: function () { draw(hq(), false); }, paintRoutes: paintRoutes, paintColors: paintColors, flyTo: flyTo,
+      resize: resize, draw: redraw, drawNow: function () { draw(hq(), false); }, paintRoutes: paintRoutes, paintColors: paintColors, flyTo: flyTo, stopFly: stopFly,
       zoomBy: function (f) { zoom = Math.max(1, Math.min(6, zoom * f)); redraw(); if (hooks.afterView) hooks.afterView(); },
       projectLL: function (lat, lng) {
         setCam(); var lo = lng * PI / 180, la = lat * PI / 180, X = Math.cos(la) * Math.sin(lo), Y = Math.sin(la), Z = Math.cos(la) * Math.cos(lo);
@@ -1666,7 +1737,71 @@ var api = (function () {
   function flatKForSpan(deg) { return (2 * XMAX * 180 / PI) / Math.max(8, deg); }
   var camHold: any = { flat: null, globe: null };
   var modeFade = 0;
-  function readFlatCam() { var c = views.flat.getCenter(); return { lon: c.lon, lat: c.lat, k: views.flat.getK() }; }
+  function readFlatCam() {
+    var c = views.flat.getCenter();
+    return { lon: c.lon, lat: c.lat, k: views.flat.getK(), span: visibleFlatSpan() };
+  }
+  function visibleFlatSpan() {
+    var flat = views.flat as any, s, c, p, up, dn, dy, dlat;
+    if (!flat || !flat.getSize || !flat.unproject || !flat.getCenter || !flat.projectLL) return null;
+    s = flat.getSize();
+    if (!s || s.y < 40) return null;
+    c = flat.getCenter();
+    p = flat.projectLL(c.lat, c.lon);
+    if (!p) return null;
+    dy = Math.max(24, Math.min(80, s.y / 6));
+    up = flat.unproject(p.x, p.y - dy);
+    dn = flat.unproject(p.x, p.y + dy);
+    if (!up || !dn) return null;
+    dlat = Math.abs(up.lat - dn.lat);
+    if (!(dlat > 0)) return null;
+    return dlat / (2 * dy) * s.y;
+  }
+  function visibleFlatWidth() {
+    var flat = views.flat as any, s, c, p, left, right, dx, dlon;
+    if (!flat || !flat.getSize || !flat.unproject || !flat.getCenter || !flat.projectLL) return null;
+    s = flat.getSize();
+    if (!s || s.x < 40) return null;
+    c = flat.getCenter();
+    p = flat.projectLL(c.lat, c.lon);
+    if (!p) return null;
+    dx = Math.max(24, Math.min(80, s.x / 6));
+    left = flat.unproject(p.x - dx, p.y);
+    right = flat.unproject(p.x + dx, p.y);
+    if (!left || !right) return null;
+    dlon = Math.abs(right.lng - left.lng);
+    if (dlon > 180) dlon = 360 - dlon;
+    return dlon > 0 ? dlon / (2 * dx) * s.x : null;
+  }
+  function zoomAlong(spanDeg, pixels, minSide) {
+    var half = Math.min(89, Math.max(0.5, spanDeg) / 2) * PI / 180;
+    var s = Math.sin(half);
+    if (!(s > 0.02) || !(pixels > 0) || !(minSide > 0)) return 1;
+    return Math.max(1, Math.min(6, pixels / (minSide * 0.9 * s)));
+  }
+  function focusCam(m, from) {
+    var to = views[m];
+    if (!to || !from || from === m) return;
+    if (views.globe && views.globe.stopFly) views.globe.stopFly();
+    if (m === "globe") {
+      var src = readFlatCam();
+      var span = src.span || flatSpan(src.k) * 0.45;
+      var wide = visibleFlatWidth();
+      var gs = views.globe.getSize ? views.globe.getSize() : { x: 800, y: 600 };
+      var minSide = Math.max(40, Math.min(gs.x || 800, gs.y || 600));
+      var zH = globeZoomForSpan(span);
+      var zW = wide ? zoomAlong(wide, gs.x || minSide, minSide) : zH;
+      to.setCenter(src.lon, src.lat, Math.max(zH, zW));
+    } else {
+      var g = readGlobeCam();
+      var want = globeSpan(g.z);
+      var have = visibleFlatSpan();
+      var k = views.flat.getK();
+      if (have && want) k = Math.max(views.flat.kMin(), Math.min(170, k * have / want));
+      else k = flatKForSpan(want);
+      to.setCenter(g.lon, g.lat, k);
+    }
+  }
   function readGlobeCam() { var c = views.globe.getCenter(); return { lon: c.lon, lat: c.lat, z: c.z }; }
   function paintMode(m) {
     var flat = $("flatBox"), globe = $("globeBox");
@@ -1679,6 +1814,12 @@ var api = (function () {
     if (changed) camHold[mode] = mode === "flat" ? readFlatCam() : readGlobeCam();
     var from = mode;
     mode = m; hoverEnt = -1;
+    if (changed) {
+      var next = views[m];
+      if (next && next.resize) next.resize();
+      focusCam(m, from);
+      if (next && next.drawNow) next.drawNow();
+    }
     root.style.background = m === "globe" ? "#16324a" : "#4e8cb2";
     var labels = $("atlas-html");
     var token = ++modeFade;
@@ -1692,16 +1833,7 @@ var api = (function () {
       if (token !== modeFade) return;
       var to = views[m];
       to.resize();
-      if (changed) {
-        var own = camHold[m], src = camHold[from];
-        if (own) {
-          if (m === "flat") to.setCenter(own.lon, own.lat, own.k);
-          else to.setCenter(own.lon, own.lat, own.z);
-        } else if (src) {
-          if (m === "globe") to.setCenter(src.lon, src.lat, globeZoomForSpan(flatSpan(src.k)));
-          else to.setCenter(src.lon, src.lat, flatKForSpan(globeSpan(src.z)));
-        }
-      }
+      if (changed) focusCam(m, from);
       if (to.drawNow) to.drawNow(); else to.draw();
       requestAnimationFrame(function () {
         if (token !== modeFade) return;

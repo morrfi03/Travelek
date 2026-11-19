@@ -24,6 +24,7 @@ export function scheduleCloudSave() {
         return;
     clearTimeout(cloudTimer);
     cloudTimer = setTimeout(function () {
+        cloudTimer = null;
         var keys = ["travelek-extra", "travelek-del", "travelek-app-settings", "travelek-mapprefs", "travelek-theme", "travelek-theme-pref", "travelek-countries", "travelek-countries-off", "travelek-regions", "travelek-regions-off", "travelek-trips", "travelek-schedules"];
         var pack = {}, i;
         for (i = 0; i < keys.length; i++)
@@ -452,8 +453,17 @@ wipeRoutesOnce();
                 if (needSave || repaired)
                     return saveStoreNow();
             });
-        }).catch(function () { }).then(function () { window.__TRAVELEK_STORE_READY = true; if (!window.__TRAVELEK_POLL)
-            window.__TRAVELEK_POLL = setInterval(pullRemote, 8000); });
+        }).catch(function () { }).then(function () {
+        window.__TRAVELEK_STORE_READY = true;
+        if (window.__TRAVELEK_POLL)
+            return;
+        window.__TRAVELEK_POLL = setInterval(pullRemote, 8000);
+        document.addEventListener("visibilitychange", function () {
+            if (!document.hidden)
+                pullRemote();
+        });
+        window.addEventListener("online", pullRemote);
+    });
         return storePromise;
     }
     function apply(pack) {
@@ -1504,7 +1514,11 @@ function loadWorldPlacesMain() {
             }
         }
         setTimeout(step, 0);
-    }).catch(function () { WORLD.loading = false; });
+    }).catch(function () {
+        WORLD.loading = false;
+        if (window.__reportClient)
+            window.__reportClient("places", "places.json не открылся");
+    });
 }
 export function loadWorldPlaces() {
     if (WORLD.loading || WORLD.ready)
