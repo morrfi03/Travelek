@@ -1081,8 +1081,9 @@ export function render(opts) {
     if (activeTab === "trips")
         activeTab = "past";
     layer.clearLayers();
+    var mapRoutes = filterRoutes(ROUTES, "all", { mode: typeof modeFilter !== "undefined" ? modeFilter : "all" });
     if (typeof collectLabelPts === "function")
-        collectLabelPts(typeof filtered === "function" ? filtered() : ROUTES);
+        collectLabelPts(mapRoutes);
     var list = filtered(), kmP = 0, kmT = 0, kmC = 0, bounds = [];
     var kmW = 0, kmB = 0, kmS = 0, nP = 0, nT = 0, nC = 0, nW = 0, nB = 0, nS = 0;
     var section = document.body.getAttribute("data-section");
@@ -1163,33 +1164,41 @@ export function render(opts) {
     var routeCounts = {};
     ROUTES.forEach(function (r) { var k = routeRepeatKey(r); if (k && k !== " ⇄ ")
         routeCounts[k] = (routeCounts[k] || 0) + 1; });
-    list.forEach(function (r) {
+    mapRoutes.forEach(function (r) {
         var g = buildGeoSync(r);
         if (!g || !g.coords)
             return;
         var fut = isFuture(r);
         var theme = document.documentElement.getAttribute("data-theme") || "dark";
         var light = theme === "light";
-        var col = light ? "#3c4a5c" : "#d5dbe3";
+        var col = light ? "#3c4a5c" : "#e7eef6";
         if (r.mode === "train")
-            col = light ? "#6d5848" : "#cbb89a";
+            col = light ? "#6d5848" : "#e6d3b0";
         else if (r.mode === "car" || r.mode === "walk" || r.mode === "bike")
-            col = light ? "#4a564e" : "#aeb8aa";
+            col = light ? "#4a564e" : "#c9d4c4";
         else if (r.mode === "ship")
-            col = light ? "#3e5560" : "#9aafb8";
+            col = light ? "#3e5560" : "#b7c9d1";
         if (realFlight(r) || (selectedId === r.id && r.mode === "plane"))
-            col = light ? "#1d4e6f" : "#8ec4de";
-        var casing = light ? "rgba(255,255,255,.9)" : "rgba(8,12,16,.55)";
+            col = light ? "#1d4e6f" : "#9fd4ea";
+        var casing = light ? "#ffffff" : "rgba(244,248,252,.9)";
         var repeats = routeCounts[routeRepeatKey(r)] || 1;
         var w = repeats > 1 ? 5.2 : 2.15;
         if (selectedId === r.id)
             w += 1.2;
-        map.line(g.coords, { pane: "routePane", color: casing, weight: w + (repeats > 1 ? 2.8 : 1.5), opacity: .94, lineJoin: "round", lineCap: "round", interactive: false, smoothFactor: 0 }).addTo(layer);
-        map.line(g.coords, { pane: "routePane", color: col, weight: w, opacity: 1, dashArray: fut ? "7 6" : null, lineJoin: "round", lineCap: "round", interactive: false, smoothFactor: 0 }).addTo(layer);
-        [g.coords[0], g.coords[g.coords.length - 1]].forEach(function (p) {
+        var coords = g.coords, n = coords.length, drawn = coords;
+        if (n > 200) {
+            var step = Math.ceil(n / 180), i;
+            drawn = [coords[0]];
+            for (i = step; i < n - 1; i += step)
+                drawn.push(coords[i]);
+            drawn.push(coords[n - 1]);
+        }
+        map.line(drawn, { pane: "routePane", color: casing, weight: w + (repeats > 1 ? 2.8 : 1.5), opacity: .94, lineJoin: "round", lineCap: "round", interactive: false, smoothFactor: 0 }).addTo(layer);
+        map.line(drawn, { pane: "routePane", color: col, weight: w, opacity: 1, dashArray: fut ? "7 6" : null, lineJoin: "round", lineCap: "round", interactive: false, smoothFactor: 0 }).addTo(layer);
+        [drawn[0], drawn[drawn.length - 1]].forEach(function (p) {
             map.dot(p, { pane: "routePane", radius: 5, color: casing, fillColor: col, fillOpacity: 1, weight: 2.5 }).addTo(layer);
         });
-        g.coords.forEach(function (c) { bounds.push(c); });
+        drawn.forEach(function (c) { bounds.push(c); });
     });
     if (typeof syncVisited === "function")
         syncVisited();
@@ -1215,7 +1224,7 @@ export function render(opts) {
         seenJob[k] = 1;
         jobs.push({ a: p, b: q });
     }
-    list.forEach(function (r) {
+    mapRoutes.forEach(function (r) {
         var g = buildGeoSync(r);
         if (!g)
             return;
