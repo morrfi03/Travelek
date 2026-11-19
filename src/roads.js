@@ -1,7 +1,7 @@
-import { STATIONS, densify, hav, shipCoords } from "./catalog.js?v=95";
-import { ROUTES, bindRail, place } from "./cloud.js?v=95";
-import { datedPast, isFuture } from "./when.js?v=95";
-import { ui } from "./screen.js?v=95";
+import { STATIONS, densify, hav, shipCoords } from "./catalog.js?v=96";
+import { ROUTES, bindRail, place } from "./cloud.js?v=96";
+import { datedPast, isFuture } from "./when.js?v=96";
+import { ui } from "./screen.js?v=96";
 export { datedPast, isFuture };
 /* geometry */
 function flightArc(a, b, n) {

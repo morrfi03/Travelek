@@ -1,4 +1,4 @@
-import { isFuture } from "./when.js?v=95";
+import { isFuture } from "./when.js?v=96";
 export function upsertTrip(trips, trip) {
     return [trip].concat(trips.filter(function (item) { return item.id !== trip.id; }));
 }

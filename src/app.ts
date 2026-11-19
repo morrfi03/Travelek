@@ -15,6 +15,7 @@ window.__onRoads=function(){
   if(typeof render==="function") render();
 };
 map=createMap();
+hideBoot();
 loadCatalog().then(function(){
   reindexStations();
   if(typeof render==="function") render();
@@ -4206,7 +4207,7 @@ function aeroList(){
   var list: string[]=[];
   var own=ownAeroKey();
   if(own) list.push(own);
-  aeroKeys.forEach(function(key){ if(key && list.indexOf(key)<0) list.push(key); });
+  (aeroKeys||[]).forEach(function(key){ if(key && list.indexOf(key)<0) list.push(key); });
   return list.filter(function(key){ return aeroSpent(key)!==month; });
 }
 function ensureAeroKeys(){
