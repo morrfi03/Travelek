@@ -914,6 +914,8 @@ wipeRoutesOnce();
     if (!form)
         return;
     form.onsubmit = function (e) {
+        if (form.dataset.setup === "1")
+            return;
         e.preventDefault();
         var err = document.getElementById("file-login-err");
         if (err)

@@ -3,12 +3,12 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" /><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"><title>ТравелЕк</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="modulepreload" href="src/main.js?v=120">
-<link rel="modulepreload" href="src/app.js?v=120">
+<link rel="modulepreload" href="src/main.js?v=121">
+<link rel="modulepreload" href="src/app.js?v=121">
+<link rel="modulepreload" href="src/roads.js?v=100">
+<link rel="modulepreload" href="src/cloud.js?v=104">
 <link rel="modulepreload" href="src/atlas.js?v=108">
 <link rel="modulepreload" href="geo/atlas-data.js?v=97">
-<link rel="modulepreload" href="src/cloud.js?v=103">
-<link rel="modulepreload" href="src/roads.js?v=99">
 <style>
 @font-face{font-family:Manrope;src:url("geo/fonts/manrope-cyr.woff2") format("woff2");font-weight:400 800;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
 @font-face{font-family:Manrope;src:url("geo/fonts/manrope-lat.woff2") format("woff2");font-weight:400 800;font-style:normal;font-display:swap;unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+2000-206F,U+20AC,U+2122}
@@ -684,7 +684,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 }
 #file-login h1{margin:0 0 8px;font-size:32px;font-weight:500}
 #file-login p{margin:0 0 18px;color:var(--muted);font-size:14px;line-height:1.45}
-#file-login input{
+#file-login input:not([type="checkbox"]){
   width:100%;box-sizing:border-box;margin:0 0 10px;padding:12px 14px;border-radius:12px;
   border:1px solid var(--line);background:var(--chip);color:var(--text);font-size:16px;
 }
@@ -743,8 +743,19 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 #file-login{overflow:auto;align-items:center;justify-content:center;padding:16px 16px calc(16px + env(safe-area-inset-bottom,0px))}
 #file-login form{margin:auto;box-sizing:border-box}
 .legal-accept{display:block;margin:12px 0 14px;padding:12px;border-radius:14px;background:rgba(255,255,255,.06);color:#d5dced}
-.legal-check{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:flex-start;font-size:14px;line-height:1.4}
-.legal-check input{width:22px;height:22px;margin:1px 0 0;accent-color:#8c3d22}
+.legal-check{position:relative;display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:flex-start;font-size:14px;line-height:1.4;cursor:pointer}
+#file-login .legal-check input{
+  position:absolute;left:0;top:0;width:28px;height:28px;margin:0;padding:0;opacity:0;cursor:pointer;
+}
+.legal-check i{
+  width:22px;height:22px;margin-top:1px;border-radius:6px;border:1.5px solid rgba(255,255,255,.7);
+  background:transparent;display:block;
+}
+.legal-check input:checked + i{
+  background:#0a84ff url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><path fill='none' stroke='white' stroke-width='2.2' d='M3 8.2 6.2 11.5 13 4.5'/></svg>") center/14px no-repeat;
+  border-color:#0a84ff;
+}
+#file-login-go:disabled{opacity:.4;cursor:default}
 .legal-links{display:flex;gap:14px;margin-top:8px;padding-left:38px}
 #file-login .legal-links button{display:inline!important;width:auto!important;min-height:0!important;margin:0!important;padding:0!important;border:0!important;background:none!important;color:var(--muted)!important;font-size:13px!important;font-weight:600;text-decoration:underline;box-shadow:none!important;border-radius:0!important}
 .net-toggle{position:fixed;right:max(10px,env(safe-area-inset-right,0px));top:calc(38% - 96px);z-index:26;display:flex;flex-direction:column;gap:8px;align-items:flex-end}
@@ -1677,6 +1688,7 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
     <div class="legal-accept">
       <label class="legal-check" for="file-login-legal">
         <input id="file-login-legal" type="checkbox" />
+        <i></i>
         <span>Принимаю пользовательское соглашение и политику обработки данных</span>
       </label>
       <div class="legal-links">
@@ -2126,6 +2138,6 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=120"></script>
+<script type="module" src="src/main.js?v=121"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>

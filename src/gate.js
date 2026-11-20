@@ -54,12 +54,17 @@
     allow();
     form.addEventListener("submit", function (e) {
         e.preventDefault();
+        e.stopImmediatePropagation();
         var err = document.getElementById("file-login-err");
         if (!legal || !legal.checked) {
             if (err)
                 err.textContent = "Сначала примите соглашение и политику";
             return;
         }
+        try {
+            localStorage.setItem("travelek-legal", "1");
+        }
+        catch (e2) { }
         if (form.dataset.setup === "1") {
             var login = document.getElementById("file-login-name").value.trim();
             var pass = document.getElementById("file-login-pass").value;

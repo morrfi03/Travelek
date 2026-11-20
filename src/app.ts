@@ -3537,7 +3537,7 @@ if(legalClose) legalClose.onclick=function(){ document.getElementById("legal-pan
 var legalOk=document.getElementById("legal-ok");
 if(legalOk) legalOk.onclick=function(){
   var box=document.getElementById("file-login-legal");
-  if(box) box.checked=true;
+  if(box){ box.checked=true; box.dispatchEvent(new Event("change",{bubbles:true})); }
   document.getElementById("legal-panel").classList.remove("on");
 };
 var countriesOpen=document.getElementById("countries-open");
