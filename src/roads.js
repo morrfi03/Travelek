@@ -694,19 +694,13 @@ function routeSmart(a, b, depth, cb) {
         return;
     }
     fetchOsrm(a, b, function (coords) {
-        if (coords && coords.length >= 2) {
-            cb(coords);
-            return;
-        }
-        if (depth >= 3 || d < 160) {
+        /* A failed long request used to split at the geodesic middle.
+           Moscow–Beijing landed on Novosibirsk and drew a corner there. */
+        if (!coords || coords.length < 2 || (d > 80 && coords.length < 4) || hasLongChord(coords, Math.max(120, d * 0.72))) {
             cb(null);
             return;
         }
-        var midPt = flightArc(a, b, 2)[1];
-        var mid = { lat: midPt[0], lng: midPt[1] };
-        routeSmart(a, mid, depth + 1, function (left) {
-            routeSmart(mid, b, depth + 1, function (right) { cb(stitchLines(left, right)); });
-        });
+        cb(coords);
     });
 }
 function fetchRoad(a, b, cb) {
