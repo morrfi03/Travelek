@@ -1,6 +1,6 @@
 "use strict";
 (function () {
-    var URL = window.__TRAVELEK_STORE_URL || "https://keepjson.fourlegs.workers.dev/bins/BkoU663gNtadZ-zfQvPYx";
+    var URL = window.__TRAVELEK_STORE_URL || "/api/diary";
     var KEY = typeof window.__TRAVELEK_STORE_KEY === "string" ? window.__TRAVELEK_STORE_KEY : "";
     function authHeaders() {
         var h = { "Content-Type": "application/json" };

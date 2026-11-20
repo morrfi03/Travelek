@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import zlib from "node:zlib";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { mergeDiary } from "./src/store.js";
 
 const root = path.dirname(fileURLToPath(import.meta.url));
 const port = Number(process.env.PORT || 3000);
@@ -289,6 +290,45 @@ function sendJson(res, code, body) {
   res.end(raw);
 }
 
+const diaryFile = path.join(root, "data", "diary.json");
+function emptyDiary() {
+  return { users: [], vault: {}, deleted: [] };
+}
+function readDiaryFile() {
+  try {
+    const doc = mergeDiary(emptyDiary(), JSON.parse(fs.readFileSync(diaryFile, "utf8")));
+    return doc && Array.isArray(doc.users) ? doc : emptyDiary();
+  } catch (err) {
+    return emptyDiary();
+  }
+}
+function writeDiaryFile(doc) {
+  fs.mkdirSync(path.dirname(diaryFile), { recursive: true });
+  const tmp = diaryFile + ".tmp";
+  fs.writeFileSync(tmp, JSON.stringify(doc));
+  fs.renameSync(tmp, diaryFile);
+}
+function readJson(req, limit) {
+  return new Promise(function (resolve, reject) {
+    const chunks = [];
+    let size = 0;
+    req.on("data", function (chunk) {
+      size += chunk.length;
+      if (size > limit) {
+        reject(new Error("большой"));
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on("end", function () {
+      try { resolve(JSON.parse(Buffer.concat(chunks).toString("utf8") || "{}")); }
+      catch (err) { reject(err); }
+    });
+    req.on("error", reject);
+  });
+}
+
 const monthHits = new Map();
 function allowSearch() {
   const month = new Date().toISOString().slice(0, 7);
@@ -557,6 +597,24 @@ export function createServer() {
       }).catch(function () {
         sendJson(res, 400, { error: "плохой журнал" });
       });
+      return;
+    }
+    if (url.pathname === "/api/diary") {
+      if (req.method === "GET") {
+        sendJson(res, 200, readDiaryFile());
+        return;
+      }
+      if (req.method === "PUT") {
+        readJson(req, 6000000).then(function (body) {
+          const doc = mergeDiary(readDiaryFile(), body);
+          writeDiaryFile(doc);
+          sendJson(res, 200, doc);
+        }).catch(function () {
+          sendJson(res, 400, { error: "Дневник не записан" });
+        });
+        return;
+      }
+      sendJson(res, 405, { error: "Метод не поддерживается" });
       return;
     }
     if (url.pathname === "/api/flights") {

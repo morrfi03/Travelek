@@ -6,3 +6,5 @@ dist
 *.zip
 .DS_Store
 .layero/
+data/diary.json
+data/diary.json.tmp

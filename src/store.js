@@ -131,3 +131,24 @@ export function readStoreDocument(data) {
     const vault = doc.vault && typeof doc.vault === "object" && !Array.isArray(doc.vault) ? doc.vault : {};
     return { users: doc.users, deleted: deleted, vault: vault };
 }
+export function mergeDiary(current, incoming) {
+    const base = readStoreDocument(current) || { users: [], deleted: [], vault: {} };
+    const next = readStoreDocument(incoming);
+    if (!next)
+        return base;
+    const merged = mergeUsers(next.users, next.deleted, base.users);
+    const vault = {};
+    let chosen;
+    Object.keys(base.vault).forEach(function (key) {
+        if (merged.deleted.indexOf(key) < 0)
+            vault[key] = base.vault[key];
+    });
+    Object.keys(next.vault).forEach(function (key) {
+        if (merged.deleted.indexOf(key) >= 0)
+            return;
+        chosen = preferPack(vault[key], next.vault[key]);
+        if (chosen)
+            vault[key] = chosen;
+    });
+    return { users: merged.users, deleted: merged.deleted, vault: vault };
+}

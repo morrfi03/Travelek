@@ -21,6 +21,9 @@ function stampDiaryRev(){
   try{
     var vault=JSON.parse(localStorage.getItem("travelek-vault")||"{}");
     if(!vault || typeof vault!=="object" || Array.isArray(vault)) vault={};
+    var prev=vault[me.id];
+    function nRaw(raw){ try{ var a=JSON.parse(raw||"[]"); return Array.isArray(a)?a.length:0; }catch(e){ return 0; } }
+    if(prev && !window.__TRAVELEK_DIARY_READY && nRaw(pack["travelek-extra"])<nRaw(prev["travelek-extra"])) return;
     vault[me.id]=pack;
     localStorage.setItem("travelek-vault", JSON.stringify(vault));
   }catch(e){}
@@ -115,8 +118,8 @@ wipeRoutesOnce();
   window.__TRAVELEK_PRIVATE=true;
   var USERS="travelek-users", SESSION="travelek-session", VAULT="travelek-vault";
   var KEYS=["travelek-extra","travelek-del","travelek-app-settings","travelek-mapprefs","travelek-theme","travelek-theme-pref","travelek-countries","travelek-countries-off","travelek-regions","travelek-regions-off","travelek-trips","travelek-schedules"];
-  var STORE_URL=window.__TRAVELEK_API||"https://keepjson.fourlegs.workers.dev/bins/BkoU663gNtadZ-zfQvPYx";
-  var STORE_KEY=window.__TRAVELEK_API?"":"kj_w_qgNZJtClt_6vg01Eq5c8j1wpxzMTpSzUKrazvkb12AY";
+  var STORE_URL=window.__TRAVELEK_API||"/api/diary";
+  var STORE_KEY=window.__TRAVELEK_API?(window.__TRAVELEK_STORE_KEY||""):"";
   window.__TRAVELEK_STORE_URL=STORE_URL;
   window.__TRAVELEK_STORE_KEY=STORE_KEY;
   function storeHeaders(){
@@ -151,15 +154,24 @@ wipeRoutesOnce();
   function adoptDiary(ownerId){
     var snap=vault();
     if(routeCount(snap[ownerId])>0) return snap[ownerId];
-    var alive: any={}, list=users(), i, id, best=null, bestN=0, n;
-    for(i=0;i<list.length;i++) if(list[i] && list[i].id) alive[list[i].id]=1;
+    var list=users(), i, id, n, best=null, bestN=0, filled=0;
+    var myLogin="", same=null, sameN=0;
+    for(i=0;i<list.length;i++) if(list[i] && list[i].id===ownerId) myLogin=String(list[i].login||"").toLowerCase();
     for(id in snap){
-      if(!Object.prototype.hasOwnProperty.call(snap, id) || id===ownerId || alive[id]) continue;
+      if(!Object.prototype.hasOwnProperty.call(snap, id) || id===ownerId) continue;
       n=routeCount(snap[id]);
+      if(n<=0) continue;
+      filled++;
       if(n>bestN){ bestN=n; best=snap[id]; }
+      for(i=0;i<list.length;i++){
+        if(list[i] && list[i].id===id && myLogin && String(list[i].login||"").toLowerCase()===myLogin && n>sameN){
+          sameN=n; same=snap[id];
+        }
+      }
     }
-    if(!best) return snap[ownerId]||null;
-    snap[ownerId]=JSON.parse(JSON.stringify(best));
+    if(!same && filled===1) same=best;
+    if(!same) return snap[ownerId]||null;
+    snap[ownerId]=JSON.parse(JSON.stringify(same));
     saveVault(snap);
     return snap[ownerId];
   }

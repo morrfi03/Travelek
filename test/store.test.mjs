@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { filterRoutes, rememberDeleted, removeTrip, upsertTrip, withoutRoute } from "../src/diary.js";
-import { jsonList, mergeUsers, preferPack, readDiary, readStoreDocument, repairVlad } from "../src/store.js";
+import { jsonList, mergeDiary, mergeUsers, preferPack, readDiary, readStoreDocument, repairVlad } from "../src/store.js";
 
 test("пустой список и битая дата не рисуют будущий маршрут", function () {
   assert.deepEqual(filterRoutes([], "past"), []);
@@ -73,6 +73,22 @@ test("облако: более новая пачка побеждает, пус�
   assert.equal(merged.users[0].name, "Анна");
   assert.equal(merged.users[0].password, "x");
   assert.equal(merged.users[1].login, "bob");
+});
+
+test("сервер не заменяет полный дневник пустым", function () {
+  const full = {
+    users: [{ id: "a", login: "admin" }],
+    deleted: [],
+    vault: { a: { "travelek-rev": "1", "travelek-extra": "[{\"id\":\"r1\"}]" } }
+  };
+  const empty = {
+    users: [{ id: "a", login: "admin" }],
+    deleted: [],
+    vault: { a: { "travelek-rev": "9", "travelek-extra": "[]" } }
+  };
+  assert.equal(mergeDiary(full, empty).vault.a["travelek-extra"], full.vault.a["travelek-extra"]);
+  assert.equal(mergeDiary(empty, full).vault.a["travelek-extra"], full.vault.a["travelek-extra"]);
+  assert.equal(mergeDiary(null, full).vault.a["travelek-extra"], full.vault.a["travelek-extra"]);
 });
 
 test("битый ответ облака не считается дневником, сброс Влада не трогает остальных", function () {

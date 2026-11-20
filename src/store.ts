@@ -126,3 +126,20 @@ export function readStoreDocument(data: unknown): { users: Account[]; deleted: s
   const vault = doc.vault && typeof doc.vault === "object" && !Array.isArray(doc.vault) ? doc.vault as CloudVault : {};
   return { users: doc.users as Account[], deleted: deleted as string[], vault: vault };
 }
+
+export function mergeDiary(current: unknown, incoming: unknown) {
+  const base = readStoreDocument(current) || { users: [] as Account[], deleted: [] as string[], vault: {} as CloudVault };
+  const next = readStoreDocument(incoming);
+  if (!next) return base;
+  const merged = mergeUsers(next.users, next.deleted, base.users);
+  const vault: CloudVault = {};
+  Object.keys(base.vault).forEach(function (id) {
+    if (merged.deleted.indexOf(id) < 0) vault[id] = base.vault[id];
+  });
+  Object.keys(next.vault).forEach(function (id) {
+    if (merged.deleted.indexOf(id) >= 0) return;
+    const chosen = preferPack(vault[id], next.vault[id]);
+    if (chosen) vault[id] = chosen;
+  });
+  return { users: merged.users, deleted: merged.deleted, vault: vault };
+}
