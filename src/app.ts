@@ -1144,6 +1144,11 @@ function paintAirStats(past){
     var craft=String(r.aircraft||"").trim()||"Нет модели";
     aircraft[craft]=(aircraft[craft]||0)+1;
     var mins=Number(r.airMin)||0;
+    if(!(mins>0) && r.duration){
+      var dh=String(r.duration).match(/(\d+)\s*ч/);
+      var dm=String(r.duration).match(/(\d+)\s*м/);
+      mins=(dh?(+dh[1])*60:0)+(dm?+dm[1]:0);
+    }
     if(mins>0){ minutes+=mins; counted++; }
   });
   var airBox=document.getElementById("an-airlines");

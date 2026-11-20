@@ -3,8 +3,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" /><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"><title>ТравелЕк</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="modulepreload" href="src/main.js?v=119">
-<link rel="modulepreload" href="src/app.js?v=119">
+<link rel="modulepreload" href="src/main.js?v=120">
+<link rel="modulepreload" href="src/app.js?v=120">
 <link rel="modulepreload" href="src/atlas.js?v=108">
 <link rel="modulepreload" href="geo/atlas-data.js?v=97">
 <link rel="modulepreload" href="src/cloud.js?v=103">
@@ -1622,6 +1622,23 @@ body[data-section="diary"] #year-filter{
   overflow-x:auto!important;flex-wrap:nowrap!important;padding:0 0 6px!important;gap:8px!important;
 }
 body[data-section="diary"] #play-trips{flex:0 0 auto!important}
+@media (max-width:767px){
+  body[data-section="stats"] #sheet{
+    top:0!important;
+    bottom:var(--dock-h)!important;
+    height:calc(100dvh - var(--dock-h))!important;
+    max-height:calc(100dvh - var(--dock-h))!important;
+    overflow:hidden!important;
+  }
+  body[data-section="stats"] #analytics{
+    flex:1 1 auto!important;
+    min-height:0!important;
+    overflow-y:scroll!important;
+    -webkit-overflow-scrolling:touch;
+    touch-action:pan-y;
+    padding-bottom:28px!important;
+  }
+}
 </style>
 </head>
 <body>
@@ -2109,6 +2126,6 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=119"></script>
+<script type="module" src="src/main.js?v=120"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>
