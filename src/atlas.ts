@@ -8,7 +8,7 @@ var api = (function () {
   var countryList = null;
   if (!root || !G) return {};
   var hooks = { click: null, move: null, afterView: null, paint: null };
-  var markC = {} as any, markR = {} as any, markRev = 0, washIso = {} as any, nameIso = {} as any, visitTone = "past";
+  var markC = {} as any, markR = {} as any, skipR = {} as any, markRev = 0, washIso = {} as any, nameIso = {} as any, visitTone = "past";
   function fillCountry(strong?) {
     if (visitTone === "future") return strong ? "rgba(147,197,253,.78)" : "rgba(147,197,253,.58)";
     return strong ? "rgba(214,168,72,.78)" : "rgba(214,168,72,.62)";
@@ -841,6 +841,7 @@ var api = (function () {
       if (washIso.RU || markC.RU) {
         byLayer.R.forEach(function (i) {
           var e = ents[i];
+          if (regionSkipped(e)) return;
           showSmall(e);
           c.beginPath(); entPath(c, e); c.fillStyle = fillCountry(); c.fill("evenodd");
         });
@@ -1529,6 +1530,7 @@ var api = (function () {
       if (washIso.RU || markC.RU) {
         byLayer.R.forEach(function (i) {
           var e = ents[i];
+          if (regionSkipped(e)) return;
           projectFull(e);
           ctx.beginPath(); fillRings(e); ctx.fillStyle = fillCountry(); ctx.fill("evenodd");
         });
@@ -1865,6 +1867,11 @@ var api = (function () {
     var iso = e.iso || (e.L === "R" ? "RU" : (e.L === "C" ? "CN" : ""));
     return regionMatches(markR, { name: e.name, rid: e.rid, iso: iso, layer: e.L });
   }
+  function regionSkipped(e) {
+    if (!e) return false;
+    var iso = e.iso || (e.L === "R" ? "RU" : (e.L === "C" ? "CN" : ""));
+    return regionMatches(skipR, { name: e.name, rid: e.rid, iso: iso, layer: e.L });
+  }
   function isoOfName(name) {
     var n = String(name || "").toLowerCase().replace(/ё/g, "е");
     if (!n) return "";
@@ -1962,16 +1969,17 @@ var api = (function () {
     }
   }
   var visitSig = "";
-  function setVisited(countries, regions, tone) {
+  function setVisited(countries, regions, tone, skipped?) {
     visitTone = tone === "future" ? "future" : "past";
     var painted = countriesToPaint(countries || [], regions || []);
-    var sig = visitTone + "|" + painted.join("\n") + "|" + (regions || []).join("\n");
+    var skipList = skipped || [];
+    var sig = visitTone + "|" + painted.join("\n") + "|" + (regions || []).join("\n") + "|-" + skipList.join("\n");
     if (sig === visitSig) {
       if (stampIso()) { rebuildWash(); markRev++; refreshMarks(); }
       return;
     }
     visitSig = sig;
-    markC = {} as any; markR = {} as any; markRev++;
+    markC = {} as any; markR = {} as any; skipR = {} as any; markRev++;
     (painted || []).forEach(function (id) {
       if (!id) return;
       markC[id] = 1;
@@ -1981,6 +1989,7 @@ var api = (function () {
       if (!id) return;
       markR[id] = 1;
     });
+    skipList.forEach(function (id) { if (id) skipR[id] = 1; });
     stampIso();
     rebuildWash();
     refreshMarks();

@@ -25,7 +25,8 @@ function packRev(pack) {
 function markCount(pack) {
     return jsonList(pack && pack["travelek-countries"]).length
         + jsonList(pack && pack["travelek-regions"]).length
-        + jsonList(pack && pack["travelek-extra"]).length;
+        + jsonList(pack && pack["travelek-extra"]).length
+        + jsonList(pack && pack["travelek-del"]).length;
 }
 export function preferPack(a, b) {
     if (!a)

@@ -11,8 +11,23 @@ export function safeSetItem(key, val){
   return true;
 }
 var cloudTimer=null;
+function stampDiaryRev(){
+  var me=window.__TRAVELEK_ME;
+  if(!me || !me.id || window.__TRAVELEK_READONLY) return;
+  var keys=["travelek-extra","travelek-del","travelek-app-settings","travelek-mapprefs","travelek-theme","travelek-theme-pref","travelek-countries","travelek-countries-off","travelek-regions","travelek-regions-off","travelek-trips","travelek-schedules"];
+  var pack= {} as any, i, v;
+  for(i=0;i<keys.length;i++){ v=localStorage.getItem(keys[i]); if(v!=null) pack[keys[i]]=v; }
+  pack["travelek-rev"]=String(Date.now());
+  try{
+    var vault=JSON.parse(localStorage.getItem("travelek-vault")||"{}");
+    if(!vault || typeof vault!=="object" || Array.isArray(vault)) vault={};
+    vault[me.id]=pack;
+    localStorage.setItem("travelek-vault", JSON.stringify(vault));
+  }catch(e){}
+}
 export function scheduleCloudSave(){
   if(window.__TRAVELEK_READONLY) return;
+  stampDiaryRev();
   if(typeof window.__cloudPush!=="function") return;
   clearTimeout(cloudTimer);
   cloudTimer=setTimeout(function(){

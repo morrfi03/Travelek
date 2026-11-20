@@ -30,7 +30,8 @@ function packRev(pack: DiaryPack | null | undefined): number {
 function markCount(pack: DiaryPack | null | undefined): number {
   return jsonList(pack && pack["travelek-countries"]).length
     + jsonList(pack && pack["travelek-regions"]).length
-    + jsonList(pack && pack["travelek-extra"]).length;
+    + jsonList(pack && pack["travelek-extra"]).length
+    + jsonList(pack && pack["travelek-del"]).length;
 }
 
 export function preferPack<T extends DiaryPack | null | undefined>(a: T, b: T): T | null {

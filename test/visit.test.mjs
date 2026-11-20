@@ -12,6 +12,17 @@ function marks(tab, routes, extra) {
   return marksForTab(Object.assign({ tab: tab, routes: routes, trips: [], manualCountries: [], manualRegions: [], offCountries: [], offRegions: [] }, extra || {}));
 }
 
+test("снятая страна и регион не возвращаются с маршрута", function () {
+  const hiddenCountry = marks("past", [pastRoute], { offCountries: ["IT"] });
+  assert.deepEqual(hiddenCountry.countries, []);
+  const hiddenRegion = marks("past", [pastRegion], { offRegions: ["RU:Татарстан"] });
+  assert.deepEqual(hiddenRegion.regions, []);
+  assert.deepEqual(hiddenRegion.countries, ["RU"]);
+  const hiddenParent = marks("past", [pastRegion], { offCountries: ["RU"] });
+  assert.deepEqual(hiddenParent.countries, []);
+  assert.deepEqual(hiddenParent.regions, []);
+});
+
 test("прошлое: страна без регионов окрашивается страной", function () {
   const got = marks("past", [pastRoute]);
   assert.deepEqual(got.countries, ["IT"]);

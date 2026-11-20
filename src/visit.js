@@ -142,9 +142,7 @@ export function marksForTab(opt) {
         return datedPast(route);
     }
     function addC(id, auto) {
-        if (!id || seenC[id])
-            return;
-        if (!auto && offC.indexOf(id) >= 0 && !autoC[id])
+        if (!id || seenC[id] || offC.indexOf(id) >= 0)
             return;
         if (auto)
             autoC[id] = true;
@@ -152,14 +150,12 @@ export function marksForTab(opt) {
         countries.push(id);
     }
     function addR(id, auto) {
-        if (!id || seenR[id])
+        if (!id || seenR[id] || offR.indexOf(id) >= 0)
             return;
         if (tab === "past" && futureRegion[id] && !pastRegion[id])
             return;
-        if (!auto && offR.indexOf(id) >= 0 && !autoR[id])
-            return;
         const parent = countryOf(id);
-        if (!auto && parent && offC.indexOf(parent) >= 0 && !autoC[parent] && !autoR[id])
+        if (parent && offC.indexOf(parent) >= 0)
             return;
         if (auto)
             autoR[id] = true;

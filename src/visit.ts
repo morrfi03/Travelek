@@ -179,18 +179,16 @@ export function marksForTab(opt: {
     return datedPast(route);
   }
   function addC(id: string, auto: boolean) {
-    if (!id || seenC[id]) return;
-    if (!auto && offC.indexOf(id) >= 0 && !autoC[id]) return;
+    if (!id || seenC[id] || offC.indexOf(id) >= 0) return;
     if (auto) autoC[id] = true;
     seenC[id] = true;
     countries.push(id);
   }
   function addR(id: string, auto: boolean) {
-    if (!id || seenR[id]) return;
+    if (!id || seenR[id] || offR.indexOf(id) >= 0) return;
     if (tab === "past" && futureRegion[id] && !pastRegion[id]) return;
-    if (!auto && offR.indexOf(id) >= 0 && !autoR[id]) return;
     const parent = countryOf(id);
-    if (!auto && parent && offC.indexOf(parent) >= 0 && !autoC[parent] && !autoR[id]) return;
+    if (parent && offC.indexOf(parent) >= 0) return;
     if (auto) autoR[id] = true;
     seenR[id] = true;
     regions.push(id);

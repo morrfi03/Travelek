@@ -499,6 +499,10 @@ UI.en["Добавить поездку"]="Add a trip";
 UI.zh["Добавить поездку"]="添加行程";
 UI.en["Добавить маршрут"]="Add route";
 UI.zh["Добавить маршрут"]="添加路线";
+UI.en["Добавить маршрут в поездку"]="Add route to trip";
+UI.zh["Добавить маршрут в поездку"]="把路线加入行程";
+UI.en["Найти рейс"]="Find flight";
+UI.zh["Найти рейс"]="查找航班";
 UI.en["Маршруты"]="Routes";
 UI.zh["Маршруты"]="路线";
 UI.en["Страны"]="Countries";
@@ -1802,7 +1806,7 @@ async function findOldFlights(quiet){
   var ca=airportCodeOf(from), cb=airportCodeOf(to);
   if(!ca||!cb||!date){ if(!quiet) alert("Укажите аэропорты из списка и дату"); return; }
   var known=cachedSchedule(ca, cb, date);
-  if(known){
+  if(known && known.length){
     showFoundFlights(known, "Из сохранённых рейсов");
     return;
   }
@@ -3046,7 +3050,7 @@ function paintPoly(poly, style){
 export function drawCountries(){
   if(map && map._isAtlas && map.setVisited){
     if(countryLayer) countryLayer.clearLayers();
-    map.setVisited(visited||[], visitedRegions||[], activeTab==="future"?"future":"past");
+    map.setVisited(visited||[], visitedRegions||[], activeTab==="future"?"future":"past", offRegions||[]);
     return;
   }
   countryLayer.clearLayers();
@@ -3159,7 +3163,7 @@ function renderCountryUi(){
     if(rp) rp.textContent=scopeLine;
     if(line) line.textContent=pctOf(scopeStats.got, scopeStats.total)+" · "+scopeLine;
   } else {
-    if(hint) hint.textContent=t("Считаются по маршрутам. Смахните страну влево, чтобы убрать.");
+    if(hint) hint.textContent=t("Нажмите ×, чтобы убрать страну или регион из посещённых.");
     if(stats){ stats.hidden=false; stats.innerHTML=pctHtml; }
     if(rp) rp.textContent="";
     if(line) line.textContent=countryPct+" · "+pctSub;
@@ -3201,7 +3205,7 @@ function renderCountryUi(){
       var on=visitedRegions.indexOf(r.id)>=0;
       var city=q?regionMatches(r, q):"";
       var sub=city?'<small style="display:block;color:var(--muted);font-weight:500">'+city+'</small>':"";
-      return '<button type="button" class="'+(on?"on":"")+'" data-reg="'+r.id+'"><span>'+regionLabel(r.n)+sub+'</span><span>'+(on?"✓":"")+'</span></button>';
+      return '<button type="button" class="'+(on?"on":"")+'" data-reg="'+r.id+'"><span>'+regionLabel(r.n)+sub+'</span><span'+(on?' data-drop-reg="'+r.id+'"':"")+'>'+(on?"×":"")+'</span></button>';
     }).join("") || '<p class="hint">'+t("Ничего не найдено")+'</p>';
     return;
   }
@@ -3235,10 +3239,10 @@ function renderCountryUi(){
     var regs=regionsFor(c.i);
     if(regs && regs.length){
       var rs=regionStatsFor(c.i);
-      var side=(on?"✓ · ":"")+pctOf(rs.got, rs.total)+" · "+ofCount(rs.got, rs.total, t("регионов"));
+      var side=(on?"× · ":"")+pctOf(rs.got, rs.total)+" · "+ofCount(rs.got, rs.total, t("регионов"));
       return '<button type="button" class="'+(on?"on":"")+'" data-open="'+c.i+'"><span>'+countryLabel(c)+'</span><span'+(on?' data-off="'+c.i+'"':"")+'>'+side+'</span></button>';
     }
-    return '<button type="button" class="'+(on?"on":"")+'" data-iso="'+c.i+'"><span>'+countryLabel(c)+'</span><span>'+(on?"✓":"")+'</span></button>';
+    return '<button type="button" class="'+(on?"on":"")+'" data-iso="'+c.i+'"><span>'+countryLabel(c)+'</span><span'+(on?' data-off="'+c.i+'"':"")+'>'+(on?"×":"")+'</span></button>';
   }).join("") || '<p class="hint">'+t("Ничего не найдено")+'</p>';
 }
 function refreshVisitUi(){
@@ -3612,6 +3616,12 @@ if(countryList){
 }
 var regionList=document.getElementById("region-list");
 if(regionList) regionList.onclick=function(e){
+  var off=e.target.closest("[data-drop-reg]");
+  if(off){
+    var rid=off.getAttribute("data-drop-reg");
+    if(rid && visitedRegions.indexOf(rid)>=0) toggleRegion(rid);
+    return;
+  }
   var b=e.target.closest("[data-reg]");
   if(!b) return;
   toggleRegion(b.getAttribute("data-reg"));
@@ -3856,9 +3866,16 @@ function deleteRoute(id){
   rememberDeleted(deleted, id).forEach(function(x){ if(deleted.indexOf(x)<0) deleted.push(x); });
   saveDeleted(deleted);
   saveExtra(withoutRoute(loadExtra(), id));
+  var trips=loadTrips(), changed=false, ti, left;
+  for(ti=0;ti<trips.length;ti++){
+    left=(trips[ti].routes||[]).filter(function(x){ return x!==id; });
+    if(left.length!==(trips[ti].routes||[]).length){ trips[ti].routes=left; changed=true; }
+  }
+  if(changed) saveTrips(trips);
   setRoutes(assembleRoutes());
   if(selectedId===id) selectedId=null;
   showUndo(id);
+  if(typeof layer!=="undefined" && layer && layer.clearLayers) layer.clearLayers();
   render();
 }
 function routeCardHtml(r){
@@ -4190,6 +4207,7 @@ function openTripWindow(seed?){
   paintTripWindow();
   var w=document.getElementById("trip-window");
   if(w) w.classList.add("on");
+  if(typeof loadTripSchedule==="function") loadTripSchedule();
   if(typeof applyI18n==="function") applyI18n();
 }
 function paintTripWindow(){
@@ -4409,9 +4427,11 @@ function pickBoard(payload, toCode){
   out.sort(function(a,b){ return String(a.time).localeCompare(String(b.time)); });
   return out;
 }
-function askAero(from, to, date){
+function waitMs(ms){ return new Promise(function(resolve){ setTimeout(resolve, ms); }); }
+function askAero(from, to, date, left?){
   from=String(from||"").toUpperCase();
   to=String(to||"").toUpperCase();
+  if(left==null) left=16;
   var asked=new Date(date+"T12:00:00").getTime();
   if(isFinite(asked) && Date.now()-asked>364*86400000){
     return Promise.resolve({rows:[], error:"Расписание есть только за последний год. На эту дату AeroDataBox уже ничего не отдаёт."});
@@ -4420,15 +4440,54 @@ function askAero(from, to, date){
   var own = ownAeroKey();
   if (own) headers["X-Aero-Key"] = own;
   return fetch("/api/flights?from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to) + "&date=" + encodeURIComponent(date), { headers: headers }).then(function (res) {
-    return res.json().catch(function () { return {}; }).then(function (body: any) {
-      if (!res.ok) return { rows: [], error: (body && body.error) || ("Расписание не ответило (" + res.status + ")") };
+    return res.text().then(function (raw) {
+      var body: any = {};
+      try { body = JSON.parse(raw || "{}"); } catch (e) { body = { error: String(raw || "") }; }
+      var err = body && typeof body.error === "string" ? body.error : "";
+      if ((err === "backend_starting" || /backend_starting/.test(raw || "")) && left > 0)
+        return waitMs(1500).then(function () { return askAero(from, to, date, left - 1); });
+      if (err === "backend_starting" || /backend_starting/.test(String(raw || "")))
+        return { rows: [], error: "Сервер расписания ещё запускается. Нажмите «Найти рейс» ещё раз." };
+      if (!res.ok) return { rows: [], error: err || ("Расписание не ответило (" + res.status + ")") };
       return { rows: (body && body.flights) || [], error: "" };
     });
-  }).catch(function () { return { rows: [], error: "Расписание не ответило" }; });
+  }).catch(function () {
+    if (left > 0) return waitMs(1500).then(function () { return askAero(from, to, date, left - 1); });
+    return { rows: [], error: "Расписание не ответило" };
+  });
 }
 function loadTripSchedule(){
   var box=document.getElementById("tw-sched");
+  var findBtn=document.getElementById("tw-find-flight");
+  var modeEl=document.getElementById("tw-mode");
+  var fromEl=document.getElementById("tw-from");
+  var toEl=document.getElementById("tw-to");
+  var dateEl=document.getElementById("tw-date");
+  var mode=modeEl?modeEl.value:"";
+  if(findBtn) findBtn.hidden=mode!=="plane";
   if(!box) return;
+  var date=dateEl?dateEl.value:"";
+  var from=place(fromEl?fromEl.value.trim():"");
+  var to=place(toEl?toEl.value.trim():"");
+  var ca=airportCodeOf(from), cb=airportCodeOf(to);
+  if(mode!=="plane"){ box.hidden=true; box.classList.remove("on"); box.innerHTML=""; return; }
+  if(!ca || !cb){
+    box.hidden=false; box.classList.add("on");
+    box.innerHTML='<div class="sched-in"><p class="more-link">Укажите аэропорты — затем «Найти рейс»</p></div>';
+    return;
+  }
+  if(!date){
+    box.hidden=false; box.classList.add("on");
+    box.innerHTML='<div class="sched-in"><p class="more-link">Укажите дату и нажмите «Найти рейс»</p></div>';
+    return;
+  }
+  var known=cachedSchedule(ca, cb, date);
+  if(known && known.length){ paintTripFlights(box, known, ca, cb, date, "Из сохранённых рейсов"); return; }
+  box.hidden=false; box.classList.add("on");
+  box.innerHTML='<div class="sched-in"><p class="more-link">Нажмите «Найти рейс»</p></div>';
+}
+function findTripFlights(){
+  var box=document.getElementById("tw-sched");
   var modeEl=document.getElementById("tw-mode");
   var fromEl=document.getElementById("tw-from");
   var toEl=document.getElementById("tw-to");
@@ -4438,20 +4497,15 @@ function loadTripSchedule(){
   var from=place(fromEl?fromEl.value.trim():"");
   var to=place(toEl?toEl.value.trim():"");
   var ca=airportCodeOf(from), cb=airportCodeOf(to);
-  if(mode!=="plane" || !ca || !cb){ box.hidden=true; box.classList.remove("on"); box.innerHTML=""; return; }
-  if(!date){
-    box.hidden=false;
-    box.classList.add("on");
-    box.innerHTML='<div class="sched-in"><p class="more-link">Укажите дату — список рейсов выедет здесь</p></div>';
-    return;
-  }
-  var known=cachedSchedule(ca, cb, date);
-  if(known){ paintTripFlights(box, known, ca, cb, date, "Из сохранённых рейсов"); return; }
+  if(!box) return;
+  if(mode!=="plane" || !ca || !cb || !date){ loadTripSchedule(); return; }
   var token=++twSchedToken;
-  box.hidden=false;
-  box.classList.add("on");
+  var findBtn=document.getElementById("tw-find-flight");
+  if(findBtn){ findBtn.disabled=true; findBtn.textContent="Ищем…"; }
+  box.hidden=false; box.classList.add("on");
   box.innerHTML='<div class="sched-in"><p class="more-link">Ищем реальные рейсы…</p></div>';
   askAero(ca, cb, date).then(function(got){
+    if(findBtn){ findBtn.disabled=false; findBtn.textContent=t("Найти рейс"); }
     if(token!==twSchedToken) return;
     if(got.error){ box.innerHTML='<p class="more-link">'+escLabel(got.error)+"</p>"; return; }
     rememberSchedule(ca, cb, date, got.rows);
@@ -4659,7 +4713,7 @@ function enrichFlightRest(trip){
   var old=btn?btn.textContent:"";
   if(btn){ btn.disabled=true; btn.textContent="Ищем рейс…"; }
   return adsbSearch(a, b, trip.date).catch(function(){ return []; }).then(function(list){
-    if(btn){ btn.disabled=false; btn.textContent=old||"Добавить маршрут"; }
+    if(btn){ btn.disabled=false; btn.textContent=old||"Добавить маршрут в поездку"; }
     if(!list || !list.length){
       adsbNote("В архиве такого рейса нет — оставлен ваш маршрут");
       return trip;
@@ -4777,6 +4831,8 @@ function bindTripWindow(){
   document.getElementById("tw-add-route").onclick=function(){
     addDraftRoute().then(function(ok){ if(ok) paintTripWindow(); });
   };
+  var findFlight=document.getElementById("tw-find-flight");
+  if(findFlight) findFlight.onclick=function(){ findTripFlights(); };
   w.addEventListener("click", function(e){
     var take=e.target.closest&&e.target.closest("[data-take]");
     var rr=e.target.closest&&e.target.closest("[data-drop-route]");
@@ -4790,7 +4846,16 @@ function bindTripWindow(){
         absorbRoute(got);
         paintTripWindow();
       }
-    } else if(rr){ tw.routes.splice(+rr.getAttribute("data-drop-route"),1); paintTripWindow(); }
+    } else if(rr){
+      var idx=+rr.getAttribute("data-drop-route");
+      var gone=tw.routes[idx];
+      if(gone && gone.saved && gone.id){
+        deleteRoute(gone.id);
+        if(deleted.indexOf(gone.id)<0) return;
+      }
+      tw.routes.splice(idx, 1);
+      paintTripWindow();
+    }
     else if(cc){
       var id=cc.getAttribute("data-drop-c");
       tw.countries=tw.countries.filter(function(x){ return x!==id; });

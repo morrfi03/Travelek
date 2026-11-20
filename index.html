@@ -3,11 +3,11 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" /><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"><title>ТравелЕк</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="modulepreload" href="src/main.js?v=123">
-<link rel="modulepreload" href="src/app.js?v=123">
-<link rel="modulepreload" href="src/roads.js?v=102">
-<link rel="modulepreload" href="src/cloud.js?v=106">
-<link rel="modulepreload" href="src/atlas.js?v=109">
+<link rel="modulepreload" href="src/main.js?v=124">
+<link rel="modulepreload" href="src/app.js?v=124">
+<link rel="modulepreload" href="src/roads.js?v=103">
+<link rel="modulepreload" href="src/cloud.js?v=107">
+<link rel="modulepreload" href="src/atlas.js?v=110">
 <link rel="modulepreload" href="geo/atlas-data.js?v=97">
 <style>
 @font-face{font-family:Manrope;src:url("geo/fonts/manrope-cyr.woff2") format("woff2");font-weight:400 800;font-style:normal;font-display:swap;unicode-range:U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116}
@@ -841,6 +841,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 #tw-sched{display:grid;grid-template-rows:0fr;transition:grid-template-rows .28s ease;margin:0}
 #tw-sched.on{grid-template-rows:1fr}
 #tw-sched[hidden]{display:none}
+#tw-find-flight[hidden]{display:none}
 #tw-sched .sched-in{overflow:hidden;display:flex;flex-direction:column;gap:6px}
 #f-flight-list:not([hidden]){display:flex;flex-direction:column;gap:6px;max-height:220px;overflow:auto;animation:sched-in .28s ease}
 @keyframes sched-in{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
@@ -1824,9 +1825,10 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
       <input id="tw-time" type="time" />
     </div>
     <div id="tw-sched" class="tw-list" hidden></div>
+    <button type="button" class="tw-add" id="tw-find-flight" data-i18n="Найти рейс" hidden>Найти рейс</button>
     <div class="tw-both"><input id="tw-both" type="checkbox" /> <span>В обе стороны</span></div>
     <input id="tw-date-back" type="date" hidden />
-    <button type="button" class="tw-add" id="tw-add-route" data-i18n="Добавить маршрут">Добавить маршрут</button>
+    <button type="button" class="tw-add" id="tw-add-route" data-i18n="Добавить маршрут в поездку">Добавить маршрут в поездку</button>
     <div id="tw-adsb" class="tw-list" hidden></div>
     <div id="tw-routes" class="tw-list"></div>
     <h3 data-i18n="Укажите страну">Укажите страну</h3>
@@ -1927,7 +1929,7 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
     <b id="countries-title">Посещённые страны</b>
     <button type="button" id="countries-close" class="panel-x" aria-label="Закрыть" data-i18n-title="Закрыть">×</button>
   </div>
-  <p class="hint" id="countries-hint">Считаются по маршрутам. Можно отметить и вручную.</p>
+  <p class="hint" id="countries-hint">Нажмите ×, чтобы убрать страну или регион из посещённых.</p>
   <div class="visit-stats" id="visit-stats"></div>
   <input id="country-q" type="search" placeholder="Найти страну…" autocomplete="off" />
   <div id="country-picked"></div>
@@ -2138,6 +2140,6 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=123"></script>
+<script type="module" src="src/main.js?v=124"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>

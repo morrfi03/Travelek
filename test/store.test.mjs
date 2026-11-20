@@ -56,6 +56,8 @@ test("облако: более новая пачка побеждает, пус�
   assert.equal(preferPack(older, newer), newer);
   assert.equal(preferPack(older, newerEmpty), older);
   assert.equal(preferPack(newerEmpty, older), older);
+  const newerDeleted = { "travelek-rev": "9", "travelek-extra": "[]", "travelek-del": "[\"a\"]", "travelek-countries": "[]", "travelek-regions": "[]" };
+  assert.equal(preferPack(older, newerDeleted), newerDeleted);
   assert.equal(preferPack(null, older), older);
   assert.equal(preferPack(older, null), older);
   const sameRevMoreMarks = { "travelek-rev": "3", "travelek-countries": "[\"RU\",\"IT\"]", "travelek-regions": "[]", "travelek-extra": "[]" };

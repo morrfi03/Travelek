@@ -1,5 +1,5 @@
 import { ATLAS_G as G } from "../geo/atlas-data.js?v=97";
-import { countriesToPaint, regionMatches } from "./visit.js?v=97";
+import { countriesToPaint, regionMatches } from "./visit.js?v=98";
 var api = (function () {
     var PI = Math.PI, D2R = PI / 18000; // координаты хранятся в сотых долях градуса
     var $ = function (id) { return document.getElementById(id); };
@@ -8,7 +8,7 @@ var api = (function () {
     if (!root || !G)
         return {};
     var hooks = { click: null, move: null, afterView: null, paint: null };
-    var markC = {}, markR = {}, markRev = 0, washIso = {}, nameIso = {}, visitTone = "past";
+    var markC = {}, markR = {}, skipR = {}, markRev = 0, washIso = {}, nameIso = {}, visitTone = "past";
     function fillCountry(strong) {
         if (visitTone === "future")
             return strong ? "rgba(147,197,253,.78)" : "rgba(147,197,253,.58)";
@@ -1231,6 +1231,8 @@ var api = (function () {
             if (washIso.RU || markC.RU) {
                 byLayer.R.forEach(function (i) {
                     var e = ents[i];
+                    if (regionSkipped(e))
+                        return;
                     showSmall(e);
                     c.beginPath();
                     entPath(c, e);
@@ -2313,6 +2315,8 @@ var api = (function () {
             if (washIso.RU || markC.RU) {
                 byLayer.R.forEach(function (i) {
                     var e = ents[i];
+                    if (regionSkipped(e))
+                        return;
                     projectFull(e);
                     ctx.beginPath();
                     fillRings(e);
@@ -2839,6 +2843,12 @@ var api = (function () {
         var iso = e.iso || (e.L === "R" ? "RU" : (e.L === "C" ? "CN" : ""));
         return regionMatches(markR, { name: e.name, rid: e.rid, iso: iso, layer: e.L });
     }
+    function regionSkipped(e) {
+        if (!e)
+            return false;
+        var iso = e.iso || (e.L === "R" ? "RU" : (e.L === "C" ? "CN" : ""));
+        return regionMatches(skipR, { name: e.name, rid: e.rid, iso: iso, layer: e.L });
+    }
     function isoOfName(name) {
         var n = String(name || "").toLowerCase().replace(/ё/g, "е");
         if (!n)
@@ -2966,10 +2976,11 @@ var api = (function () {
         }
     }
     var visitSig = "";
-    function setVisited(countries, regions, tone) {
+    function setVisited(countries, regions, tone, skipped) {
         visitTone = tone === "future" ? "future" : "past";
         var painted = countriesToPaint(countries || [], regions || []);
-        var sig = visitTone + "|" + painted.join("\n") + "|" + (regions || []).join("\n");
+        var skipList = skipped || [];
+        var sig = visitTone + "|" + painted.join("\n") + "|" + (regions || []).join("\n") + "|-" + skipList.join("\n");
         if (sig === visitSig) {
             if (stampIso()) {
                 rebuildWash();
@@ -2981,6 +2992,7 @@ var api = (function () {
         visitSig = sig;
         markC = {};
         markR = {};
+        skipR = {};
         markRev++;
         (painted || []).forEach(function (id) {
             if (!id)
@@ -2992,6 +3004,10 @@ var api = (function () {
             if (!id)
                 return;
             markR[id] = 1;
+        });
+        skipList.forEach(function (id) {
+            if (id)
+                skipR[id] = 1;
         });
         stampIso();
         rebuildWash();
