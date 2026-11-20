@@ -189,7 +189,16 @@ function labelOf(value, field) {
 
 function flightNo(row) {
   const flight = row.flight || {};
-  return String(row.number || flight.iataNumber || flight.number || "").trim();
+  const iata = airlineIata(row.airline || row.operator);
+  let no = String(row.number || flight.iataNumber || flight.number || "").trim();
+  if (iata && /^\d/.test(no)) no = iata + " " + no;
+  return no;
+}
+
+function aircraftModel(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  return String(value.model || value.type || value.modelCode || value.name || "");
 }
 
 function scheduled(side) {
@@ -215,9 +224,9 @@ export function pickFlights(payload, toCode) {
     const arrTime = scheduled(arrival);
     out.push({
       flight: flight,
-      airline: labelOf(row.airline, "name"),
-      airlineIata: airlineIata(row.airline),
-      aircraft: labelOf(row.aircraft, "model"),
+      airline: labelOf(row.airline || row.operator, "name"),
+      airlineIata: airlineIata(row.airline || row.operator),
+      aircraft: aircraftModel(row.aircraft),
       time: localClock(depTime),
       airMin: airMinutes(depTime, arrTime),
       from: iataOf(departure),
@@ -363,6 +372,71 @@ export async function searchFlights(query, key) {
   return { status: 502, body: { error: flightMessage(last) } };
 }
 
+export function pickFlightDetail(payload) {
+  const rows = Array.isArray(payload) ? payload : [].concat((payload && payload.flights) || [], (payload && payload.departures) || []);
+  let best = null;
+  rows.forEach(function (row) {
+    if (!row || typeof row !== "object" || best) return;
+    const depTime = scheduled(row.departure);
+    const arrTime = scheduled(row.arrival);
+    best = {
+      flight: flightNo(row),
+      airline: labelOf(row.airline || row.operator, "name"),
+      airlineIata: airlineIata(row.airline || row.operator),
+      aircraft: aircraftModel(row.aircraft),
+      time: localClock(depTime),
+      airMin: airMinutes(depTime, arrTime)
+    };
+  });
+  return best;
+}
+
+async function loadFlight(number, date, key) {
+  const url = "https://aerodatabox.p.rapidapi.com/flights/number/" + number + "/" + date;
+  const response = await fetch(url, {
+    headers: {
+      "X-RapidAPI-Key": key,
+      "X-RapidAPI-Host": "aerodatabox.p.rapidapi.com"
+    },
+    signal: AbortSignal.timeout(12000)
+  });
+  if (!response.ok) {
+    const failure = new Error("upstream");
+    failure.status = response.status;
+    throw failure;
+  }
+  return response.json();
+}
+
+export async function searchFlight(query, key) {
+  const number = String(query.get("number") || "").toUpperCase().replace(/\s+/g, "");
+  const date = String(query.get("date") || "");
+  if (!/^[A-Z0-9]{2}\d{1,5}$/.test(number) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    return { status: 400, body: { error: "Нужны номер и дата" } };
+  }
+  const saved = readSchedule("FLT", number, date);
+  if (saved && saved[0]) return { status: 200, body: { flight: saved[0], saved: true } };
+  const keys = Array.isArray(key) ? key.filter(Boolean) : (key ? [String(key).trim()] : []).filter(Boolean);
+  if (!keys.length) return { status: 503, body: { error: "В Layero не задан ключ AERODATABOX_KEY" } };
+  if (!allowSearch()) return { status: 429, body: { error: "Лимит поисков на этот месяц исчерпан" } };
+  let last = null;
+  for (let i = 0; i < keys.length; i++) {
+    try {
+      const flight = pickFlightDetail(await loadFlight(number, date, keys[i]));
+      if (!flight) return { status: 200, body: { flight: null } };
+      try { writeSchedule("FLT", number, date, [flight]); } catch (err) { logError("schedules", err, number); }
+      return { status: 200, body: { flight: flight } };
+    } catch (err) {
+      last = err;
+      logError("flights", err, number + " " + date);
+      const status = err && err.status;
+      if (status === 429 || status === 401 || status === 403 || status === 451) continue;
+      break;
+    }
+  }
+  return { status: 502, body: { error: flightMessage(last) } };
+}
+
 function filePath(urlPath) {
   let rel = decodeURIComponent(String(urlPath || "/").split("?")[0]);
   if (rel === "/") rel = "/index.html";
@@ -487,6 +561,15 @@ export function createServer() {
     }
     if (url.pathname === "/api/flights") {
       searchFlights(url.searchParams, runtimeKeys(req.headers["x-aero-key"])).then(function (result) {
+        sendJson(res, result.status || 200, result.body || {});
+      }).catch(function (err) {
+        logError("flights", err, url.search);
+        sendJson(res, 500, { error: "Ошибка сервера" });
+      });
+      return;
+    }
+    if (url.pathname === "/api/flight") {
+      searchFlight(url.searchParams, runtimeKeys(req.headers["x-aero-key"])).then(function (result) {
         sendJson(res, result.status || 200, result.body || {});
       }).catch(function (err) {
         logError("flights", err, url.search);

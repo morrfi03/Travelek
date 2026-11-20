@@ -524,7 +524,7 @@ function trainPlan(from, to) {
         }
         key = roadKey(p, q);
         var traced = ui.map && ui.map.traceNetwork && ui.map.traceNetwork("train", p.lat, p.lng, q.lat, q.lng);
-        if (traced && traced.length >= 2) {
+        if (traced && traced.length >= 2 && !hasLongChord(traced, 220)) {
             append(traced);
             continue;
         }
@@ -1767,7 +1767,7 @@ function computeGeo(r) {
                 return cachedLeg;
             if (ui.map && ui.map.traceNetwork) {
                 var along = ui.map.traceNetwork("car", p.lat, p.lng, q.lat, q.lng);
-                if (along && along.length >= 2 && !hasLongEnds(along, 55))
+                if (along && along.length >= 2 && !hasLongEnds(along, 55) && !hasLongChord(along, 220))
                     return trimLoops(along);
             }
             if (hav(p, q) < 22)
@@ -1787,7 +1787,7 @@ function computeGeo(r) {
         return { coords: coast, km: pathKm(coast), a: a, b: b, needRoad: false };
     if (ui.map && ui.map.traceNetwork) {
         var along = ui.map.traceNetwork("car", a.lat, a.lng, b.lat, b.lng);
-        if (along && along.length >= 2 && !hasLongEnds(along, 55))
+        if (along && along.length >= 2 && !hasLongEnds(along, 55) && !hasLongChord(along, 220))
             return { coords: trimLoops(along), km: pathKm(along), a: a, b: b, needRoad: false };
     }
     var cached = roadCache[key];
@@ -1798,7 +1798,7 @@ function computeGeo(r) {
     else if (cached === "fail") {
         if (ui.map && ui.map.traceNetwork) {
             var again = ui.map.traceNetwork("car", a.lat, a.lng, b.lat, b.lng);
-            if (again && again.length >= 2 && !hasLongEnds(again, 55))
+            if (again && again.length >= 2 && !hasLongEnds(again, 55) && !hasLongChord(again, 220))
                 return { coords: trimLoops(again), km: pathKm(again), a: a, b: b, needRoad: false };
         }
         coords = null;
