@@ -3,8 +3,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" /><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"><title>ТравелЕк</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="modulepreload" href="src/main.js?v=125">
-<link rel="modulepreload" href="src/app.js?v=125">
+<link rel="modulepreload" href="src/main.js?v=126">
+<link rel="modulepreload" href="src/app.js?v=126">
 <link rel="modulepreload" href="src/roads.js?v=104">
 <link rel="modulepreload" href="src/cloud.js?v=108">
 <link rel="modulepreload" href="src/atlas.js?v=110">
@@ -985,11 +985,13 @@ body[data-section="settings"] .top,
 body[data-section="settings"] #sheet,
 body[data-section="settings"] .zoom,
 body[data-section="settings"] #map{display:none!important}
+@media (min-width:768px){
 body[data-section="map"] #sheet{
   width:0;height:0!important;min-height:0;padding:0;overflow:visible;pointer-events:none;
   background:transparent;border:0;box-shadow:none;
 }
 body[data-section="map"] #sheet > *{display:none!important}
+}
 body[data-section="map"] #mode-filter{
   display:flex!important;pointer-events:auto;position:fixed;z-index:36;
   top:calc(68px + env(safe-area-inset-top));left:calc(var(--rail) + 12px);
@@ -1338,7 +1340,7 @@ body[data-section="diary"] #sheet .sheet-tools{display:flex!important}
 #boot-screen .track{width:140px;height:3px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden;flex:none}
 #boot-screen .track i{display:block;height:100%;width:35%;background:linear-gradient(90deg,#7ec8a3,#4a9b7a);border-radius:2px;animation:bootSlide 1.2s ease-in-out infinite}
 @keyframes bootSlide{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
-#f-flight-find{display:none;width:100%;margin-top:8px}
+#f-flight-find{display:block;width:100%;margin-top:8px}
 #f-flight-list{margin-top:8px}
 #f-flight-list button{text-align:left}
 #f-flight-note{font-size:11px;color:var(--muted);margin-top:6px}
@@ -1352,7 +1354,6 @@ body[data-section="map"] #diary-tools > :not(#mode-filter){display:none!importan
 body[data-section="diary"] #sheet{
   display:flex!important;flex-direction:column;overflow:hidden;background:var(--bg)!important;
 }
-body[data-section="diary"] #sheet .handle-wrap{display:none!important}
 body[data-section="diary"] #sheet .sheet-head{
   display:grid!important;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"title tools" "tabs tabs";
   align-items:center;gap:8px 12px;flex:0 0 auto;padding:16px 16px 8px;
@@ -2092,7 +2093,15 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
         sh.style.height="62vh";
       }
     }
-    if(name==="map") tabBtn=document.querySelector('.tab[data-tab="future"]');
+    if(name==="map"){
+      tabBtn=document.querySelector('.tab[data-tab="future"]');
+      var mapSheet=document.getElementById("sheet");
+      if(mapSheet && window.matchMedia && !matchMedia("(min-width:768px)").matches){
+        mapSheet.classList.remove("collapsed","full","low");
+        mapSheet.classList.add("mid");
+        mapSheet.style.height="";
+      }
+    }
     if(name==="diary" || name==="map"){
       if(window.__routesForSection) window.__routesForSection(name);
       else if(tabBtn && !tabBtn.classList.contains("on")) tabBtn.click();
@@ -2140,6 +2149,6 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=125"></script>
+<script type="module" src="src/main.js?v=126"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>

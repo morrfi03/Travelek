@@ -2458,10 +2458,6 @@ async function findOldFlights(quiet) {
         flightFind.disabled = false;
     }
 }
-var oldDate = document.getElementById("f-date");
-if (oldDate)
-    oldDate.addEventListener("change", function () { if (fMode.value === "plane")
-        findOldFlights(true); });
 function showFoundFlights(rows, note) {
     if (flightNote)
         flightNote.textContent = note || "";
@@ -2757,8 +2753,6 @@ function openEdit(id) {
         }
     }
     openForm();
-    if ((r.mode || "plane") === "plane" && r.date)
-        findOldFlights(true);
 }
 function openFormNew() {
     editingId = null;
@@ -5964,7 +5958,7 @@ function askAero(from, to, date, left) {
     from = String(from || "").toUpperCase();
     to = String(to || "").toUpperCase();
     if (left == null)
-        left = 16;
+        left = 3;
     var asked = new Date(date + "T12:00:00").getTime();
     if (isFinite(asked) && Date.now() - asked > 364 * 86400000) {
         return Promise.resolve({ rows: [], error: "Расписание есть только за последний год. На эту дату AeroDataBox уже ничего не отдаёт." });
@@ -5973,7 +5967,14 @@ function askAero(from, to, date, left) {
     var own = ownAeroKey();
     if (own)
         headers["X-Aero-Key"] = own;
-    return fetch("/api/flights?from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to) + "&date=" + encodeURIComponent(date), { headers: headers }).then(function (res) {
+    var ctrl = typeof AbortController !== "undefined" ? new AbortController() : null;
+    var timer = setTimeout(function () { if (ctrl)
+        ctrl.abort(); }, 12000);
+    var opt = { headers: headers };
+    if (ctrl)
+        opt.signal = ctrl.signal;
+    return fetch("/api/flights?from=" + encodeURIComponent(from) + "&to=" + encodeURIComponent(to) + "&date=" + encodeURIComponent(date), opt).then(function (res) {
+        clearTimeout(timer);
         return res.text().then(function (raw) {
             var body = {};
             try {
@@ -5984,7 +5985,7 @@ function askAero(from, to, date, left) {
             }
             var err = body && typeof body.error === "string" ? body.error : "";
             if ((err === "backend_starting" || /backend_starting/.test(raw || "")) && left > 0)
-                return waitMs(1500).then(function () { return askAero(from, to, date, left - 1); });
+                return waitMs(1200).then(function () { return askAero(from, to, date, left - 1); });
             if (err === "backend_starting" || /backend_starting/.test(String(raw || "")))
                 return { rows: [], error: "Сервер расписания ещё запускается. Нажмите «Найти рейс» ещё раз." };
             if (!res.ok)
@@ -5992,8 +5993,9 @@ function askAero(from, to, date, left) {
             return { rows: (body && body.flights) || [], error: "" };
         });
     }).catch(function () {
+        clearTimeout(timer);
         if (left > 0)
-            return waitMs(1500).then(function () { return askAero(from, to, date, left - 1); });
+            return waitMs(1200).then(function () { return askAero(from, to, date, left - 1); });
         return { rows: [], error: "Расписание не ответило" };
     });
 }
@@ -6079,6 +6081,13 @@ function findTripFlights() {
         }
         rememberSchedule(ca, cb, date, got.rows);
         paintTripFlights(box, got.rows, ca, cb, date, "Расписание: AeroDataBox");
+    }).catch(function () {
+        if (findBtn) {
+            findBtn.disabled = false;
+            findBtn.textContent = t("Найти рейс");
+        }
+        if (token === twSchedToken)
+            box.innerHTML = '<p class="more-link">Расписание не ответило</p>';
     });
 }
 function paintTripFlights(box, rows, ca, cb, date, note) {
