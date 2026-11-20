@@ -49,10 +49,13 @@ test("дневник из пачки: битый json пустой, чужие �
   assert.deepEqual(jsonList(undefined), []);
 });
 
-test("облако: более новая пачка побеждает, удалённый аккаунт не возвращается", function () {
+test("облако: более новая пачка побеждает, пустая не стирает полную, удалённый аккаунт не возвращается", function () {
   const older = { "travelek-rev": "1", "travelek-extra": "[{\"id\":\"a\"}]" };
-  const newer = { "travelek-rev": "2", "travelek-extra": "[]" };
+  const newer = { "travelek-rev": "2", "travelek-extra": "[{\"id\":\"b\"}]" };
+  const newerEmpty = { "travelek-rev": "9", "travelek-extra": "[]", "travelek-countries": "[]", "travelek-regions": "[]" };
   assert.equal(preferPack(older, newer), newer);
+  assert.equal(preferPack(older, newerEmpty), older);
+  assert.equal(preferPack(newerEmpty, older), older);
   assert.equal(preferPack(null, older), older);
   assert.equal(preferPack(older, null), older);
   const sameRevMoreMarks = { "travelek-rev": "3", "travelek-countries": "[\"RU\",\"IT\"]", "travelek-regions": "[]", "travelek-extra": "[]" };

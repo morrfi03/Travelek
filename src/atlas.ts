@@ -60,7 +60,7 @@ var api = (function () {
   }
   (function mountAtlas() {
     var css = document.createElement("style");
-    css.textContent = "#map{transition:background-color .5s ease}#flatBox,#globeBox{position:absolute;inset:0;overflow:hidden;transition:opacity .5s ease}#flatBox{background:#4e8cb2}#globeBox{background:#16324a;opacity:0;pointer-events:none}#cvF,#cvG,#cvGgl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}#cvGgl{pointer-events:none;z-index:0}#cvG{z-index:1;background:transparent}#cvF.drag,#cvG.drag{cursor:grabbing}#tipF,#tipG{position:absolute;z-index:4;pointer-events:none;background:#1f2a26;color:#fff;padding:5px 9px;border-radius:6px;font:600 13px/1.3 Manrope,system-ui,sans-serif;opacity:0;transform:translate(12px,12px);white-space:nowrap}#tipF small,#tipG small{display:block;opacity:.7;font-size:11px;font-weight:500}#atlas-html{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden;transition:opacity .35s ease}@media (prefers-reduced-motion:reduce){#map,#flatBox,#globeBox,#atlas-html{transition:none}}";
+    css.textContent = "#map{transition:background-color .5s ease}#flatBox,#globeBox{position:absolute;inset:0;overflow:hidden;transition:opacity .5s ease}#flatBox{background:#4e8cb2}#globeBox{background:#16324a;opacity:0;pointer-events:none}#cvF,#cvG,#cvGgl{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}#cvGgl{visibility:hidden;opacity:0;pointer-events:none;z-index:0}#cvG{z-index:1;background:transparent}#cvF.drag,#cvG.drag{cursor:grabbing}#tipF,#tipG{position:absolute;z-index:4;pointer-events:none;background:#1f2a26;color:#fff;padding:5px 9px;border-radius:6px;font:600 13px/1.3 Manrope,system-ui,sans-serif;opacity:0;transform:translate(12px,12px);white-space:nowrap}#tipF small,#tipG small{display:block;opacity:.7;font-size:11px;font-weight:500}#atlas-html{position:absolute;inset:0;z-index:2;pointer-events:none;overflow:hidden;transition:opacity .35s ease}@media (prefers-reduced-motion:reduce){#map,#flatBox,#globeBox,#atlas-html{transition:none}}";
     document.head.appendChild(css);
     function box(id){ var d=document.createElement("div"); d.id=id; return d; }
     var fb=box("flatBox"), cv=document.createElement("canvas"); cv.id="cvF"; fb.appendChild(cv);
@@ -1163,7 +1163,7 @@ var api = (function () {
   // ===================== ГЛОБУС =====================
   views.globe = (function () {
     var box = $("globeBox"), cv = $("cvG"), ctx = cv.getContext("2d", { alpha: true }), tip = $("tipG");
-    var glcv = document.createElement("canvas"); glcv.id = "cvGgl"; glcv.style.opacity = "0"; glcv.style.pointerEvents = "none"; box.insertBefore(glcv, cv);
+    var glcv = document.createElement("canvas"); glcv.id = "cvGgl"; glcv.style.opacity = "0"; glcv.style.visibility = "hidden"; glcv.style.pointerEvents = "none"; box.insertBefore(glcv, cv);
     var tex = null, TW = 0, TH = 0, rbuf = document.createElement("canvas"), rctx = rbuf.getContext("2d"), rimg = null, gimg = new Image(), gready = false;
     var gl = null, glProg = null, glBuf = null, glTex = null, uLoc = null, sphereMode = "";
     gimg.onload = function () { gready = true; if (mode === "globe") { uploadSphere(); schedule(); } };
@@ -1181,7 +1181,7 @@ var api = (function () {
         return s;
       }
       var vs = sh(g.VERTEX_SHADER, "attribute vec2 a;varying vec2 v;void main(){v=a;gl_Position=vec4(a,0.0,1.0);}");
-      var fs = sh(g.FRAGMENT_SHADER, "precision mediump float;varying vec2 v;uniform sampler2D uTex;uniform float uLon,uLat,uR,uCx,uCy,uW,uH,uHas;const float PI=3.14159265;void main(){float px=(v.x*.5+.5)*uW;float py=(.5-v.y*.5)*uH;float nx=(px-uCx)/uR;float ny=(uCy-py)/uR;float r2=nx*nx+ny*ny;if(r2>=1.0){gl_FragColor=vec4(0.0);return;}float nz=sqrt(1.0-r2);float cp=cos(uLat),sp=sin(uLat),cl=cos(uLon),sl=sin(uLon);float Y=ny*cp+nz*sp;float z1=-ny*sp+nz*cp;float X=nx*cl+z1*sl;float Z=-nx*sl+z1*cl;float u=atan(X,Z)/(2.0*PI)+.5;float vv=.5+asin(clamp(Y,-1.0,1.0))/PI;vec3 col=uHas>.5?texture2D(uTex,vec2(u,vv)).rgb:vec3(.55,.70,.80);float limb=pow(nz,.55);col*=.86+.14*limb;float atmos=pow(1.0-nz,2.6);col=mix(col,vec3(.62,.82,.98),atmos*.42);gl_FragColor=vec4(col,1.0);}");
+      var fs = sh(g.FRAGMENT_SHADER, "precision mediump float;varying vec2 v;uniform sampler2D uTex;uniform float uLon,uLat,uR,uCx,uCy,uW,uH,uHas;const float PI=3.14159265;void main(){float px=(v.x*.5+.5)*uW;float py=(.5-v.y*.5)*uH;float nx=(px-uCx)/uR;float ny=(uCy-py)/uR;float r2=nx*nx+ny*ny;if(r2>=1.0){gl_FragColor=vec4(0.086,0.196,0.290,1.0);return;}float nz=sqrt(1.0-r2);float cp=cos(uLat),sp=sin(uLat),cl=cos(uLon),sl=sin(uLon);float Y=ny*cp+nz*sp;float z1=-ny*sp+nz*cp;float X=nx*cl+z1*sl;float Z=-nx*sl+z1*cl;float u=atan(X,Z)/(2.0*PI)+.5;float vv=.5+asin(clamp(Y,-1.0,1.0))/PI;vec3 col=uHas>.5?texture2D(uTex,vec2(u,vv)).rgb:vec3(.55,.70,.80);float limb=pow(nz,.55);col*=.86+.14*limb;float atmos=pow(1.0-nz,2.6);col=mix(col,vec3(.62,.82,.98),atmos*.42);gl_FragColor=vec4(col,1.0);}");
       if (!vs || !fs) { sphereMode = "cpu"; return false; }
       var p = g.createProgram(); g.attachShader(p, vs); g.attachShader(p, fs); g.bindAttribLocation(p, 0, "a"); g.linkProgram(p);
       if (!g.getProgramParameter(p, g.LINK_STATUS)) { sphereMode = "cpu"; return false; }
@@ -1456,6 +1456,8 @@ var api = (function () {
         if (cv.width !== pw || cv.height !== ph) { cv.width = pw; cv.height = ph; }
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, cv.width, cv.height);
+        ctx.fillStyle = "#16324a";
+        ctx.fillRect(0, 0, cv.width, cv.height);
         ctx.drawImage(gSphere, 0, 0);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       } else {
@@ -1465,9 +1467,13 @@ var api = (function () {
       if (glOn) paintSphere();
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx.fillStyle = "#16324a";
+      ctx.fillRect(0, 0, cv.width, cv.height);
+      glcv.style.opacity = "0";
+      glcv.style.visibility = "hidden";
       if (glOn) {
-        try { if (gl) gl.flush(); ctx.drawImage(glcv, 0, 0); glcv.style.opacity = "0"; }
-        catch (err) { glcv.style.opacity = "1"; }
+        try { if (gl) gl.flush(); ctx.drawImage(glcv, 0, 0); }
+        catch (err) { sphereMode = "cpu"; }
       }
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       if (!glOn) {
@@ -1628,6 +1634,8 @@ var api = (function () {
       if (!gBaseOk || gBase.width !== cv.width || gBase.height !== cv.height) { draw(hq(), false); return; }
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.clearRect(0, 0, cv.width, cv.height);
+      ctx.fillStyle = "#16324a";
+      ctx.fillRect(0, 0, cv.width, cv.height);
       ctx.drawImage(gBase, 0, 0);
       if (hooks.paint) { ctx.setTransform(dpr, 0, 0, dpr, 0, 0); hooks.paint(ctx); }
     }
@@ -1794,8 +1802,8 @@ var api = (function () {
   function readGlobeCam() { var c = views.globe.getCenter(); return { lon: c.lon, lat: c.lat, z: c.z }; }
   function paintMode(m) {
     var flat = $("flatBox"), globe = $("globeBox");
-    if (flat) { flat.hidden = false; flat.style.opacity = m === "flat" ? "1" : "0"; flat.style.pointerEvents = m === "flat" ? "auto" : "none"; }
-    if (globe) { globe.hidden = false; globe.style.opacity = m === "globe" ? "1" : "0"; globe.style.pointerEvents = m === "globe" ? "auto" : "none"; }
+    if (flat) { flat.style.visibility = m === "flat" ? "visible" : "hidden"; flat.style.opacity = m === "flat" ? "1" : "0"; flat.style.pointerEvents = m === "flat" ? "auto" : "none"; }
+    if (globe) { globe.style.visibility = m === "globe" ? "visible" : "hidden"; globe.style.opacity = m === "globe" ? "1" : "0"; globe.style.pointerEvents = m === "globe" ? "auto" : "none"; }
   }
   function setMode(m) {
     if (m !== "flat" && m !== "globe") m = "flat";
@@ -1803,6 +1811,7 @@ var api = (function () {
     if (changed) camHold[mode] = mode === "flat" ? readFlatCam() : readGlobeCam();
     var from = mode;
     mode = m; hoverEnt = -1;
+    paintMode(m);
     if (changed) {
       var next = views[m];
       if (next && next.resize) next.resize();

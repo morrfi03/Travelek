@@ -32,11 +32,17 @@ export function preferPack(a, b) {
         return b || null;
     if (!b)
         return a;
+    const am = markCount(a);
+    const bm = markCount(b);
+    if (am === 0 && bm > 0)
+        return b;
+    if (bm === 0 && am > 0)
+        return a;
     const ar = packRev(a);
     const br = packRev(b);
     if (ar !== br)
         return ar > br ? a : b;
-    return markCount(a) >= markCount(b) ? a : b;
+    return am >= bm ? a : b;
 }
 export function nickIsAdmin(user) {
     if (!user)

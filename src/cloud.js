@@ -2,7 +2,7 @@ import { AIRPORTS, CITIES, STATIONS, flightAllowed } from "./catalog.js?v=97";
 import { nameHas, norm } from "./text.js?v=97";
 import { WORLD } from "./world.js?v=97";
 import { ui } from "./screen.js?v=97";
-import { mergeUsers, nickIsAdmin, preferPack, readStoreDocument, repairVlad } from "./store.js?v=97";
+import { mergeUsers, nickIsAdmin, preferPack, readStoreDocument, repairVlad } from "./store.js?v=98";
 export { nameHas, norm, WORLD };
 "use strict";
 export function safeSetItem(key, val) {
@@ -146,30 +146,10 @@ catch (e) {
     return [];
 } }
 function wipeRoutesOnce() {
-    if (localStorage.getItem("travelek-wipe") === "2")
-        return;
-    var KEYS = ["travelek-extra", "travelek-del", "travelek-countries", "travelek-countries-off", "travelek-regions", "travelek-regions-off"];
     try {
-        var vault = JSON.parse(localStorage.getItem("travelek-vault") || "{}");
-        if (vault && typeof vault === "object") {
-            Object.keys(vault).forEach(function (id) {
-                KEYS.forEach(function (k) { if (vault[id])
-                    delete vault[id][k]; });
-            });
-            localStorage.setItem("travelek-vault", JSON.stringify(vault));
-        }
+        localStorage.setItem("travelek-wipe", "2");
     }
     catch (e) { }
-    KEYS.forEach(function (k) { localStorage.removeItem(k); });
-    localStorage.setItem("travelek-wipe", "2");
-    if (window.__cloudPush) {
-        var empty = {};
-        KEYS.forEach(function (k) { empty[k] = null; });
-        try {
-            window.__cloudPush(empty);
-        }
-        catch (e) { }
-    }
 }
 wipeRoutesOnce();
 (function bootLocalAccounts() {
@@ -207,6 +187,56 @@ wipeRoutesOnce();
         localStorage.setItem(VAULT, JSON.stringify(v));
     }
     catch (e) { } }
+    function routeCount(pack) {
+        try {
+            var a = JSON.parse((pack && pack["travelek-extra"]) || "[]");
+            return Array.isArray(a) ? a.length : 0;
+        }
+        catch (e) {
+            return 0;
+        }
+    }
+    function readLocalPack() {
+        var localPack = {}, ki, kv;
+        for (ki = 0; ki < KEYS.length; ki++) {
+            kv = localStorage.getItem(KEYS[ki]);
+            if (kv != null)
+                localPack[KEYS[ki]] = kv;
+        }
+        return localPack;
+    }
+    function keepFuller(id, pack) {
+        if (!id || routeCount(pack) === 0)
+            return;
+        var snap = vault();
+        if (routeCount(pack) <= routeCount(snap[id]))
+            return;
+        snap[id] = JSON.parse(JSON.stringify(pack));
+        saveVault(snap);
+    }
+    function adoptDiary(ownerId) {
+        var snap = vault();
+        if (routeCount(snap[ownerId]) > 0)
+            return snap[ownerId];
+        var alive = {}, list = users(), i, id, best = null, bestN = 0, n;
+        for (i = 0; i < list.length; i++)
+            if (list[i] && list[i].id)
+                alive[list[i].id] = 1;
+        for (id in snap) {
+            if (!Object.prototype.hasOwnProperty.call(snap, id) || id === ownerId || alive[id])
+                continue;
+            n = routeCount(snap[id]);
+            if (n > bestN) {
+                bestN = n;
+                best = snap[id];
+            }
+        }
+        if (!best)
+            return snap[ownerId] || null;
+        snap[ownerId] = JSON.parse(JSON.stringify(best));
+        saveVault(snap);
+        return snap[ownerId];
+    }
     function deletedIds() { var d = read(DEL, []); return Array.isArray(d) ? d : []; }
     function rememberDeleted(ids) {
         var d = deletedIds(), i;
@@ -654,6 +684,12 @@ wipeRoutesOnce();
         });
     };
     if (!me) {
+        var looseId = "";
+        try {
+            looseId = localStorage.getItem(SESSION) || "";
+        }
+        catch (e) { }
+        keepFuller(looseId || "orphan", readLocalPack());
         window.__TRAVELEK_HOLD = true;
         window.__TRAVELEK_SEED = false;
         apply(null);
@@ -671,7 +707,10 @@ wipeRoutesOnce();
         window.__TRAVELEK_VIEW_NAME = who ? (who.name || who.login) : "пользователь";
     }
     var all = vault();
-    apply(all[packOwner] || null);
+    var pack = all[packOwner] || null;
+    if (packOwner === me.id && routeCount(pack) === 0)
+        pack = adoptDiary(me.id);
+    apply(pack || null);
     window.__TRAVELEK_ME = { id: me.id, email: me.login, name: me.name, role: me.role, mustChange: !!me.mustChange };
     window.__TRAVELEK_SEED = false;
     window.__cloudPush = function (data) {
