@@ -432,6 +432,22 @@ wipeRoutesOnce();
     sessionStorage.setItem("travelek-store-sync","1");
     location.reload();
   });
+  window.__createFirst=function(login, password){
+    login=String(login||"").trim().toLowerCase();
+    return ensureStore().then(function(){
+      var u=users(), n;
+      for(n=0;n<u.length;n++){
+        if(String(u[n].login||"").toLowerCase()===login) return window.__localLogin(login, password);
+      }
+      if(u.length) return window.__localLogin(login, password);
+      return sha256(password).then(function(h){
+        var row={id:"u"+Date.now(), login:login, name:login, password:h, role:"admin"};
+        u.push(row);
+        try{ localStorage.setItem(USERS, JSON.stringify(u)); localStorage.setItem(SESSION, row.id); }catch(e){}
+        return saveStoreNow().catch(function(){}).then(function(){ location.reload(); });
+      });
+    });
+  };
   if(!me){
     window.__TRAVELEK_HOLD=true;
     window.__TRAVELEK_SEED=false;
@@ -546,22 +562,6 @@ wipeRoutesOnce();
         });
       }).then(function(){ resolve({ok:true}); }).catch(function(e){
         reject(new Error(e&&e.message?e.message:"Не удалось сменить пароль"));
-      });
-    });
-  };
-  window.__createFirst=function(login, password){
-    login=String(login||"").trim().toLowerCase();
-    return ensureStore().then(function(){
-      var u=users(), n;
-      for(n=0;n<u.length;n++){
-        if(String(u[n].login||"").toLowerCase()===login) return window.__localLogin(login, password);
-      }
-      if(u.length) return window.__localLogin(login, password);
-      return sha256(password).then(function(h){
-        var row={id:"u"+Date.now(), login:login, name:login, password:h, role:"admin"};
-        u.push(row);
-        try{ localStorage.setItem(USERS, JSON.stringify(u)); localStorage.setItem(SESSION, row.id); }catch(e){}
-        return saveStoreNow().catch(function(){}).then(function(){ location.reload(); });
       });
     });
   };
