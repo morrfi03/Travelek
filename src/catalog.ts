@@ -24,27 +24,7 @@ if(window.__travelekMap){
   window.__travelekMap=null;
 }
 
-/* Зум только у карты и глобуса. Остальной экран не масштабируется. */
-(function(){
-  var meta=document.querySelector('meta[name="viewport"]');
-  if(meta) meta.setAttribute("content","width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover");
-  function onMap(t){
-    if(!t || !t.closest) return false;
-    return !!(t.closest("#map") || t.closest("#globe") || t.id==="map" || t.id==="globe");
-  }
-  ["gesturestart","gesturechange","gestureend"].forEach(function(type){
-    document.addEventListener(type, function(e){ e.preventDefault(); }, {passive:false});
-  });
-  document.addEventListener("touchmove", function(e){
-    if(e.touches && e.touches.length>1 && !onMap(e.target) && e.cancelable) e.preventDefault();
-  }, {passive:false});
-  var lastTouchEnd=0;
-  document.addEventListener("touchend", function(e){
-    var now=Date.now();
-    if(!onMap(e.target) && now-lastTouchEnd<=300) e.preventDefault();
-    lastTouchEnd=now;
-  }, {passive:false});
-})();
+/* Масштаб страницы разрешён. Жесты карты не перехватываются здесь. */
 
 /* ===== Каталоги ===== */
 export var AIRPORTS = [];

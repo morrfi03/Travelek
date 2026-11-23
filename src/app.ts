@@ -497,6 +497,56 @@ UI.en["Укажите страну"]="Add a country";
 UI.zh["Укажите страну"]="填写国家";
 UI.en["Добавить поездку"]="Add a trip";
 UI.zh["Добавить поездку"]="添加行程";
+UI.en["Пока нет поездок"]="No trips yet";
+UI.zh["Пока нет поездок"]="还没有行程";
+UI.en["Добавьте первый маршрут — самолёт, поезд или авто."]="Add the first route: a flight, a train or a drive.";
+UI.zh["Добавьте первый маршрут — самолёт, поезд или авто."]="添加第一条路线：飞机、火车或汽车。";
+UI.en["Добавить первую поездку"]="Add the first trip";
+UI.zh["Добавить первую поездку"]="添加第一次行程";
+UI.en["Служебные настройки"]="Service settings";
+UI.zh["Служебные настройки"]="服务设置";
+UI.en["Ключ AeroDataBox"]="AeroDataBox key";
+UI.zh["Ключ AeroDataBox"]="AeroDataBox 密钥";
+UI.en["Если пусто, берутся ключи сервера. Запасные: AERODATABOX_KEY_2 и AERODATABOX_KEY_3."]="If empty, the server keys are used. Spare keys: AERODATABOX_KEY_2 and AERODATABOX_KEY_3.";
+UI.zh["Если пусто, берутся ключи сервера. Запасные: AERODATABOX_KEY_2 и AERODATABOX_KEY_3."]="留空则使用服务器密钥。备用：AERODATABOX_KEY_2 和 AERODATABOX_KEY_3。";
+UI.en["Назад"]="Back";
+UI.zh["Назад"]="返回";
+UI.en["Далее"]="Next";
+UI.zh["Далее"]="下一步";
+UI.en["Маршрут"]="Route";
+UI.zh["Маршрут"]="路线";
+UI.en["Когда"]="When";
+UI.zh["Когда"]="时间";
+UI.en["Итог"]="Summary";
+UI.zh["Итог"]="汇总";
+UI.en["Номер рейса"]="Flight number";
+UI.zh["Номер рейса"]="航班号";
+UI.en["Рейсы на эту дату"]="Flights on this date";
+UI.zh["Рейсы на эту дату"]="这一天的航班";
+UI.en["Ищем…"]="Searching…";
+UI.zh["Ищем…"]="正在查找…";
+UI.en["Добавить ещё один маршрут в поездку"]="Add another route to this trip";
+UI.zh["Добавить ещё один маршрут в поездку"]="再添加一条路线";
+UI.en["В обе стороны"]="Both ways";
+UI.zh["В обе стороны"]="往返";
+UI.en["Точка на карте"]="Point on the map";
+UI.zh["Точка на карте"]="地图上的点";
+UI.en["Укажите дату обратно"]="Enter the return date";
+UI.zh["Укажите дату обратно"]="请填写返程日期";
+UI.en["Первая поездка"]="First trip";
+UI.zh["Первая поездка"]="第一次行程";
+UI.en["Первый самолёт"]="First flight";
+UI.zh["Первый самолёт"]="第一次飞行";
+UI.en["Первый поезд"]="First train";
+UI.zh["Первый поезд"]="第一次火车";
+UI.en["5 стран"]="5 countries";
+UI.zh["5 стран"]="5 个国家";
+UI.en["10 стран"]="10 countries";
+UI.zh["10 стран"]="10 个国家";
+UI.en["20 городов"]="20 cities";
+UI.zh["20 городов"]="20 座城市";
+UI.en["Разные годы"]="Several years";
+UI.zh["Разные годы"]="不同年份";
 UI.en["Добавить маршрут"]="Add route";
 UI.zh["Добавить маршрут"]="添加路线";
 UI.en["Добавить маршрут в поездку"]="Add route to trip";
@@ -882,6 +932,7 @@ export function render(opts?){
     var casing=light?"#ffffff":"rgba(244,248,252,.9)";
     var repeats=routeCounts[routeRepeatKey(r)]||1;
     var w=repeats>1?5.2:2.15;
+    if(r.mode==="car"||r.mode==="walk"||r.mode==="bike") w+=1.7;
     if(selectedId===r.id) w+=1.2;
     var coords=line, n=coords.length, drawn=coords;
     if(n>200){
@@ -891,7 +942,7 @@ export function render(opts?){
       drawn.push(coords[n-1]);
     }
     map.line(drawn,{pane:"routePane",color:casing,weight:w+(repeats>1?2.8:1.5),opacity:.94,lineJoin:"round",lineCap:"round",interactive:false,smoothFactor:0}).addTo(layer);
-    map.line(drawn,{pane:"routePane",color:col,weight:w,opacity:1,dashArray:fut?"7 6":null,lineJoin:"round",lineCap:"round",interactive:false,smoothFactor:0}).addTo(layer);
+    map.line(drawn,{pane:"routePane",color:col,weight:w,opacity:1,dashArray:(r.mode==="plane"||fut)?"7 6":null,lineJoin:"round",lineCap:"round",interactive:false,smoothFactor:0}).addTo(layer);
     [drawn[0],drawn[drawn.length-1]].forEach(function(p){
       map.dot(p,{pane:"routePane",radius:5,color:casing,fillColor:col,fillOpacity:1,weight:2.5}).addTo(layer);
     });
@@ -966,11 +1017,40 @@ function fillAnalytics(){
     if(mf && r.mode!==mf) return false;
     return true;
   });
+  var emptyCard=document.getElementById("stats-empty");
+  function hideStatBlocks(){
+    document.querySelectorAll("#analytics .an-block").forEach(function(block){
+      if(block.id!=="an-badges-block") block.classList.add("is-off");
+    });
+  }
+  function paintBadges(badges){
+    var earned={} as any;
+    (badges||[]).forEach(function(name){ earned[name]=1; });
+    var all=["Первая поездка","Первый самолёт","Первый поезд","5 стран","10 стран","20 городов","Разные годы"];
+    var bBox=document.getElementById("an-badges");
+    var block=document.getElementById("an-badges-block");
+    if(block) block.classList.remove("is-off");
+    if(bBox) bBox.innerHTML=all.map(function(name){ return '<span class="an-chip'+(earned[name]?"":" off")+'">'+t(name)+"</span>"; }).join("");
+  }
+  if(!(ROUTES||[]).length){
+    if(emptyCard) emptyCard.hidden=false;
+    cards.innerHTML="";
+    var filters0=document.getElementById("an-filters");
+    if(filters0) filters0.classList.add("is-off");
+    cards.classList.add("is-off");
+    hideStatBlocks();
+    paintBadges([]);
+    return;
+  }
+  if(emptyCard) emptyCard.hidden=true;
+  var filters=document.getElementById("an-filters");
+  if(filters) filters.classList.remove("is-off");
+  cards.classList.remove("is-off");
   if(!past.length){
-    cards.innerHTML='<div class="an-card"><b>0</b><span>поездок</span></div>';
-    var empty='<p class="up-empty">Нет данных. Добавьте поездку.</p>';
-    ["an-years","an-months","an-modes","stats-averages","stats-records","stats-transport","stats-timeline"].forEach(function(id){ var n=document.getElementById(id); if(n) n.innerHTML=empty; });
-    paintAirStats(airRoutesFor(yf, mf));
+    cards.innerHTML="";
+    cards.classList.add("is-off");
+    hideStatBlocks();
+    paintBadges([]);
     return;
   }
   var years={} as any, months={} as any, modes={} as any;
@@ -1001,15 +1081,23 @@ function fillAnalytics(){
     [firstYear||"—","первый год"],
     [lastDate||"—","последняя"]
   ];
-  cards.innerHTML=items.map(function(it){ return '<div class="an-card"><b>'+it[0]+'</b><span>'+it[1]+'</span></div>'; }).join("");
+  cards.innerHTML=items.filter(function(it){ return it[0]!=="0" && it[0]!=="—"; }).map(function(it){ return '<div class="an-card"><b>'+it[0]+'</b><span>'+it[1]+'</span></div>'; }).join("");
+  cards.classList.toggle("is-off", !cards.innerHTML);
   var yKeys=Object.keys(years).sort();
   var yMax=yKeys.reduce(function(a,k){ return Math.max(a,years[k]); },1);
   var yBox=document.getElementById("an-years");
-  if(yBox) yBox.innerHTML=yKeys.length?yKeys.map(function(k){ var w=Math.round(100*years[k]/yMax); return '<div class="bar-row" data-year="'+k+'"><span>'+k+'</span><div class="bar"><i style="width:'+w+'%"></i></div><b>'+years[k]+'</b></div>'; }).join(""):'<p class="up-empty">Нет состоявшихся поездок</p>';
+  if(yBox){
+    yBox.innerHTML=yKeys.length?yKeys.map(function(k){ var w=Math.round(100*years[k]/yMax); return '<div class="bar-row" data-year="'+k+'"><span>'+k+'</span><div class="bar"><i style="width:'+w+'%"></i></div><b>'+years[k]+'</b></div>'; }).join(""):"";
+    var yBlock=yBox.closest(".an-block"); if(yBlock) yBlock.classList.toggle("is-off", !yKeys.length);
+  }
   var mNames=["01","02","03","04","05","06","07","08","09","10","11","12"];
   var mMax=mNames.reduce(function(a,k){ return Math.max(a,months[k]||0); },1);
   var mBox=document.getElementById("an-months");
-  if(mBox) mBox.innerHTML=mNames.map(function(k){ var n=months[k]||0; var w=mMax?Math.round(100*n/mMax):0; var name=["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"][+k-1]; return '<div class="bar-row"><span>'+name+'</span><div class="bar"><i style="width:'+w+'%"></i></div><b>'+n+'</b></div>'; }).join("");
+  if(mBox){
+    var monthRows=mNames.filter(function(k){ return months[k]; });
+    mBox.innerHTML=monthRows.map(function(k){ var n=months[k]; var w=mMax?Math.round(100*n/mMax):0; var name=["янв","фев","мар","апр","май","июн","июл","авг","сен","окт","ноя","дек"][+k-1]; return '<div class="bar-row"><span>'+name+'</span><div class="bar"><i style="width:'+w+'%"></i></div><b>'+n+'</b></div>'; }).join("");
+    var monthBlock=mBox.closest(".an-block"); if(monthBlock) monthBlock.classList.toggle("is-off", !monthRows.length);
+  }
   var modeNames={plane:"Самолёт",train:"Поезд",car:"Авто",walk:"Пешком",bike:"Вело",ship:"Паром"};
   var mKeys=Object.keys(modes);
   var mTotal=mKeys.reduce(function(a,k){ return a+modes[k]; },0)||1;
@@ -1058,7 +1146,12 @@ function fillAnalytics(){
   if(Object.keys(cities).length>=20) badges.push("20 городов");
   if(yKeys.length>=2) badges.push("Разные годы");
   var bBox=document.getElementById("an-badges");
-  if(bBox) bBox.innerHTML=badges.length?badges.map(function(b){ return '<span class="an-chip">'+b+'</span>'; }).join(""):'<p class="up-empty">Пока нет достижений</p>';
+  var earned={} as any;
+  badges.forEach(function(name){ earned[name]=1; });
+  var allNames=["Первая поездка","Первый самолёт","Первый поезд","5 стран","10 стран","20 городов","Разные годы"];
+  if(bBox) bBox.innerHTML=allNames.map(function(name){ return '<span class="an-chip'+(earned[name]?"":" off")+'">'+t(name)+"</span>"; }).join("");
+  var badgeBlock=document.getElementById("an-badges-block");
+  if(badgeBlock) badgeBlock.classList.remove("is-off");
   paintAirStats(airRoutesFor(yf, mf));
 }
 function airRoutesFor(year, mode){
@@ -1163,7 +1256,8 @@ function paintAirStats(past){
       var row=airlines[k], w=Math.round(100*row.n/aMax), code=row.iata, mark=escLabel(airlineMark(k, code));
       var logo='<span class="fleet-badge">'+mark+(code?'<img alt="" src="https://pics.avs.io/al_square/64/64/'+code+'.png">':"")+'</span>';
       return '<div class="fleet-row">'+logo+'<div class="fleet-main"><div class="fleet-top"><b>'+escLabel(k)+'</b><span>'+row.n+'</span></div><div class="bar"><i style="width:'+w+'%"></i></div></div></div>';
-    }).join(""):'<p class="up-empty">Появится после выбора рейса из расписания</p>';
+    }).join(""):"";
+    var airBlock=airBox.closest(".an-block"); if(airBlock) airBlock.classList.toggle("is-off", !aKeys.length);
   }
   var acBox=document.getElementById("an-aircraft");
   if(acBox){
@@ -1172,14 +1266,16 @@ function paintAirStats(past){
     acBox.innerHTML=pKeys.length?pKeys.map(function(k){
       var w=Math.round(100*aircraft[k]/pMax);
       return '<div class="fleet-row"><span class="fleet-badge fleet-plane">'+planeSvg(planeKind(k))+'</span><div class="fleet-main"><div class="fleet-top"><b>'+escLabel(k)+'</b><span>'+aircraft[k]+'</span></div><div class="bar"><i style="width:'+w+'%"></i></div></div></div>';
-    }).join(""):'<p class="up-empty">Появится после выбора рейса из расписания</p>';
+    }).join(""):"";
+    var acBlock=acBox.closest(".an-block"); if(acBlock) acBlock.classList.toggle("is-off", !pKeys.length);
   }
   var air=document.getElementById("an-airtime");
   if(air){
     var hours=Math.floor(minutes/60), rest=minutes%60;
     air.innerHTML=counted
       ? '<div class="air-hero"><b>'+hours+' ч '+rest+' мин</b><span>'+counted+' '+((counted%10===1&&counted%100!==11)?"рейс":"рейсов")+' из расписания</span></div>'
-      : '<p class="up-empty">Появится после выбора рейса из расписания</p>';
+      : "";
+    var timeBlock=air.closest(".an-block"); if(timeBlock) timeBlock.classList.toggle("is-off", !counted);
   }
 }
 function fillUpcoming(){
@@ -1532,7 +1628,7 @@ checkOnline();
   if(ts) ts.onclick=function(){ applyTheme("system"); };
   var aeroInput=document.getElementById("set-aero-key");
   if(aeroInput){
-    aeroInput.value=aeroKey();
+    aeroInput.value=ownAeroKey();
     aeroInput.addEventListener("change", function(){
       try{ localStorage.setItem("travelek-aero-key", aeroInput.value.trim()); }catch(e){}
     });
@@ -1684,15 +1780,31 @@ function finishPick(latlng){
   var label="Точка "+la.toFixed(4)+", "+ln.toFixed(4);
   var mk=map.dot([la,ln],{radius:6,color:"#e0a040",fillColor:"#e0a040",fillOpacity:0.9}).addTo(map);
   pickMarkers.push(mk);
-  if(pickTarget==="from") fFrom.value=label;
-  else if(pickTarget==="to") fTo.value=label;
-  else if(pickTarget==="wp"){
+  var picked=pickTarget;
+  if(pickTarget==="from"){
+    fFrom.value=label;
+    var twFrom=document.getElementById("tw-from") as HTMLInputElement;
+    if(twFrom) twFrom.value=label;
+  } else if(pickTarget==="to"){
+    fTo.value=label;
+    var twTo=document.getElementById("tw-to") as HTMLInputElement;
+    if(twTo) twTo.value=label;
+  } else if(pickTarget==="wp"){
     carWaypoints.push({lat:la,lng:ln});
   }
   pickTarget=null;
   pickModeLabels=false;
   drawCityLabels();
   document.getElementById("pick-banner").classList.remove("on");
+  if((window as any).__pickReturn==="trip"){
+    (window as any).__pickReturn="";
+    var tripWin=document.getElementById("trip-window");
+    if(tripWin) tripWin.classList.add("on");
+    if(typeof updateLabels==="function") updateLabels();
+    if(typeof syncWpPanel==="function") syncWpPanel();
+    if(typeof (window as any).showTwStep==="function") (window as any).showTwStep(picked==="wp"?2:1);
+    return;
+  }
   openForm();
   if(fMode.value!=="walk"&&fMode.value!=="bike"&&fMode.value!=="ship") fMode.value="car";
   updateLabels();
@@ -1702,6 +1814,11 @@ document.getElementById("pick-from").onclick=function(){ startPick("from"); };
 document.getElementById("pick-to").onclick=function(){ startPick("to"); };
 document.getElementById("wp-add").onclick=function(){
   document.getElementById("f-car-path").value="offroad";
+  (window as any).__pickReturn="trip";
+  var modeEl=document.getElementById("tw-mode") as HTMLSelectElement;
+  if(modeEl) fMode.value=modeEl.value||"car";
+  var tripWin=document.getElementById("trip-window");
+  if(tripWin) tripWin.classList.remove("on");
   startPick("wp");
 };
 document.getElementById("wp-clear").onclick=function(){
@@ -2010,45 +2127,15 @@ function openEdit(id){
   var r=null,i;
   for(i=0;i<ROUTES.length;i++) if(ROUTES[i].id===id) r=ROUTES[i];
   if(!r) return;
-  editingId=id;
-  document.getElementById("modal-title").textContent=t("Редактировать");
-  fMode.value=r.mode||"plane";
-  updateLabels();
-  fFrom.value=r.from||"";
-  fTo.value=r.to||"";
-  document.getElementById("f-date").value=r.date||"";
-  document.getElementById("f-time").value=r.time||"";
-  document.getElementById("f-flight").value=r.flight||"";
-  pickedAir=r.airline||r.aircraft||r.airMin?{flight:r.flight||"",airline:r.airline||"",airlineIata:r.airlineIata||"",aircraft:r.aircraft||"",airMin:r.airMin||0}:null;
-  if(r.mode==="car"){
-    var cp=document.getElementById("f-car-path");
-    if(cp) cp.value=r.carPath||(r.waypoints&&r.waypoints.length?"offroad":"road");
-    carWaypoints=(r.waypoints&&r.waypoints.slice())||[];
-    if(typeof syncWpPanel==="function") syncWpPanel();
+  var trips=typeof loadTrips==="function"?loadTrips():[], tripId=null, ti;
+  for(ti=0;ti<trips.length;ti++){
+    if((trips[ti].routes||[]).indexOf(r.id)>=0){ tripId=trips[ti].id; break; }
   }
-  var tw=document.getElementById("trim-wrap");
-  if(tw){
-    if(r.coords&&r.coords.length>=2){
-      tw.style.display="";
-      document.getElementById("trim-start").value=0;
-      document.getElementById("trim-end").value=0;
-      window._editCoords=r.coords.slice();
-    } else { tw.style.display="none"; window._editCoords=null; }
-  }
-  openForm();
+  openTripWindow({tripId:tripId, editRoute:r});
 }
 function openFormNew(){
-  editingId=null;
-  document.getElementById("modal-title").textContent=t("Новый маршрут");
-  carWaypoints=[];
-  fFrom.value=""; fTo.value="";
-  document.getElementById("f-flight").value="";
-  pickedAir=null;
-  var list=document.getElementById("f-flight-list");
-  if(list){ list.hidden=true; list.innerHTML=""; }
-  openForm();
+  openTripWindow();
 }
-
 
 /* ——— настройки треков ——— */
 function loadTrackSettings(){
@@ -3964,7 +4051,11 @@ function paintSheetList(el, list){
   }
   var loose=tab==="trips"?"":looseBlock(tab, list);
   if(!html && !loose){
-    el.innerHTML='<div class="empty"><p>'+(tab==="future"?t("Нет предстоящих маршрутов. Откройте «Прошлые» или добавьте новый."):(tab==="trips"?t("Поездок пока нет"):t("В прошлых пока пусто")))+'</p><button type="button" id="empty-add">Добавить поездку</button></div>';
+    if(!(ROUTES||[]).length){
+      el.innerHTML='<div class="empty-hero"><h3>'+t("Пока нет поездок")+'</h3><p>'+t("Добавьте первый маршрут — самолёт, поезд или авто.")+'</p><button type="button" id="empty-add">'+t("Добавить первую поездку")+'</button></div>';
+    } else {
+      el.innerHTML='<div class="empty"><p>'+(tab==="future"?t("Нет предстоящих маршрутов. Откройте «Прошлые» или добавьте новый."):(tab==="trips"?t("Поездок пока нет"):t("В прошлых пока пусто")))+'</p><button type="button" id="empty-add">'+t("Добавить поездку")+'</button></div>';
+    }
     var ea=document.getElementById("empty-add"); if(ea) ea.onclick=function(){ openTripWindow(); };
     return;
   }
@@ -4183,7 +4274,7 @@ function openTripWindow(seed?){
   seed=seed||{};
   var existing=null, all=loadTrips(), i;
   if(seed.tripId){ for(i=0;i<all.length;i++) if(all[i].id===seed.tripId) existing=all[i]; }
-  tw={id:existing?existing.id:null, title:existing?(existing.title||""):"", routes:[], countries:(existing&&existing.countries||[]).slice(), regions:(existing&&existing.regions||[]).slice(), focus:"", freeAll:false};
+  tw={id:existing?existing.id:null, title:existing?(existing.title||""):"", routes:[], countries:(existing&&existing.countries||[]).slice(), regions:(existing&&existing.regions||[]).slice(), focus:"", freeAll:false, editId:seed.editRoute?seed.editRoute.id:null};
   if(existing){
     (existing.routes||[]).forEach(function(id){
       var r=null, k;
@@ -4192,16 +4283,43 @@ function openTripWindow(seed?){
     });
     tw.routes.forEach(function(r){ absorbRoute(routeById(r.id)||r); });
   }
-  var name=document.getElementById("tw-name");
+  var name=document.getElementById("tw-name") as HTMLInputElement;
   if(name) name.value=tw.title||"";
-  ["tw-from","tw-to","tw-time"].forEach(function(id){ var n=document.getElementById(id); if(n) n.value=""; });
-  var dt=document.getElementById("tw-date");
-  if(dt && !existing) dt.value="";
+  ["tw-from","tw-to","tw-time","tw-flight"].forEach(function(id){ var n=document.getElementById(id) as HTMLInputElement; if(n) n.value=""; });
+  var both=document.getElementById("tw-both") as HTMLInputElement;
+  var backDate=document.getElementById("tw-date-back");
+  if(both) both.checked=false;
+  if(backDate) backDate.hidden=true;
+  var dt=document.getElementById("tw-date") as HTMLInputElement;
+  if(dt && !existing && !seed.editRoute) dt.value="";
+  if(seed.editRoute){
+    var er=seed.editRoute;
+    editingId=er.id;
+    var modeEl=document.getElementById("tw-mode") as HTMLSelectElement;
+    if(modeEl) modeEl.value=er.mode||"plane";
+    var fromEl=document.getElementById("tw-from") as HTMLInputElement;
+    var toEl=document.getElementById("tw-to") as HTMLInputElement;
+    if(fromEl) fromEl.value=er.from||"";
+    if(toEl) toEl.value=er.to||"";
+    if(dt) dt.value=er.date||"";
+    var timeEl=document.getElementById("tw-time") as HTMLInputElement;
+    if(timeEl) timeEl.value=er.time||"";
+    var flightEl=document.getElementById("tw-flight") as HTMLInputElement;
+    if(flightEl) flightEl.value=er.flight && er.flight!=="Flight" ? er.flight : "";
+    fMode.value=er.mode||"plane";
+    fFrom.value=er.from||"";
+    fTo.value=er.to||"";
+    var carPath=document.getElementById("f-car-path") as HTMLSelectElement;
+    if(carPath) carPath.value=er.carPath||(er.waypoints&&er.waypoints.length?"offroad":"road");
+    carWaypoints=(er.waypoints&&er.waypoints.slice())||[];
+    if(typeof updateLabels==="function") updateLabels();
+  }
   var del=document.getElementById("tw-delete");
   if(del) del.hidden=!existing;
   var title=document.getElementById("tw-title");
-  if(title) title.textContent=existing?t("Поездка"):t("Добавить поездку");
+  if(title) title.textContent=existing?t("Поездка"):(seed.editRoute?t("Редактировать"):t("Добавить поездку"));
   paintTripWindow();
+  if(typeof (window as any).showTwStep==="function") (window as any).showTwStep(1);
   var w=document.getElementById("trip-window");
   if(w) w.classList.add("on");
   if(typeof loadTripSchedule==="function") loadTripSchedule();
@@ -4508,13 +4626,13 @@ function findTripFlights(){
   box.hidden=false; box.classList.add("on");
   box.innerHTML='<div class="sched-in"><p class="more-link">Ищем реальные рейсы…</p></div>';
   askAero(ca, cb, date).then(function(got){
-    if(findBtn){ findBtn.disabled=false; findBtn.textContent=t("Найти рейс"); }
+    if(findBtn){ findBtn.disabled=false; findBtn.textContent=t("Рейсы на эту дату"); }
     if(token!==twSchedToken) return;
     if(got.error){ box.innerHTML='<p class="more-link">'+escLabel(got.error)+"</p>"; return; }
     rememberSchedule(ca, cb, date, got.rows);
     paintTripFlights(box, got.rows, ca, cb, date, "Расписание: AeroDataBox");
   }).catch(function(){
-    if(findBtn){ findBtn.disabled=false; findBtn.textContent=t("Найти рейс"); }
+    if(findBtn){ findBtn.disabled=false; findBtn.textContent=t("Рейсы на эту дату"); }
     if(token===twSchedToken) box.innerHTML='<p class="more-link">Расписание не ответило</p>';
   });
 }
@@ -4737,6 +4855,89 @@ function bindTripWindow(){
   var w=document.getElementById("trip-window");
   if(!w || w._bound) return;
   w._bound=1;
+  function syncTwModeUi(){
+    var modeEl=document.getElementById("tw-mode") as HTMLSelectElement;
+    var bar=document.getElementById("tw-mode-ui");
+    if(!modeEl || !bar) return;
+    var buttons=bar.querySelectorAll("button"), i;
+    for(i=0;i<buttons.length;i++) buttons[i].classList.toggle("on", buttons[i].getAttribute("data-v")===modeEl.value);
+  }
+  function showTwStep(n){
+    n=Math.max(1, Math.min(3, n||1));
+    document.querySelectorAll(".tw-pane").forEach(function(pane){
+      if(String(pane.getAttribute("data-pane"))===String(n)) pane.removeAttribute("hidden");
+      else pane.setAttribute("hidden","");
+    });
+    document.querySelectorAll("#tw-steps span").forEach(function(step){
+      step.classList.toggle("on", String(step.getAttribute("data-step"))===String(n));
+    });
+    var back=document.getElementById("tw-back");
+    var next=document.getElementById("tw-next");
+    if(back) back.hidden=n===1;
+    if(next) next.hidden=n===3;
+    var modeEl=document.getElementById("tw-mode") as HTMLSelectElement;
+    var mode=modeEl?modeEl.value:"plane";
+    if(fMode) fMode.value=mode;
+    syncTwModeUi();
+    var showPick=mode==="car";
+    ["tw-pick-from","tw-pick-to"].forEach(function(id){
+      var pin=document.getElementById(id);
+      if(pin) pin.hidden=!showPick;
+    });
+    if(n===2){
+      if(typeof updateLabels==="function") updateLabels();
+      var plane=mode==="plane", train=mode==="train";
+      var flightLabel=document.getElementById("tw-flight-label");
+      var flightInput=document.getElementById("tw-flight");
+      var find=document.getElementById("tw-find-flight");
+      var labelKey=plane?"Номер рейса":"Поезд / номер";
+      if(flightLabel){ flightLabel.hidden=!(plane||train); flightLabel.setAttribute("data-i18n", labelKey); flightLabel.textContent=t(labelKey); }
+      if(flightInput) flightInput.hidden=!(plane||train);
+      if(find){ find.hidden=!plane; if(!(find as HTMLButtonElement).disabled) find.textContent=t("Рейсы на эту дату"); }
+      if(typeof syncWpPanel==="function") syncWpPanel();
+      if(typeof loadTripSchedule==="function") loadTripSchedule();
+    }
+    (window as any).__twStep=n;
+  }
+  (window as any).showTwStep=showTwStep;
+  function armPick(which){
+    (window as any).__pickReturn="trip";
+    var modeEl=document.getElementById("tw-mode") as HTMLSelectElement;
+    if(modeEl && fMode) fMode.value=modeEl.value||"car";
+    var tripWin=document.getElementById("trip-window");
+    if(tripWin) tripWin.classList.remove("on");
+    startPick(which);
+  }
+  var modeUi=document.getElementById("tw-mode-ui");
+  if(modeUi) modeUi.addEventListener("click", function(e){
+    var b=e.target.closest && e.target.closest("button");
+    if(!b || !modeUi.contains(b)) return;
+    var modeEl=document.getElementById("tw-mode") as HTMLSelectElement;
+    if(modeEl) modeEl.value=b.getAttribute("data-v")||"plane";
+    if(fMode && modeEl) fMode.value=modeEl.value;
+    ["tw-pick-from","tw-pick-to"].forEach(function(id){
+      var pin=document.getElementById(id);
+      if(pin) pin.hidden=!modeEl || modeEl.value!=="car";
+    });
+    if((window as any).__twStep===2) showTwStep(2); else syncTwModeUi();
+  });
+  var pickFrom=document.getElementById("tw-pick-from");
+  var pickTo=document.getElementById("tw-pick-to");
+  if(pickFrom) pickFrom.onclick=function(){ armPick("from"); };
+  if(pickTo) pickTo.onclick=function(){ armPick("to"); };
+  var backBtn=document.getElementById("tw-back");
+  var nextBtn=document.getElementById("tw-next");
+  if(backBtn) backBtn.onclick=function(){ showTwStep(((window as any).__twStep||1)-1); };
+  if(nextBtn) nextBtn.onclick=function(){
+    var cur=(window as any).__twStep||1;
+    if(cur===2){
+      addDraftRoute().then(function(ok){ if(!ok) return; paintTripWindow(); showTwStep(3); });
+      return;
+    }
+    showTwStep(cur+1);
+  };
+  var statsAdd=document.getElementById("stats-empty-add");
+  if(statsAdd) statsAdd.onclick=function(){ openTripWindow(); };
   function sug(input, box, modeOf, which){
     input.addEventListener("input", function(){
       var mode=modeOf();
@@ -4793,13 +4994,14 @@ function bindTripWindow(){
     var dateEl=document.getElementById("tw-date");
     var date=dateEl?dateEl.value:"";
     if(!from && !to && !date) return Promise.resolve(true);
-    editingId=null;
+    editingId=tw && (tw as any).editId ? (tw as any).editId : null;
     fMode.value=document.getElementById("tw-mode").value;
     fFrom.value=from;
     fTo.value=to;
     document.getElementById("f-date").value=date;
     document.getElementById("f-time").value=document.getElementById("tw-time").value;
-    document.getElementById("f-flight").value="";
+    var typedFlight=document.getElementById("tw-flight") as HTMLInputElement;
+    document.getElementById("f-flight").value=typedFlight?typedFlight.value.trim():"";
     var made=buildRouteFromForm();
     if(!made) return Promise.resolve(false);
     if(twPick && made.mode==="plane" && twPick.date===date && twPick.from===made.fromCode && twPick.to===made.toCode){
@@ -4816,10 +5018,18 @@ function bindTripWindow(){
       alert("Укажите дату обратно");
       return Promise.resolve(false);
     }
-    function pushOne(m){ tw.routes.push(m); absorbRoute(m); }
+    function pushOne(m){
+      tw.routes=tw.routes.filter(function(x){ return x.id!==m.id; });
+      tw.routes.push(m);
+      absorbRoute(m);
+    }
     function clearFields(){
       if(fromEl) fromEl.value="";
       if(toEl) toEl.value="";
+      var typed=document.getElementById("tw-flight") as HTMLInputElement;
+      if(typed) typed.value="";
+      if(tw) (tw as any).editId=null;
+      editingId=null;
     }
     return enrichFlight(made).then(function(out){
       pushOne(out);
@@ -4835,7 +5045,11 @@ function bindTripWindow(){
     });
   }
   document.getElementById("tw-add-route").onclick=function(){
-    addDraftRoute().then(function(ok){ if(ok) paintTripWindow(); });
+    addDraftRoute().then(function(ok){
+      if(!ok) return;
+      paintTripWindow();
+      if(typeof (window as any).showTwStep==="function") (window as any).showTwStep(1);
+    });
   };
   var findFlight=document.getElementById("tw-find-flight");
   if(findFlight) findFlight.onclick=function(){ findTripFlights(); };
@@ -4978,6 +5192,8 @@ bindTripWindow();
     }
     var usersBox=document.getElementById("users-box");
     if(usersBox) usersBox.style.display="block";
+    var aeroBox=document.getElementById("admin-aero");
+    if(aeroBox) aeroBox.hidden=!adminOk;
     var accountsCard=document.getElementById("accounts-card");
     if(accountsCard) accountsCard.style.display="block";
     var openAcc=document.getElementById("open-accounts");

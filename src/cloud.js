@@ -1,4 +1,4 @@
-import { AIRPORTS, CITIES, STATIONS, flightAllowed } from "./catalog.js?v=97";
+import { AIRPORTS, CITIES, STATIONS, flightAllowed } from "./catalog.js?v=98";
 import { nameHas, norm } from "./text.js?v=97";
 import { WORLD } from "./world.js?v=97";
 import { ui } from "./screen.js?v=97";

@@ -1,12 +1,12 @@
 <!DOCTYPE html>
 <html lang="ru"><head>
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
-<meta http-equiv="Pragma" content="no-cache" /><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"><title>ТравелЕк</title>
+<meta http-equiv="Pragma" content="no-cache" /><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>ТравелЕк</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="modulepreload" href="src/main.js?v=126">
-<link rel="modulepreload" href="src/app.js?v=126">
-<link rel="modulepreload" href="src/roads.js?v=104">
-<link rel="modulepreload" href="src/cloud.js?v=108">
+<link rel="modulepreload" href="src/main.js?v=129">
+<link rel="modulepreload" href="src/app.js?v=129">
+<link rel="modulepreload" href="src/roads.js?v=106">
+<link rel="modulepreload" href="src/cloud.js?v=109">
 <link rel="modulepreload" href="src/atlas.js?v=110">
 <link rel="modulepreload" href="geo/atlas-data.js?v=97">
 <style>
@@ -285,12 +285,12 @@ input,select,textarea{background:var(--chip);color:var(--text);border:1px solid 
 .badge.fut{background:rgba(167,139,250,.18);color:var(--future)}
 .row .edit,.row .del{
   position:absolute;top:50%;transform:translateY(-50%);
-  width:34px;height:34px;border-radius:10px;border:1px solid var(--line);
+  width:40px;height:40px;border-radius:10px;border:1px solid var(--line);
   background:var(--chip);color:var(--muted);font-size:14px;
   display:flex;align-items:center;justify-content:center;
 }
-.row .edit{right:44px}
-.row .del{right:8px;color:#f87171}
+.row .edit{right:48px}
+.row .del{right:4px;color:#f87171}
 .empty{text-align:center;padding:12px 16px 20px;color:var(--muted);font-size:13px}
 .empty img{width:148px;height:148px;object-fit:cover;border-radius:18px;margin-bottom:10px}
 
@@ -670,8 +670,8 @@ body.globe-on #globe-hint{display:block}
 }
 #admin-list .admin-row>[data-pass]{background:transparent;color:var(--text);border:1px solid var(--line);box-shadow:none}
 #admin-list .route-line{display:block;margin-top:4px;font-size:12px;font-weight:550;color:var(--text)}
-#list .route-line{position:relative;padding-right:28px;cursor:pointer}
-#list .route-x{position:absolute;right:0;top:0;border:0;background:transparent;color:inherit;font-size:16px;line-height:1;padding:0 4px;cursor:pointer}
+#list .route-line{position:relative;padding-right:44px;cursor:pointer}
+#list .route-x{position:absolute;right:0;top:0;width:40px;height:40px;border:0;background:transparent;color:inherit;display:inline-flex;align-items:center;justify-content:center;padding:0;cursor:pointer}
 #account-btn{display:grid;place-items:center}
 body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!important}
 #file-login{
@@ -770,7 +770,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 .trip-window.on{display:flex}
 .trip-window header{display:flex;align-items:center;gap:10px;padding:calc(10px + env(safe-area-inset-top,0px)) 14px 10px;border-bottom:1px solid var(--line);flex-shrink:0}
 .trip-window header b{font-size:18px}
-.trip-window header button{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--chip);color:var(--text);font-size:18px}
+.trip-window header button{width:44px;height:44px;min-width:44px;min-height:44px;border-radius:10px;border:1px solid var(--line);background:var(--chip);color:var(--text)}
 .trip-window .tw-body{flex:1;overflow:auto;padding:8px 14px calc(18px + env(safe-area-inset-bottom,0px))}
 .trip-window h3{font-size:15px;margin:16px 0 8px}
 .trip-window input:not([type="checkbox"]),.trip-window select{width:100%;box-sizing:border-box;margin:0 0 8px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:var(--chip);color:var(--text)}
@@ -830,7 +830,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 }
 .list{padding:0 18px 8px}
 .year{letter-spacing:.08em;font-weight:600;padding:16px 0 6px}
-.row{background:transparent;border:0;border-radius:0;border-bottom:1px solid var(--line);padding:13px 64px 13px 0;margin:0;min-height:0}
+.row{background:transparent;border:0;border-radius:0;border-bottom:1px solid var(--line);padding:13px 96px 13px 0;margin:0;min-height:0}
 .row.on{background:transparent;border-bottom-color:var(--text)}
 .row.future{border-color:transparent;border-bottom:1px solid var(--line)}
 .row .title{display:flex;align-items:center;gap:6px;color:var(--text)}
@@ -853,7 +853,7 @@ body.ro #add-btn,body.ro #add-btn-2,body.ro .del,body.ro .edit{display:none!impo
 .badge.bk{color:var(--bike)}
 .badge.sh{color:var(--ship)}
 .badge.fut{color:var(--future)}
-.row .edit,.row .del{border:0;background:transparent;border-radius:0;width:28px}
+.row .edit,.row .del{border:0;background:transparent;border-radius:0;width:40px;height:40px}
 .trip-window header b,.trip-window h3{font-weight:500;letter-spacing:-.02em}
 .trip-window input,.trip-window select{border-radius:10px}
 #region-list button.on,#country-list .country-row.on .tick{background:rgba(47,124,246,.2);color:var(--text)}
@@ -1615,7 +1615,7 @@ select,option{color-scheme:dark;background-color:#1c1c1e;color:#f2f2f7}
 :root[data-theme="light"] select,:root[data-theme="light"] option{color-scheme:light;background-color:#fff;color:#111}
 .native-hidden{position:absolute!important;width:1px!important;height:1px!important;overflow:hidden!important;opacity:0!important;pointer-events:none!important}
 .mode-picks{display:flex;gap:4px;padding:3px;background:var(--chip);border-radius:12px}
-.mode-picks button{flex:1;height:36px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:15px}
+.mode-picks button{flex:1;min-height:44px;border:0;border-radius:9px;background:transparent;color:var(--muted);font-size:15px}
 .mode-picks button.on{background:var(--panel-solid);color:var(--text)}
 body[data-section="diary"] #diary-mode{display:none!important}
 body[data-section="diary"] #diary-tools{
@@ -1652,6 +1652,32 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
     padding-bottom:28px!important;
   }
 }
+input,select,textarea{font-size:16px!important}
+#map{touch-action:none}
+.icon-btn{width:44px;height:44px;min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;padding:0}
+.icon-btn .ico,.zoom .ico,.visit-confirm-icon .ico,.empty-hero .ico{width:22px;height:22px;display:block}
+.zoom button.icon-btn{width:44px;height:44px}
+.ver-foot{margin:16px 0 0;font-size:12px;line-height:1.3;color:var(--muted);text-align:center}
+.empty-hero{margin:8px 0 16px;padding:28px 16px;border-radius:16px;background:var(--chip);text-align:center}
+.empty-hero .ico{width:40px;height:40px;margin:0 auto 10px;color:var(--accent)}
+.empty-hero h3{margin:0 0 6px;font-size:20px;font-weight:700}
+.empty-hero p{margin:0 0 14px;color:var(--muted);font-size:15px}
+.empty-hero button{min-height:44px;border:0;border-radius:12px;background:var(--accent);color:#fff;padding:0 16px;font-weight:650}
+#list .empty-hero{margin:12px 0}
+.an-block.is-off,#an-cards.is-off,#an-filters.is-off{display:none!important}
+.an-chip.off{opacity:.4}
+.tw-steps{display:flex;gap:6px;margin:0 0 14px}
+.tw-steps span{flex:1;text-align:center;font-size:12px;font-weight:650;padding:8px 4px;border-radius:999px;background:var(--chip);color:var(--muted)}
+.tw-steps span.on{background:var(--accent);color:#fff}
+.tw-pane[hidden]{display:none!important}
+.tw-nav{display:flex;gap:8px;margin-top:12px}
+.tw-nav button{flex:1;min-height:44px;border:0;border-radius:12px;background:var(--chip);color:var(--text);font-weight:650}
+.pick-line{display:flex;gap:8px;align-items:center}
+.pick-line input{flex:1;min-width:0}
+#admin-aero[hidden]{display:none!important}
+#stats-empty[hidden]{display:none!important}
+#tw-flight[hidden],#tw-flight-label[hidden],#tw-find-flight[hidden],#tw-back[hidden],#tw-next[hidden],#tw-date-back[hidden],#tw-delete[hidden],#tw-pick-from[hidden],#tw-pick-to[hidden]{display:none!important}
+.panel-x .ico,.tw-picked .ico,#country-picked .ico,#country-list .ico,#region-list .ico,#tw-regions .ico{width:16px;height:16px;display:inline-block;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -1667,7 +1693,7 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
   <button type="button" id="dock-more" aria-expanded="false"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" aria-hidden="true"><circle cx="6" cy="12" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="18" cy="12" r="1.2" fill="currentColor"/></svg><span>Ещё</span></button>
 </nav>
 
-<button type="button" id="fab" title="Добавить поездку" aria-label="Добавить поездку">+</button>
+<button type="button" class="icon-btn" id="fab" data-i18n-title="Добавить поездку" aria-label="Добавить поездку"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
 <div id="upcoming" class="collapsed">
   <div class="up-head"><b>Предстоящие</b><span id="up-count">0</span></div>
   <div class="up-body" id="up-body"></div>
@@ -1679,7 +1705,6 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
 <div id="file-login">
   <form id="file-login-form">
     <h1>ТравелЕк</h1>
-    <p class="ver">Версия 0.0.38</p>
     <p>Каждый видит только свой дневник. Администратор видит все маршруты. Новый аккаунт создаёт только администратор.</p>
     <input id="file-login-name" type="text" placeholder="Логин" data-i18n-ph="Логин" autocomplete="username" />
     <div class="passline">
@@ -1699,6 +1724,7 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
       </div>
     </div>
     <button type="submit" id="file-login-go" data-i18n="Войти" disabled>Войти</button>
+    <p class="ver-foot">Версия 0.0.39</p>
   </form>
 </div>
 <div id="map"></div>
@@ -1713,20 +1739,19 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
   </div>
 </div>
 <div id="map-hover-label" class="map-hover-label" aria-live="polite"></div>
-<div id="visit-confirm" class="visit-confirm" role="dialog" aria-modal="true" aria-labelledby="visit-confirm-title"><div class="visit-confirm-card"><div class="visit-confirm-icon">✓</div><h2 id="visit-confirm-title" data-i18n="Вы были тут?">Вы были тут?</h2><p id="visit-confirm-desc"></p><div class="visit-confirm-actions"><button type="button" class="visit-no" id="visit-confirm-no" data-i18n="Нет">Нет</button><button type="button" class="visit-yes" id="visit-confirm-yes" data-i18n="Да, был(а)">Да, был(а)</button></div></div></div>
+<div id="visit-confirm" class="visit-confirm" role="dialog" aria-modal="true" aria-labelledby="visit-confirm-title"><div class="visit-confirm-card"><div class="visit-confirm-icon"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 9.2 17 19 7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></div><h2 id="visit-confirm-title" data-i18n="Вы были тут?">Вы были тут?</h2><p id="visit-confirm-desc"></p><div class="visit-confirm-actions"><button type="button" class="visit-no" id="visit-confirm-no" data-i18n="Нет">Нет</button><button type="button" class="visit-yes" id="visit-confirm-yes" data-i18n="Да, был(а)">Да, был(а)</button></div></div></div>
 <div class="pick-banner" id="pick-banner" data-i18n="Ткните точку на карте">Ткните точку на карте</div>
 <div class="top">
   <h1>ТравелЕк</h1>
-  <p class="ver">Версия 0.0.38</p>
   <div class="map-find">
     <input id="map-q" type="search" placeholder="Город или страна…" autocomplete="off" enterkeyhint="search" data-i18n-ph="Город или страна…" />
     <div class="suggest" id="map-q-box"></div>
   </div>
 </div>
 <div class="zoom">
-  <button type="button" id="z-fit" title="Все маршруты" data-i18n-title="Все маршруты">⌂</button>
-  <button type="button" id="z-in">+</button>
-  <button type="button" id="z-out">−</button>
+  <button type="button" class="icon-btn" id="z-fit" data-i18n-title="Все маршруты" aria-label="Все маршруты"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 10.5 12 4l8 6.5V20a1 1 0 0 1-1 1h-5v-6H10v6H5a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg></button>
+  <button type="button" class="icon-btn" id="z-in" data-i18n-title="Приблизить" aria-label="Приблизить"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
+  <button type="button" class="icon-btn" id="z-out" data-i18n-title="Отдалить" aria-label="Отдалить"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
 </div>
 <div id="live-trip" aria-live="polite"></div>
 <div id="offline-pill" data-i18n="Нет сети · карта из кэша">Нет сети · карта из кэша</div>
@@ -1759,6 +1784,12 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
   </div>
   
 <div id="analytics">
+  <div id="stats-empty" class="empty-hero" hidden>
+    <svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linejoin="round"/></svg>
+    <h3 data-i18n="Пока нет поездок">Пока нет поездок</h3>
+    <p data-i18n="Добавьте первый маршрут — самолёт, поезд или авто.">Добавьте первый маршрут — самолёт, поезд или авто.</p>
+    <button type="button" id="stats-empty-add" data-i18n="Добавить первую поездку">Добавить первую поездку</button>
+  </div>
   <div class="an-filters" id="an-filters">
     <select id="an-year"><option value="">Все годы</option></select>
     <select id="an-mode"><option value="">Все виды</option><option value="plane">Самолёт</option><option value="train">Поезд</option><option value="car">Авто</option></select>
@@ -1779,7 +1810,7 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
   <div class="an-block"><h3>Рекорды</h3><div id="stats-records"></div></div>
   <div class="an-block"><h3>Километры по транспорту</h3><div id="stats-transport"></div></div>
   <div class="an-block"><h3>Активные периоды</h3><div id="stats-timeline"></div></div>
-  <div class="an-block"><h3>Достижения</h3><div id="an-badges"></div></div>
+  <div class="an-block" id="an-badges-block"><h3>Достижения</h3><div id="an-badges"></div></div>
 </div>
 <div class="countries-open-wrap">
     <p class="countries-pct" id="countries-pct" hidden><b>0%</b><span id="countries-pct-sub">0 из 0</span></p>
@@ -1806,38 +1837,82 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
 </div>
 <div id="trip-window" class="trip-window" role="dialog" aria-modal="true" aria-labelledby="tw-title">
   <header>
-    <button type="button" id="tw-close" aria-label="Закрыть">←</button>
+    <button type="button" class="icon-btn" id="tw-close" data-i18n-title="Закрыть" aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <b id="tw-title">Добавить поездку</b>
   </header>
   <div class="tw-body">
-    <input id="tw-name" type="text" placeholder="Название поездки" data-i18n-ph="Название поездки" />
-    <h3 data-i18n="Укажите маршрут">Укажите маршрут</h3>
-    <div id="tw-free" class="tw-list"></div>
-    <button type="button" class="more-link" id="tw-free-more" hidden>Смотреть еще</button>
-    <select id="tw-mode">
-      <option value="plane" data-i18n="Самолёт">Самолёт</option>
-      <option value="train" data-i18n="Поезд">Поезд</option>
-      <option value="car" data-i18n="Авто">Авто</option>
-    </select>
-    <div class="field"><input id="tw-from" type="text" autocomplete="off" placeholder="Откуда" data-i18n-ph="Откуда" /><div class="suggest" id="tw-sug-from"></div></div>
-    <div class="field"><input id="tw-to" type="text" autocomplete="off" placeholder="Куда" data-i18n-ph="Куда" /><div class="suggest" id="tw-sug-to"></div></div>
-    <div class="tw-row">
-      <input id="tw-date" type="date" />
-      <input id="tw-time" type="time" />
+    <div class="tw-steps" id="tw-steps">
+      <span class="on" data-step="1" data-i18n="Маршрут">Маршрут</span>
+      <span data-step="2" data-i18n="Когда">Когда</span>
+      <span data-step="3" data-i18n="Итог">Итог</span>
     </div>
-    <div id="tw-sched" class="tw-list" hidden></div>
-    <button type="button" class="tw-add" id="tw-find-flight" data-i18n="Найти рейс" hidden>Найти рейс</button>
-    <div class="tw-both"><input id="tw-both" type="checkbox" /> <span>В обе стороны</span></div>
-    <input id="tw-date-back" type="date" hidden />
-    <button type="button" class="tw-add" id="tw-add-route" data-i18n="Добавить маршрут в поездку">Добавить маршрут в поездку</button>
-    <div id="tw-adsb" class="tw-list" hidden></div>
-    <div id="tw-routes" class="tw-list"></div>
-    <h3 data-i18n="Укажите страну">Укажите страну</h3>
-    <div class="field"><input id="tw-country" type="text" autocomplete="off" placeholder="Найти страну…" data-i18n-ph="Найти страну…" /><div class="suggest" id="tw-sug-country"></div></div>
-    <div id="tw-regions" class="region-row" hidden></div>
-    <div id="tw-picked" class="tw-picked"></div>
-    <button type="button" id="tw-save" data-i18n="Сохранить">Сохранить</button>
-    <button type="button" id="tw-delete" data-i18n="Удалить поездку" hidden>Удалить поездку</button>
+    <div class="tw-pane" data-pane="1">
+      <select id="tw-mode" class="native-hidden">
+        <option value="plane" data-i18n="Самолёт">Самолёт</option>
+        <option value="train" data-i18n="Поезд">Поезд</option>
+        <option value="car" data-i18n="Авто">Авто</option>
+      </select>
+      <div class="mode-picks" id="tw-mode-ui">
+        <button type="button" data-v="plane" data-i18n="Самолёт">Самолёт</button>
+        <button type="button" data-v="train" data-i18n="Поезд">Поезд</button>
+        <button type="button" data-v="car" data-i18n="Авто">Авто</button>
+      </div>
+      <div class="field"><label data-i18n="Откуда">Откуда</label>
+        <div class="pick-line"><input id="tw-from" type="text" autocomplete="off" placeholder="Откуда" data-i18n-ph="Откуда" />
+          <button type="button" class="icon-btn pick-btn" id="tw-pick-from" data-i18n-title="Точка на карте" aria-label="Точка на карте"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="12" cy="10" r="1.6" fill="currentColor"/></svg></button>
+        </div>
+        <div class="suggest" id="tw-sug-from"></div>
+      </div>
+      <div class="field"><label data-i18n="Куда">Куда</label>
+        <div class="pick-line"><input id="tw-to" type="text" autocomplete="off" placeholder="Куда" data-i18n-ph="Куда" />
+          <button type="button" class="icon-btn pick-btn" id="tw-pick-to" data-i18n-title="Точка на карте" aria-label="Точка на карте"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="12" cy="10" r="1.6" fill="currentColor"/></svg></button>
+        </div>
+        <div class="suggest" id="tw-sug-to"></div>
+      </div>
+      <div class="tw-both"><input id="tw-both" type="checkbox" /> <span data-i18n="В обе стороны">В обе стороны</span></div>
+    </div>
+    <div class="tw-pane" data-pane="2" hidden>
+      <div class="tw-row">
+        <input id="tw-date" type="date" aria-label="Дата" />
+        <input id="tw-time" type="time" aria-label="Время" />
+      </div>
+      <input id="tw-date-back" type="date" hidden aria-label="Дата обратно" />
+      <label id="tw-flight-label" data-i18n="Номер рейса">Номер рейса</label>
+      <input id="tw-flight" type="text" placeholder="SU 100" autocomplete="off" />
+      <button type="button" class="tw-add" id="tw-find-flight" data-i18n="Рейсы на эту дату" hidden>Рейсы на эту дату</button>
+      <div id="tw-sched" class="tw-list" hidden></div>
+      <div class="field" id="car-mode-wrap" style="display:none">
+        <label data-i18n="Как ехали">Как ехали</label>
+        <select id="f-car-path">
+          <option value="road" data-i18n="По дорогам">По дорогам</option>
+          <option value="offroad" data-i18n="Бездорожье (через точки)">Бездорожье (через точки)</option>
+        </select>
+      </div>
+      <div id="waypoints-wrap" style="display:none;margin-bottom:10px">
+        <label data-i18n="Промежуточные точки (обойти лес/реку)">Промежуточные точки (обойти лес/реку)</label>
+        <div id="wp-list"></div>
+        <button type="button" id="wp-add" class="tw-add" data-i18n="Точка на карте">Точка на карте</button>
+        <button type="button" id="wp-clear" class="tw-add" data-i18n="Очистить точки">Очистить точки</button>
+      </div>
+      <div id="tw-adsb" class="tw-list" hidden></div>
+    </div>
+    <div class="tw-pane" data-pane="3" hidden>
+      <input id="tw-name" type="text" placeholder="Название поездки" data-i18n-ph="Название поездки" />
+      <div id="tw-free" class="tw-list"></div>
+      <button type="button" class="more-link" id="tw-free-more" hidden>Смотреть еще</button>
+      <div id="tw-routes" class="tw-list"></div>
+      <button type="button" class="tw-add" id="tw-add-route" data-i18n="Добавить ещё один маршрут в поездку">Добавить ещё один маршрут в поездку</button>
+      <h3 data-i18n="Укажите страну">Укажите страну</h3>
+      <div class="field"><input id="tw-country" type="text" autocomplete="off" placeholder="Найти страну…" data-i18n-ph="Найти страну…" /><div class="suggest" id="tw-sug-country"></div></div>
+      <div id="tw-regions" class="region-row" hidden></div>
+      <div id="tw-picked" class="tw-picked"></div>
+      <button type="button" id="tw-save" data-i18n="Сохранить">Сохранить</button>
+      <button type="button" id="tw-delete" data-i18n="Удалить поездку" hidden>Удалить поездку</button>
+    </div>
+    <div class="tw-nav">
+      <button type="button" id="tw-back" data-i18n="Назад" hidden>Назад</button>
+      <button type="button" id="tw-next" data-i18n="Далее">Далее</button>
+    </div>
   </div>
 </div>
 <div id="view-banner" hidden></div>
@@ -1845,7 +1920,7 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
 <div id="settings-panel">
   <div class="panel-head">
     <b data-i18n="Настройки">Настройки</b>
-    <button type="button" id="set-close" class="panel-x" aria-label="Закрыть">×</button>
+    <button type="button" id="set-close" class="panel-x icon-btn" data-i18n-title="Закрыть" aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
   </div>
   <div class="navy-card">
   <label style="display:block;font-size:12px;color:var(--muted)" data-i18n="Тема">Тема</label>
@@ -1865,9 +1940,6 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
     <button type="button" data-view="map" class="on" aria-pressed="true" data-i18n="Карта">Карта</button>
     <button type="button" data-view="globe" aria-pressed="false" data-i18n="Глобус">Глобус</button>
   </div>
-  <label style="display:block;font-size:12px;color:var(--muted);margin-top:12px">Ключ AeroDataBox</label>
-  <input id="set-aero-key" type="password" autocomplete="off" placeholder="Ключ RapidAPI" style="width:100%;margin-top:6px" />
-  <p style="font-size:11px;color:var(--muted);margin-top:4px">Если пусто, берутся ключи из Layero. При лимите следующего: AERODATABOX_KEY_2 и AERODATABOX_KEY_3.</p>
   </div>
   <button type="button" id="set-account">Аккаунт</button>
   <button type="button" id="set-reset" style="margin-top:8px;background:rgba(220,60,60,.2);color:#f0a8a8" data-i18n="Сбросить мои маршруты">Сбросить мои маршруты</button>
@@ -1875,20 +1947,30 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
   <button type="button" class="legal-link" data-legal="terms" style="margin-top:12px;text-align:left" data-i18n="Пользовательское соглашение">Пользовательское соглашение</button>
   <button type="button" class="legal-link" data-legal="privacy" style="text-align:left" data-i18n="Обработка персональных данных">Обработка персональных данных</button>
   <button type="button" id="set-save" style="margin-top:8px" data-i18n="Сохранить настройки">Сохранить настройки</button>
+  <p class="ver-foot">Версия 0.0.39</p>
 </div>
 <div id="account-panel">
   <div class="panel-head">
     <b data-i18n="Управление аккаунтами">Управление аккаунтами</b>
-    <button type="button" id="account-close" class="panel-x" aria-label="Закрыть" data-i18n-title="Закрыть">×</button>
+    <button type="button" id="account-close" class="panel-x icon-btn" data-i18n-title="Закрыть" aria-label="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
   </div>
   <p class="hint" id="account-who"></p>
   <p class="hint" id="acct-err"></p>
+  <div class="navy-card" id="admin-aero" hidden>
+    <h3 data-i18n="Служебные настройки">Служебные настройки</h3>
+    <label data-i18n="Ключ AeroDataBox">Ключ AeroDataBox</label>
+    <div class="passline">
+      <input id="set-aero-key" type="password" autocomplete="off" placeholder="Ключ RapidAPI" />
+      <button type="button" class="eye" data-eye="set-aero-key" data-i18n="Показать">Показать</button>
+    </div>
+    <p class="hint" data-i18n="Если пусто, берутся ключи сервера. Запасные: AERODATABOX_KEY_2 и AERODATABOX_KEY_3.">Если пусто, берутся ключи сервера. Запасные: AERODATABOX_KEY_2 и AERODATABOX_KEY_3.</p>
+  </div>
   <div class="navy-card" id="accounts-card">
     <h3 id="accounts-title">Аккаунты</h3>
     <div id="admin-list"></div>
   </div>
   <div class="navy-card" id="users-box">
-    <h3><span class="plus-badge">+</span> <span data-i18n="Создать новый аккаунт">Создать новый аккаунт</span></h3>
+    <h3><svg class="ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true" style="vertical-align:-2px"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg> <span data-i18n="Создать новый аккаунт">Создать новый аккаунт</span></h3>
     <label data-i18n="Новый ник">Новый ник</label>
     <input id="new-login" type="text" placeholder="Введите ник" data-i18n-ph="Введите ник" autocomplete="off" />
     <label data-i18n="Новый пароль">Новый пароль</label>
@@ -1926,11 +2008,11 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
 </div>
 <div id="countries-panel">
   <div class="panel-head">
-    <button type="button" id="regions-back" class="panel-x" hidden aria-label="Назад">‹</button>
+    <button type="button" id="regions-back" class="panel-x icon-btn" hidden data-i18n-title="Назад" aria-label="Назад"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5 8 12l7 7" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
     <b id="countries-title">Посещённые страны</b>
-    <button type="button" id="countries-close" class="panel-x" aria-label="Закрыть" data-i18n-title="Закрыть">×</button>
+    <button type="button" id="countries-close" class="panel-x icon-btn" aria-label="Закрыть" data-i18n-title="Закрыть"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/></svg></button>
   </div>
-  <p class="hint" id="countries-hint">Нажмите ×, чтобы убрать страну или регион из посещённых.</p>
+  <p class="hint" id="countries-hint" data-i18n="Нажмите крестик, чтобы убрать страну или регион из посещённых.">Нажмите крестик, чтобы убрать страну или регион из посещённых.</p>
   <div class="visit-stats" id="visit-stats"></div>
   <input id="country-q" type="search" placeholder="Найти страну…" autocomplete="off" />
   <div id="country-picked"></div>
@@ -1993,16 +2075,16 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
         <option value="car" data-i18n="Авто">Авто</option>
       </select>
       <div class="mode-picks" id="f-mode-ui">
-        <button type="button" data-v="plane">Самолёт</button>
-        <button type="button" data-v="train">Поезд</button>
-        <button type="button" data-v="car">Авто</button>
+        <button type="button" data-v="plane" data-i18n="Самолёт">Самолёт</button>
+        <button type="button" data-v="train" data-i18n="Поезд">Поезд</button>
+        <button type="button" data-v="car" data-i18n="Авто">Авто</button>
       </div>
     </div>
     <div class="field">
       <label id="lbl-from">Откуда (аэропорт)</label>
       <div style="display:flex;gap:6px;align-items:center">
         <input id="f-from" type="text" autocomplete="off" placeholder="Начните вводить…" style="flex:1" />
-        <button type="button" id="pick-from" class="pick-btn" title="Точка на карте" style="display:none">📍</button>
+        <button type="button" class="icon-btn pick-btn" id="pick-from" data-i18n-title="Точка на карте" aria-label="Точка на карте" style="display:none"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="12" cy="10" r="1.6" fill="currentColor"/></svg></button>
       </div>
       <div class="suggest" id="sug-from"></div>
     </div>
@@ -2010,24 +2092,11 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
       <label id="lbl-to">Куда (аэропорт)</label>
       <div style="display:flex;gap:6px;align-items:center">
         <input id="f-to" type="text" autocomplete="off" placeholder="Начните вводить…" style="flex:1" />
-        <button type="button" id="pick-to" class="pick-btn" title="Точка на карте" style="display:none">📍</button>
+        <button type="button" class="icon-btn pick-btn" id="pick-to" data-i18n-title="Точка на карте" aria-label="Точка на карте" style="display:none"><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6.1 7-11a7 7 0 1 0-14 0c0 4.9 7 11 7 11z" fill="none" stroke="currentColor" stroke-width="1.75"/><circle cx="12" cy="10" r="1.6" fill="currentColor"/></svg></button>
       </div>
       <div class="suggest" id="sug-to"></div>
     </div>
-    <p id="pick-hint" style="display:none;font-size:12px;color:var(--muted);margin:0 0 8px">Для авто: 📍 — ткните точку на карте (Россия)</p>
-    <div class="field" id="car-mode-wrap" style="display:none">
-      <label data-i18n="Как ехали">Как ехали</label>
-      <select id="f-car-path">
-        <option value="road" data-i18n="По дорогам">По дорогам</option>
-        <option value="offroad" data-i18n="Бездорожье (через точки)">Бездорожье (через точки)</option>
-      </select>
-    </div>
-    <div id="waypoints-wrap" style="display:none;margin-bottom:10px">
-      <label style="font-size:11px;color:var(--muted)" data-i18n="Промежуточные точки (обойти лес/реку)">Промежуточные точки (обойти лес/реку)</label>
-      <div id="wp-list" style="font-size:12px;margin:6px 0;color:var(--muted)"></div>
-      <button type="button" id="wp-add" class="pick-btn" style="width:100%;height:40px;font-size:13px" data-i18n="＋ Точка на карте">＋ Точка на карте</button>
-      <button type="button" id="wp-clear" style="width:100%;margin-top:6px;padding:8px;border-radius:10px;border:1px solid var(--line);background:var(--chip);color:var(--text);font-size:12px" data-i18n="Очистить точки">Очистить точки</button>
-    </div>
+    <p id="pick-hint" style="display:none;font-size:12px;color:var(--muted);margin:0 0 8px">Для авто: точка на карте</p>
     <div class="field-row">
       <div class="field"><label data-i18n="Дата">Дата</label><input id="f-date" type="date" /></div>
       <div class="field"><label data-i18n="Время">Время</label><input id="f-time" type="time" /></div>
@@ -2149,6 +2218,6 @@ body[data-section="diary"] #play-trips{flex:0 0 auto!important}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=126"></script>
+<script type="module" src="src/main.js?v=129"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>

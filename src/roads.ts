@@ -881,7 +881,16 @@ export function updateLiveTrip() {
         box.innerHTML = "";
         return;
     }
-    var icons = { plane: "✈️", train: "🚂", car: "🚗", walk: "🚶", bike: "🚴", ship: "🚢" };
+    var marks: any = {
+        plane: "M21 16v-2l-8-5V3.5a1.5 1.5 0 0 0-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z",
+        train: "M8 3h8a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3V6a3 3 0 0 1 3-3zm-1 3v4h10V6a1 1 0 0 0-1-1H8a1 1 0 0 0-1 1zm3 12 2 3h-4l2-3zm4 0 2 3h-4l2-3z",
+        car: "M5 13 7 8a2 2 0 0 1 2-1h6a2 2 0 0 1 2 1l2 5v4h-2a1.5 1.5 0 0 1-1.5-1.5h-7A1.5 1.5 0 0 1 7 17H5v-4z"
+    };
+    function liveMark(mode) {
+        var d = marks[mode];
+        if (!d) return "";
+        return '<svg class="mode-ico" viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path d="' + d + '" fill="currentColor"/></svg>';
+    }
     var htmlL = '<div class="lt-title"><span>' + ui.t("Сейчас в пути") + " · " + live.length + '</span><button type="button" id="live-hide">' + ui.t("Убрать") + "</button></div><div class=\"lt-list\">";
     live.forEach(function (r, idx) {
         var g = buildGeoSync(r);
@@ -889,7 +898,7 @@ export function updateLiveTrip() {
         var pct = Math.round(p * 100);
         var fromL = ui.shortPlaceLabel(r.from, g && g.a && g.a.lat, g && g.a && g.a.lng) || r.from;
         var toL = ui.shortPlaceLabel(r.to, g && g.b && g.b.lat, g && g.b && g.b.lng) || r.to;
-        htmlL += '<div class="lt-item">' + (icons[r.mode] || "") + " " + fromL + " → " + toL +
+        htmlL += '<div class="lt-item">' + liveMark(r.mode) + " " + fromL + " → " + toL +
             '<div class="lt-meta">' + pct + "%" + (g ? " · ~" + Math.round(g.km * (1 - p)) + " км" : "") + "</div>" +
             '<div class="lt-bar"><i style="width:' + pct + '%"></i></div></div>';
         if (g && g.coords && ui.map) {
