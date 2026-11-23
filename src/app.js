@@ -690,6 +690,42 @@ UI.en["Номер рейса"] = "Flight number";
 UI.zh["Номер рейса"] = "航班号";
 UI.en["Рейсы на эту дату"] = "Flights on this date";
 UI.zh["Рейсы на эту дату"] = "这一天的航班";
+UI.en["Укажите откуда, куда и дату"] = "Enter the origin, destination and date";
+UI.zh["Укажите откуда, куда и дату"] = "请填写出发地、目的地和日期";
+UI.en["Укажите город из списка или точку на карте."] = "Pick a city from the list or a point on the map.";
+UI.zh["Укажите город из списка или точку на карте."] = "请从列表选城市，或在地图上选点。";
+UI.en["Точка не найдена. Выберите из подсказок при вводе."] = "Place not found. Choose one of the suggestions.";
+UI.zh["Точка не найдена. Выберите из подсказок при вводе."] = "没有找到地点。请从提示中选择。";
+UI.en["Нужны аэропорты с кодом IATA из подсказок."] = "Choose airports with an IATA code from the suggestions.";
+UI.zh["Нужны аэропорты с кодом IATA из подсказок."] = "请从提示中选择带 IATA 代码的机场。";
+UI.en["Один и тот же аэропорт"] = "That is the same airport";
+UI.zh["Один и тот же аэропорт"] = "这是同一个机场";
+UI.en["Между аэропортами Москвы регулярных пассажирских рейсов нет — это трансфер, не перелёт."] = "There is no scheduled flight between Moscow airports. That is a transfer, not a flight.";
+UI.zh["Между аэропортами Москвы регулярных пассажирских рейсов нет — это трансфер, не перелёт."] = "莫斯科机场之间没有定期航班，这是换乘，不是飞行。";
+UI.en["Между аэропортами одного города пассажирских рейсов нет (трансфер)."] = "There is no passenger flight between airports of the same city (transfer).";
+UI.zh["Между аэропортами одного города пассажирских рейсов нет (трансфер)."] = "同一城市的机场之间没有客运航班（换乘）。";
+UI.en["В базе нет такого рейса. Сохранить как свой маршрут?"] = "This flight is not in the database. Save it as your own route?";
+UI.zh["В базе нет такого рейса. Сохранить как свой маршрут?"] = "数据库里没有这个航班。仍要保存为自己的路线吗？";
+UI.en["Нет пути в ЖД-сети приложения. Сохранить свой маршрут?"] = "No railway in the app network. Save your own route?";
+UI.zh["Нет пути в ЖД-сети приложения. Сохранить свой маршрут?"] = "应用的铁路网里没有这条线。仍要保存吗？";
+UI.en["Между этими пунктами нет круглогодичной автодороги (изолированный район)."] = "There is no year-round road between these places.";
+UI.zh["Между этими пунктами нет круглогодичной автодороги (изолированный район)."] = "这两地之间没有全年通车的公路。";
+UI.en["Откуда: выберите аэропорт из списка"] = "From: choose an airport from the list";
+UI.zh["Откуда: выберите аэропорт из списка"] = "出发：请从列表选择机场";
+UI.en["Куда: выберите аэропорт из списка"] = "To: choose an airport from the list";
+UI.zh["Куда: выберите аэропорт из списка"] = "到达：请从列表选择机场";
+UI.en["Откуда: выберите вокзал/станцию из списка"] = "From: choose a station from the list";
+UI.zh["Откуда: выберите вокзал/станцию из списка"] = "出发：请从列表选择车站";
+UI.en["Куда: выберите вокзал/станцию из списка"] = "To: choose a station from the list";
+UI.zh["Куда: выберите вокзал/станцию из списка"] = "到达：请从列表选择车站";
+UI.en["Откуда: выберите город из списка"] = "From: choose a city from the list";
+UI.zh["Откуда: выберите город из списка"] = "出发：请从列表选择城市";
+UI.en["Куда: выберите город из списка"] = "To: choose a city from the list";
+UI.zh["Куда: выберите город из списка"] = "到达：请从列表选择城市";
+UI.en["Удалить маршрут?"] = "Delete this route?";
+UI.zh["Удалить маршрут?"] = "删除这条路线？";
+UI.en["Обрезка слишком большая"] = "The trim is too large";
+UI.zh["Обрезка слишком большая"] = "裁剪太多了";
 UI.en["Добавить ещё один маршрут в поездку"] = "Add another route to this trip";
 UI.zh["Добавить ещё один маршрут в поездку"] = "再添加一条路线";
 UI.en["Откуда"] = "From";
@@ -2522,7 +2558,7 @@ fFrom.addEventListener("change", function () {
     }
 });
 ;
-function openForm() { updateLabels(); modal.classList.add("on"); }
+function openForm() { updateLabels(); }
 function closeForm() { modal.classList.remove("on"); }
 var addTop = document.getElementById("add-btn");
 if (addTop)
@@ -2677,6 +2713,36 @@ function showFoundFlights(rows, note) {
         flightList.hidden = true;
     };
 }
+var formWarnKey = "";
+function wizardOpen() {
+    var trip = document.getElementById("trip-window");
+    return !!(trip && trip.classList.contains("on"));
+}
+function formNote(msg) {
+    var note = document.getElementById("tw-note");
+    if (!note || !wizardOpen())
+        return false;
+    note.hidden = !msg;
+    note.textContent = msg || "";
+    return true;
+}
+function formStop(msg) {
+    formWarnKey = "";
+    if (!formNote(t(msg)))
+        alert(t(msg));
+}
+function formAsk(msg) {
+    if (!wizardOpen())
+        return confirm(t(msg));
+    if (formWarnKey === msg) {
+        formWarnKey = "";
+        formNote("");
+        return true;
+    }
+    formWarnKey = msg;
+    formNote(t(msg) + " " + t("Нажмите ещё раз"));
+    return false;
+}
 function buildRouteFromForm() {
     var mode = fMode.value;
     var from = fFrom.value.trim(), to = fTo.value.trim();
@@ -2685,32 +2751,32 @@ function buildRouteFromForm() {
     var flight = document.getElementById("f-flight").value.trim() ||
         (mode === "plane" ? "Flight" : mode === "car" ? "Авто" : mode === "ship" ? "Паром" : mode === "walk" ? "Прогулка" : mode === "bike" ? "Вело" : "Train");
     if (!from || !to || !date) {
-        alert("Укажите откуда, куда и дату");
+        formStop("Укажите откуда, куда и дату");
         return;
     }
     var pa = place(from), pb = place(to);
     if (!pa || !pb) {
-        alert(mode === "car"
-            ? "Укажите город из списка или точку на карте (кнопка 📍)."
+        formStop(mode === "car"
+            ? "Укажите город из списка или точку на карте."
             : "Точка не найдена. Выберите из подсказок при вводе.");
         return;
     }
     if (mode === "plane") {
         var ca = airportCodeOf(pa), cb = airportCodeOf(pb);
         if (!ca || !cb) {
-            alert("Нужны аэропорты с кодом IATA из подсказок.");
+            formStop("Нужны аэропорты с кодом IATA из подсказок.");
             return;
         }
         if (ca && cb) {
             var MOSC = { SVO: 1, DME: 1, VKO: 1, ZIA: 1 };
             if (String(ca).toUpperCase() === String(cb).toUpperCase()) {
-                alert("Один и тот же аэропорт");
+                formStop("Один и тот же аэропорт");
                 return;
             }
             if (!flightAllowed(ca, cb) && ca && cb) {
                 var MOSC = { SVO: 1, DME: 1, VKO: 1, ZIA: 1 };
                 if (MOSC[String(ca).toUpperCase()] && MOSC[String(cb).toUpperCase()]) {
-                    alert("Между аэропортами Москвы регулярных пассажирских рейсов нет — это трансфер, не перелёт.");
+                    formStop("Между аэропортами Москвы регулярных пассажирских рейсов нет — это трансфер, не перелёт.");
                     return;
                 }
             }
@@ -2720,29 +2786,29 @@ function buildRouteFromForm() {
                 for (hi = 0; hi < METRO_HARD.length; hi++) {
                     hg = METRO_HARD[hi];
                     if (hg.indexOf(caU) >= 0 && hg.indexOf(cbU) >= 0) {
-                        alert("Между аэропортами одного города пассажирских рейсов нет (трансфер).");
+                        formStop("Между аэропортами одного города пассажирских рейсов нет (трансфер).");
                         return;
                     }
                 }
             }
         }
         if (isStrictRoutes() && !flightAllowed(ca, cb)) {
-            if (!confirm("В базе нет такого рейса. Сохранить как свой маршрут?"))
+            if (!formAsk("В базе нет такого рейса. Сохранить как свой маршрут?"))
                 return;
         }
         var paw = typeof planeNavWarnings === "function" ? planeNavWarnings(ca, cb, date) : [];
-        if (paw.length && !confirm("Авиация:\n• " + paw.join("\n• ") + "\n\nСохранить?"))
+        if (paw.length && !formAsk("Авиация: " + paw.join("; ") + ". Сохранить?"))
             return;
     }
     if (mode === "train") {
         if (isStrictRoutes() && !trainAllowed(from, to)) {
-            if (!confirm("Нет пути в ЖД-сети приложения. Сохранить свой маршрут?"))
+            if (!formAsk("Нет пути в ЖД-сети приложения. Сохранить свой маршрут?"))
                 return;
         }
     }
     if (mode === "car") {
         if (!carAllowed(pa.label || from, pb.label || to)) {
-            alert("Между этими пунктами нет круглогодичной автодороги (изолированный район).");
+            formStop("Между этими пунктами нет круглогодичной автодороги (изолированный район).");
             return;
         }
     }
@@ -2759,11 +2825,11 @@ function buildRouteFromForm() {
             return false;
         };
         if (!isAir(pa)) {
-            alert("Откуда: выберите аэропорт из списка");
+            formStop("Откуда: выберите аэропорт из списка");
             return;
         }
         if (!isAir(pb)) {
-            alert("Куда: выберите аэропорт из списка");
+            formStop("Куда: выберите аэропорт из списка");
             return;
         }
     }
@@ -2780,28 +2846,28 @@ function buildRouteFromForm() {
             return false;
         };
         if (!isSt(pa)) {
-            alert("Откуда: выберите вокзал/станцию из списка");
+            formStop("Откуда: выберите вокзал/станцию из списка");
             return;
         }
         if (!isSt(pb)) {
-            alert("Куда: выберите вокзал/станцию из списка");
+            formStop("Куда: выберите вокзал/станцию из списка");
             return;
         }
     }
     if (mode === "ship") {
         if (!pa) {
-            alert("Откуда: выберите город из списка");
+            formStop("Откуда: выберите город из списка");
             return;
         }
         if (!pb) {
-            alert("Куда: выберите город из списка");
+            formStop("Куда: выберите город из списка");
             return;
         }
     }
     if (mode === "ship") {
         var nw = shipNavWarnings(pa, pb, date);
         if (nw.length) {
-            if (!confirm("Навигационные ограничения:\n• " + nw.join("\n• ") + "\n\nВсё равно сохранить?"))
+            if (!formAsk("Навигационные ограничения: " + nw.join("; ") + ". Всё равно сохранить?"))
                 return;
         }
     }
@@ -2833,7 +2899,7 @@ function buildRouteFromForm() {
         var tee = parseInt((document.getElementById("trim-end") || {}).value, 10) || 0;
         if (tss > 0 || tee > 0) {
             if (tss + tee >= coords.length) {
-                alert("Обрезка слишком большая");
+                formStop("Обрезка слишком большая");
                 return;
             }
             coords = coords.slice(tss, coords.length - tee);
@@ -5400,7 +5466,7 @@ function undoDelete() {
 function deleteRoute(id) {
     if (!id)
         return;
-    if (!confirm("Удалить маршрут?"))
+    if (!formAsk("Удалить маршрут?"))
         return;
     rememberDeleted(deleted, id).forEach(function (x) { if (deleted.indexOf(x) < 0)
         deleted.push(x); });
@@ -5829,7 +5895,7 @@ function openTripWindow(seed) {
             if (all[i].id === seed.tripId)
                 existing = all[i];
     }
-    tw = { id: existing ? existing.id : null, title: existing ? (existing.title || "") : "", routes: [], countries: (existing && existing.countries || []).slice(), regions: (existing && existing.regions || []).slice(), focus: "", freeAll: false, editId: seed.editRoute ? seed.editRoute.id : null };
+    tw = { id: existing ? existing.id : null, title: existing ? (existing.title || "") : "", routes: [], countries: (existing && existing.countries || []).slice(), regions: (existing && existing.regions || []).slice(), focus: "", freeAll: false, editId: seed.editRoute ? seed.editRoute.id : null, looseEdit: !!(seed.editRoute && !existing) };
     if (existing) {
         (existing.routes || []).forEach(function (id) {
             var r = null, k;
@@ -5895,8 +5961,12 @@ function openTripWindow(seed) {
     if (typeof window.showTwStep === "function")
         window.showTwStep(1);
     var w = document.getElementById("trip-window");
-    if (w)
+    if (w) {
+        w.classList.toggle("tw-loose", !!tw.looseEdit);
         w.classList.add("on");
+    }
+    formWarnKey = "";
+    formNote("");
     if (typeof loadTripSchedule === "function")
         loadTripSchedule();
     if (typeof applyI18n === "function")
@@ -6814,7 +6884,7 @@ function bindTripWindow() {
         var both = document.getElementById("tw-both");
         var backDateEl = document.getElementById("tw-date-back");
         if (both && both.checked && !(backDateEl && backDateEl.value)) {
-            alert(t("Укажите дату обратно"));
+            formStop("Укажите дату обратно");
             return Promise.resolve(false);
         }
     function pushOne(m) {
@@ -6924,7 +6994,7 @@ function bindTripWindow() {
             if (!ok)
                 return;
             if (!tw.routes.length && !tw.countries.length && !tw.regions.length) {
-                alert(t("Отметьте страну, регион или маршрут"));
+                formStop("Отметьте страну, регион или маршрут");
                 return;
             }
             var ids = [], i, bag;
@@ -6954,7 +7024,8 @@ function bindTripWindow() {
                     title = t("Поездка");
             }
             var tid = tw.id || ("j" + Date.now());
-            saveTrips(upsertTrip(loadTrips(), { id: tid, title: title, countries: tw.countries.slice(), regions: tw.regions.slice(), routes: ids }));
+            if (!(tw.looseEdit && !tw.id))
+                saveTrips(upsertTrip(loadTrips(), { id: tid, title: title, countries: tw.countries.slice(), regions: tw.regions.slice(), routes: ids }));
             closeTripWindow();
             render();
         });
@@ -6962,7 +7033,7 @@ function bindTripWindow() {
     document.getElementById("tw-delete").onclick = function () {
         if (!tw.id)
             return;
-        if (!confirm(t("Удалить поездку") + "?"))
+        if (!formAsk("Удалить поездку"))
             return;
         saveTrips(removeTrip(loadTrips(), tw.id));
         if (selectedTripId === tw.id)

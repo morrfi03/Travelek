@@ -3,8 +3,8 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
 <meta http-equiv="Pragma" content="no-cache" /><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>ТравелЕк</title>
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
-<link rel="modulepreload" href="src/main.js?v=129">
-<link rel="modulepreload" href="src/app.js?v=129">
+<link rel="modulepreload" href="src/main.js?v=130">
+<link rel="modulepreload" href="src/app.js?v=130">
 <link rel="modulepreload" href="src/roads.js?v=106">
 <link rel="modulepreload" href="src/cloud.js?v=109">
 <link rel="modulepreload" href="src/atlas.js?v=110">
@@ -1674,6 +1674,10 @@ input,select,textarea{font-size:16px!important}
 .tw-nav button{flex:1;min-height:44px;border:0;border-radius:12px;background:var(--chip);color:var(--text);font-weight:650}
 .pick-line{display:flex;gap:8px;align-items:center}
 .pick-line input{flex:1;min-width:0}
+.tw-note{margin:0 0 10px;color:#c44747;font-size:15px;line-height:1.35}
+.tw-note[hidden]{display:none!important}
+#trip-window.tw-loose .tw-trip-only{display:none!important}
+#modal{display:none!important}
 #admin-aero[hidden]{display:none!important}
 #stats-empty[hidden]{display:none!important}
 #tw-flight[hidden],#tw-flight-label[hidden],#tw-find-flight[hidden],#tw-back[hidden],#tw-next[hidden],#tw-date-back[hidden],#tw-delete[hidden],#tw-pick-from[hidden],#tw-pick-to[hidden]{display:none!important}
@@ -1846,6 +1850,7 @@ input,select,textarea{font-size:16px!important}
       <span data-step="2" data-i18n="Когда">Когда</span>
       <span data-step="3" data-i18n="Итог">Итог</span>
     </div>
+    <p id="tw-note" class="tw-note" hidden></p>
     <div class="tw-pane" data-pane="1">
       <select id="tw-mode" class="native-hidden">
         <option value="plane" data-i18n="Самолёт">Самолёт</option>
@@ -1897,15 +1902,15 @@ input,select,textarea{font-size:16px!important}
       <div id="tw-adsb" class="tw-list" hidden></div>
     </div>
     <div class="tw-pane" data-pane="3" hidden>
-      <input id="tw-name" type="text" placeholder="Название поездки" data-i18n-ph="Название поездки" />
+      <input id="tw-name" class="tw-trip-only" type="text" placeholder="Название поездки" data-i18n-ph="Название поездки" />
       <div id="tw-free" class="tw-list"></div>
       <button type="button" class="more-link" id="tw-free-more" hidden>Смотреть еще</button>
       <div id="tw-routes" class="tw-list"></div>
       <button type="button" class="tw-add" id="tw-add-route" data-i18n="Добавить ещё один маршрут в поездку">Добавить ещё один маршрут в поездку</button>
-      <h3 data-i18n="Укажите страну">Укажите страну</h3>
-      <div class="field"><input id="tw-country" type="text" autocomplete="off" placeholder="Найти страну…" data-i18n-ph="Найти страну…" /><div class="suggest" id="tw-sug-country"></div></div>
-      <div id="tw-regions" class="region-row" hidden></div>
-      <div id="tw-picked" class="tw-picked"></div>
+      <h3 class="tw-trip-only" data-i18n="Укажите страну">Укажите страну</h3>
+      <div class="field tw-trip-only"><input id="tw-country" type="text" autocomplete="off" placeholder="Найти страну…" data-i18n-ph="Найти страну…" /><div class="suggest" id="tw-sug-country"></div></div>
+      <div id="tw-regions" class="region-row tw-trip-only" hidden></div>
+      <div id="tw-picked" class="tw-picked tw-trip-only"></div>
       <button type="button" id="tw-save" data-i18n="Сохранить">Сохранить</button>
       <button type="button" id="tw-delete" data-i18n="Удалить поездку" hidden>Удалить поездку</button>
     </div>
@@ -2218,6 +2223,6 @@ input,select,textarea{font-size:16px!important}
   window.addEventListener("load", lock);
 })();
 </script>
-<script type="module" src="src/main.js?v=129"></script>
+<script type="module" src="src/main.js?v=130"></script>
 <div id="undo-toast" hidden><span id="undo-text">Удалено</span><button type="button" id="undo-btn">Отменить</button></div>
 </body></html>
